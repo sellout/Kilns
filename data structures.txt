@@ -1,0 +1,19 @@
+= Implementation notes on the kell calculus
+
+
+== Data structures
+
+In a kell, we need to quickly get
+
+1) the list of patterns containing a particular message name
+2) the list of messages
+
+Therefore, each kell should have a hash-table of message-names, with possibly multiple values for each key (and it should be a weak hash-table, maybe – or do we explicitly remove values?)
+
+There should also be a hash-table with all patterns indexed by each message name they contain, and perhaps also split by message type – local, up, down, and kell.
+
+I don't think there's any way to have multi-vauled hash-tables (IE, hash-tables with a list as the value) be weak. We'll have to manually manage the entries.
+
+== distribution
+
+There needs to be a subclass of KELL called NETWORK-KELL or something. An instance of this is the parent kell of the *TOP-KELL*. The NETWORK-KELL knows how do deal with the distributed processing of things – matching patterns across multiple machines, etc.

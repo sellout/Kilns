@@ -1,0 +1,56 @@
+#+xcvb (module (:depends-on ("pnpjk-calculus")))
+(in-package :kilns)
+
+;;; As an illlustration of the expressive power of the polyadic name-passing jK
+;;; calculus, we consider an encoding of a π-calculus based instance (without
+;;; hierarchical localities) of the generic membrane model developed by
+;;; G. Boudol [4]. In this model, a locality has the form a(S)[P], similar to
+;;; that of M-calculus localities, with a control part S and a process part P.
+;;; We thus consider an instance of the membrane model where both the control
+;;; and process parts are written using the polyadic π-calculus. We refer the
+;;; reader to G. Boudol’s article in this volume for details about the membrane
+;;; model.
+
+;;; FIXME: turn these into code
+;;; [nil]a =∆ 0
+;;; [n]a =∆ n
+;;; [u(xe).S]a =∆ u␣xe␣␣[S]a
+;;; [!u(xe).S]a =∆ u␣xe␣ [S]a
+;;; [u␣Ve␣]a =∆ u␣[Ve]a␣
+;;; [νn.S]a =∆ νn.[S]a
+;;; [out␣b,M␣.S]a =∆ out␣b,[M]a␣.[S]a
+;;; [up␣M␣]a =∆	up␣[M]a␣
+;;; [in␣P␣.S]a =∆ in␣a,[P]a␣.[S]a
+;;; [S | T]a =∆ [S]a | [T]a
+;;; [a(S)[P]] =∆ νc.a[MS(a) | [S]a | c[MP(a) | [P ]a]] | Env
+;;; [A	B] =∆ [A] | [B]
+;;; [a␣M␣] =∆ in␣a, [M]a␣
+;;; [νn.A] =∆ νn.[A]
+
+;;; The encoding of the π-calculus instance of the membrane model is given by
+;;; the functions [], defined inductively in Figure 13 (where S, T are arbitrary
+;;; control processes or plain processes, A, B are networks, i.e. parallel
+;;; compositions of localities and network messages of the form a␣M␣, and
+;;; where M are local messages of the form u␣Ṽ␣, with u a channel name, V a
+;;; value, which can be either a name or a process):
+;;; 
+;;; The auxiliary processes MS(a), MP(a) and Env are defined as follows (note
+;;; that they allow the incoming of messages from the outside—environment of
+;;; the locality or the control process S —and from the inside—the plain
+;;; process P):
+
+(def MS (a)
+  (receive (up-message 'in (a x)) x)
+  (receive (down-message 'up (x)) S x))
+
+(def MP (a)
+  (receive (up-message 'in (a x)) x))
+
+(def Env ()
+  (receive (down-message 'out (?b x)) (message 'in (b x))))
+
+;;; As one can see, the notion of membrane readily translates into a pair of
+;;; nested kells, with the outer one containing an encoding of the control part,
+;;; and the inner one containing an encoding of the process part. It is
+;;; important to note that the process Env above is coalescing, i.e.
+;;; Env | Env ∼c Env, which ensures that the encoding is compositional.

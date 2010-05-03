@@ -1,0 +1,13 @@
+(defmacro defvar (name)
+  `(message ,name u))
+
+(defmacro lambda ((parameter) body)
+  `(receive u (,parameter v) (message ,body v)))
+
+(defmacro apply (function argument)
+  (let ((v (gensym))
+        (x (gensym)))
+    `(new ,v
+          {(message ,function ,v)
+           (new ,x {(message ,v (,x ,u))
+                    (receive* ,x ,argument)})})))
