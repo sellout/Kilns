@@ -54,6 +54,9 @@
 
 (defgeneric collect-channel-names (process kell)
   (:documentation "This returns a list of events to add to the event queue.")
+  (:method ((process process-variable) (kell kell))
+    ;; FIXME: not good enough. Need to prevent it from getting into the kell.
+    (warn "Can't have a free variable in an active kell."))
   (:method ((process parallel-composition) (kell kell))
     (apply #'append
            (map-parallel-composition (lambda (proc)
@@ -139,12 +142,17 @@
 
 (defmethod trigger-process ((trigger trigger) mapping)
   "Activates process after substituting the process-variables in the trigger."
-  ;;(mapc (lambda (process-variable)
+  (mapc (lambda (process-variable)
           ;; FIXME: this will replace the local instances of the variables, but
           ;;        not ones more deeply nested.
-  ;;        (replace-variable (gethash (name process-variable) mapping)
-  ;;                           (process trigger)))
-  ;;      (process-variables-in (process trigger)))
+          (warn "Replacing ~a with ~a" process-variable
+                (find-process-variable-value process-variable mapping))
+          (setf (process trigger)
+                (compose-processes (find-process-variable-value process-variable
+                                                                mapping)
+                                   (process trigger)))
+          (remove-process-from process-variable trigger))
+        (process-variables-in (process trigger)))
   (remove-process trigger)
   (add-process (process trigger) (parent trigger)))
 
@@ -160,7 +168,7 @@
                 "The pattern ~a will match the process ~a and result in the ~
                  process ~a.~%"
                 (pattern trigger) matched-process (process trigger))
-        (trigger-process trigger nil) ;; FIXME: need to pass the var mapping
+        (trigger-process trigger (unify (pattern trigger) matched-process))
         (activate-continuation matched-process)))))
 
 (defgeneric really-match-on (name type kell)

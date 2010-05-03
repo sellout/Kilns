@@ -14,12 +14,18 @@
 (defvar ∅ (make-instance 'null-process))
 
 (defclass process-variable (process)
-  (name :type symbol)
+  ((name :initarg :name :type symbol :reader name))
   (:documentation
    "These only exist in “potential” processes. When a trigger is triggered, we
     convert each process-variable into its “realized” process and do so
     recursively through nested processes, except where the variable is shadowed
     by a more local variable with the same name."))
+
+(defmethod print-object ((obj process-variable) stream)
+  (format stream "?~a" (name obj)))
+
+(defun process-variable (name)
+  (make-instance 'process-variable :name name))
 
 (defclass trigger (process)
   ((pattern :initarg :pattern :type pattern :accessor pattern)
@@ -130,6 +136,15 @@
   (:method (process kell)
     (warn "The process ~a is not contained in ~a, and thus can not be removed."
           process (process kell)))
+  (:method ((process process-variable) trigger)
+    (if (find process (process-variables-in (process trigger)))
+      (typecase (process trigger)
+        (process-variable (setf (process trigger) ∅))
+        (parallel-composition (setf (process-variables (process trigger))
+                                    (delete process
+                                            (process-variables (process trigger))))))
+      (warn "The process ~a is not contained in ~a, and thus can not be removed."
+            process (process trigger))))
   (:method ((process message) kell)
     (if (find process (messages-in (process kell)))
       (typecase (process kell)
