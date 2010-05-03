@@ -5,6 +5,9 @@
 
 (in-package #:kilns)
 
+(defvar *kilns-readtable* (copy-readtable))
+(setf (readtable-case *kilns-readtable*) :invert)
+
 (defvar *top-kell*)
 
 ;;; FIXME: make sure these threadsafe functions truly are
@@ -97,7 +100,8 @@
 (defun toplevel (cpu-count)
   (let* ((*top-kell* (make-instance 'kell :name (gensym "LOCALHOST")))
          (kilns (start-kilns cpu-count))
-         (*package* (find-package :kilns))) ;; should use a different package
+         (*package* (find-package :kilns)) ; FIXME: should use a different package
+         (*readtable* *kilns-readtable*))
     ;; dummy kell for now, to handle locking and other places we refer to parents
     (setf (parent *top-kell*) (make-instance 'kell :name (gensym "NETWORK")))
     (unwind-protect
