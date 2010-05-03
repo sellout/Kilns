@@ -237,9 +237,10 @@
   (:method (process-a (process-b parallel-composition))
     "This method just swaps the args so the function is commutatitve."
     (compose-processes process-b process-a))
-  (:method ((process-a parallel-composition) process-b)
-    "This method catches us to avoid infinite recursion."
-    (error "~a is not a valid process." process-b))
+  ;; FIXME: I think we don't need this method
+  ;;(:method ((process-a parallel-composition) process-b)
+  ;;  "This method catches us to avoid infinite recursion."
+  ;;  (error "~a is not a valid process." process-b))
   (:method ((process-a parallel-composition) (process-b message))
     (push process-b (messages process-a))
     process-a)
