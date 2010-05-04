@@ -113,7 +113,7 @@
     access in the way we usually deal with them."))
 
 (defmethod print-object ((obj parallel-composition) stream)
-  (format stream "~{~a~^|~}"
+  (format stream "~{~a~^ | ~}"
           (map-parallel-composition #'identity obj)))
 
 (defun parallel-composition (&rest processes)

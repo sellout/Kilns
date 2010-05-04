@@ -35,7 +35,7 @@
    (kell-message-pattern :initform nil :type list :accessor kell-message-pattern)))
 
 (defmethod print-object ((obj pattern) stream)
-  (format stream "~{~a~^|~}"
+  (format stream "~{~a~^ | ~}"
           (remove-if (lambda (string) (= (length string) 0))
                      (list (format nil "~{~a~^|~}" (local-message-pattern obj))
                            (format nil "~{~a↓~^|~}" (down-message-pattern obj))
