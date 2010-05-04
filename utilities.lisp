@@ -7,3 +7,8 @@
   (and (null (set-difference left right))
        (null (set-difference right left))))
 
+(defmacro def (name (&rest parameters) &body body)
+  "Allows us to define new operations. It's currently just like CL's DEFMACRO, but
+   hopefully I can improve on that."
+  `(defmacro ,name (,@parameters)
+     ,@body))
