@@ -38,8 +38,8 @@
   (make-instance 'trigger :pattern pattern :process process))
 
 (defclass restriction (process)
-  ((name :initarg :name :type name)
-   (process :initarg process :type process))
+  ((name :initarg :name :type name :reader name)
+   (process :initarg :process :type process :reader process))
   (:documentation
    "We store everything in normal form, which means that restrictions don't
     actually exist, per se. They are all brought to the top-level as global
@@ -49,11 +49,14 @@
     managed."))
 
 (defmethod print-object ((obj restriction) stream)
-  (format stream "ν~a.~a" (name obj) (process obj)))
+  (format stream "(ν~a.~a)" (name obj) (process obj)))
+
+(defun restriction (name process)
+  (make-instance 'restriction :name name :process process))
 
 ;;; FIXME: need  a better name
 (defclass message-structure (process)
-  ((name :initarg :name :type name :reader name)
+  ((name :initarg :name :type name :accessor name)
    (process :initarg :process :initform ∅ :type process :accessor process)
    (continuation :initarg :continuation :initform ∅ :type process
                  :reader continuation))
