@@ -37,10 +37,10 @@
 (defmethod print-object ((obj pattern) stream)
   (format stream "~{~a~^ | ~}"
           (remove-if (lambda (string) (= (length string) 0))
-                     (list (format nil "~{~a~^|~}" (local-message-pattern obj))
-                           (format nil "~{~a↓~^|~}" (down-message-pattern obj))
-                           (format nil "~{~a↑~^|~}" (up-message-pattern obj))
-                           (format nil "~{~a~^|~}" (kell-message-pattern obj))))))
+                     (list (format nil "~{~a~^ | ~}" (local-message-pattern obj))
+                           (format nil "~{~a↓~^ | ~}" (down-message-pattern obj))
+                           (format nil "~{~a↑~^ | ~}" (up-message-pattern obj))
+                           (format nil "~{~a~^ | ~}" (kell-message-pattern obj))))))
 
 ;;; FIXME: somewhere around here we need to ensure only one kell is in the pattern
 
