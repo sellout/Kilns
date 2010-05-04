@@ -129,7 +129,7 @@
     (list (mapcar (lambda (pattern)
                     (block per-pattern
                       (mapc (lambda (process)
-                              (let ((subst (match-local pattern process)))
+                              (let ((subst (match-local pattern process substitutions)))
                                 (when subst
                                   (setf substitutions subst)
                                   (return-from per-pattern process))))
@@ -146,7 +146,7 @@
     (list (mapcar (lambda (pattern)
                     (block per-pattern
                       (mapc (lambda (process)
-                              (let ((subst (match-down pattern process)))
+                              (let ((subst (match-down pattern process substitutions)))
                                 (when subst
                                   (setf substitutions subst)
                                   (return-from per-pattern process))))
@@ -163,7 +163,7 @@
     (list (mapcar (lambda (pattern)
                     (block per-pattern
                       (mapc (lambda (process)
-                              (let ((subst (match-up pattern process)))
+                              (let ((subst (match-up pattern process substitutions)))
                                 (when subst
                                   (setf substitutions subst)
                                   (return-from per-pattern process))))
@@ -180,7 +180,7 @@
     (list (mapcar (lambda (pattern)
                     (block per-pattern
                       (mapc (lambda (process)
-                              (let ((subst (match-kell pattern process)))
+                              (let ((subst (match-kell pattern process substitutions)))
                                 (when subst
                                   (setf substitutions subst)
                                   (return-from per-pattern process))))
