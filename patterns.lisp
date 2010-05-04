@@ -42,6 +42,8 @@
                            (format nil "~{~a↑~^|~}" (up-message-pattern obj))
                            (format nil "~{~a~^|~}" (kell-message-pattern obj))))))
 
+;;; FIXME: somewhere around here we need to ensure only one kell is in the pattern
+
 (defun message-pattern (name &optional process)
   (let ((pattern (make-instance 'pattern)))
     (push (message name process) (local-message-pattern pattern))
@@ -78,38 +80,114 @@
 
 ;;; – One can decide whether a pattern matches a given term. More precisely,
 ;;;   each pattern language is equipped with a decidable relation match, which
-;;;   associates a pair ␣ξ,M␣, consisting of a pattern ξ and a multiset of
+;;;   associates a pair ⟨ξ,M⟩, consisting of a pattern ξ and a multiset of
 ;;;   annotated messages M, with defined substitutions that make the pattern
 ;;;   match the multiset of annotated messages, if there are such substitutions,
 ;;;   and with ∅ otherwise (see section 3.2 for more details).
-;;;   We write θ ∈ match(ξ, M) for ␣␣ξ, M ␣, θ␣ ∈ match.
+;;;   We write θ ∈ match(ξ, M) for ⟨⟨ξ, M⟩, θ⟩ ∈ match.
 
-;;; FIXME: need to sort all this out with some cl-unification
-
-(defun match
-    (pattern kell &optional (pattern-language *current-pattern-language*))
-  (match-local (local-message-pattern pattern) (messages-in (process kell))
-               pattern-language)
-  (match-down (down-message-pattern pattern)
-              (messages-in (process (subkells kell)))
-              pattern-language)
-  (match-up (up-message-pattern pattern) (messages-in (process (parent kell)))
-            pattern-language)
-  (match-kell (kell-message-pattern pattern) (kells-in (process kell))
-              pattern-language)
-  ;;(reduce #'union
-  ;;        (mapcar (lambda (message-set)
-  ;;                  (dotimes (j (length patterns))
-  ;;                    (message-match *current-pattern-language*
-  ;;                                   (aref patterns j)
-  ;;                                   (aref message-set j))))
-  ;;                (permute annotated-messages)))
+(defun match (pattern kell &optional (pattern-language *current-pattern-language*))
+  ;; NOTE: In theory I might have to worry about the same variable occuring multiple
+  ;;       times in a pattern, but I have to read more to find out one way or the
+  ;;       other. In any case, I'm currently disallowing it.
+  (let ((substitutions (make-empty-environment)))
+    (list (append (destructuring-bind (procs subst)
+                                      (match-local (local-message-pattern pattern)
+                                                   (messages kell)
+                                                   substitutions)
+                    (setf substitutions subst)
+                    procs)
+                  ;; FIXME: need to return only _one_ of the results
+                  (mapcar (lambda (subkell)
+                            (destructuring-bind (procs subst)
+                                                (match-down (down-message-pattern pattern)
+                                                            (messages subkell)
+                                                            substitutions)
+                              (setf substitutions subst)
+                              procs))
+                          (subkells kell))
+                  (destructuring-bind (procs subst)
+                                      (match-up (up-message-pattern pattern)
+                                                (messages (parent kell))
+                                                substitutions)
+                    (setf substitutions subst)
+                    procs)
+                  (destructuring-bind (procs subst)
+                                      (match-kell (kell-message-pattern pattern)
+                                                  (kells kell)
+                                                  substitutions)
+                    (setf substitutions subst)
+                    procs))
+          substitutions))
   )
 
-(defgeneric match-local (pattern process &optional pattern-language))
-(defgeneric match-down (pattern process &optional pattern-language))
-(defgeneric match-up (pattern process &optional pattern-language))
-(defgeneric match-kell (pattern process &optional pattern-language))
+(defgeneric match-local (pattern process &optional substitutions)
+  (:method ((patterns list) (processes hash-table)
+            &optional (substitutions (make-empty-environment)))
+    "Finds one match in PROCESSES for each item in PATTERNS. Also ensures that the same
+     process doesn’t match multiple patterns."
+    (list (mapcar (lambda (pattern)
+                    (block per-pattern
+                      (mapc (lambda (process)
+                              (let ((subst (match-local pattern process)))
+                                (when subst
+                                  (setf substitutions subst)
+                                  (return-from per-pattern process))))
+                            (gethash (name pattern) processes))
+                      (error "no match")))
+                  patterns)
+          substitutions)))
+
+(defgeneric match-down (pattern process &optional substitutions)
+  (:method ((patterns list) (processes hash-table)
+            &optional (substitutions (make-empty-environment)))
+    "Finds one match in PROCESSES for each item in PATTERNS. Also ensures that the same
+     process doesn’t match multiple patterns."
+    (list (mapcar (lambda (pattern)
+                    (block per-pattern
+                      (mapc (lambda (process)
+                              (let ((subst (match-down pattern process)))
+                                (when subst
+                                  (setf substitutions subst)
+                                  (return-from per-pattern process))))
+                            (gethash (name pattern) processes))
+                      (error "no match")))
+                  patterns)
+          substitutions)))
+
+(defgeneric match-up (pattern process &optional substitutions)
+  (:method ((patterns list) (processes hash-table)
+            &optional (substitutions (make-empty-environment)))
+    "Finds one match in PROCESSES for each item in PATTERNS. Also ensures that the same
+     process doesn’t match multiple patterns."
+    (list (mapcar (lambda (pattern)
+                    (block per-pattern
+                      (mapc (lambda (process)
+                              (let ((subst (match-up pattern process)))
+                                (when subst
+                                  (setf substitutions subst)
+                                  (return-from per-pattern process))))
+                            (gethash (name pattern) processes))
+                      (error "no match")))
+                  patterns)
+          substitutions)))
+
+(defgeneric match-kell (pattern process &optional substitutions)
+  (:method ((patterns list) (processes hash-table)
+            &optional (substitutions (make-empty-environment)))
+    "Finds one match in PROCESSES for each item in PATTERNS. Also ensures that the same
+     process doesn’t match multiple patterns."
+    (list (mapcar (lambda (pattern)
+                    (block per-pattern
+                      (mapc (lambda (process)
+                              (let ((subst (match-kell pattern process)))
+                                (when subst
+                                  (setf substitutions subst)
+                                  (return-from per-pattern process))))
+                            (gethash (name pattern) processes))
+                      (error "no match")))
+                  patterns)
+          substitutions)))
 
 ;;; – Pattern languages are equipped with three functions fn, bn, and bv, that
 ;;;   map a pattern ξ to its set of free names, bound name variables, and bound

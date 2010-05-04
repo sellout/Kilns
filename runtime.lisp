@@ -68,31 +68,25 @@
   (:method ((process message) (kell kell))
     (let ((name (name process)))
       (push process (gethash name (messages kell)))
-      (list (list #'match-on name 'message kell))))
+      (list (list #'match-on process kell))))
   (:method ((process kell) (kell kell))
     (let ((name (name process)))
       (push process (gethash name (kells kell)))
-      (list (list #'match-on name 'kell kell))))
+      (list (list #'match-on process kell))))
   (:method ((process trigger) (kell kell))
-    (let ((names (channel-names (pattern process)))
-          (events ()))
-      (mapc (lambda (pattern)
-              (push process (gethash (name pattern) (local-patterns kell))))
-            (local-message-pattern (pattern process)))
-      (mapc (lambda (pattern)
-              (push process (gethash (name pattern) (down-patterns kell))))
-            (down-message-pattern (pattern process)))
-      (mapc (lambda (pattern)
-              (push process (gethash (name pattern) (up-patterns kell))))
-            (up-message-pattern (pattern process)))
-      (mapc (lambda (pattern)
-              (push process (gethash (name pattern) (kell-patterns kell))))
-            (kell-message-pattern (pattern process)))
-      (maphash (lambda (key value)
-                 (loop for name in value
-                   do (push (list #'match-on name key kell) events)))
-               names)
-      events))
+    (mapc (lambda (pattern)
+            (push process (gethash (name pattern) (local-patterns kell))))
+          (local-message-pattern (pattern process)))
+    (mapc (lambda (pattern)
+            (push process (gethash (name pattern) (down-patterns kell))))
+          (down-message-pattern (pattern process)))
+    (mapc (lambda (pattern)
+            (push process (gethash (name pattern) (up-patterns kell))))
+          (up-message-pattern (pattern process)))
+    (mapc (lambda (pattern)
+            (push process (gethash (name pattern) (kell-patterns kell))))
+          (kell-message-pattern (pattern process)))
+    (list (list #'match-on process kell)))
   (:method ((process (eql ∅)) (kell kell))
     (declare (ignore kell))
     '()))
@@ -164,41 +158,57 @@
     (remove-process process)
     (add-process (continuation process) (parent process)))
 
-(defun match-on (name type kell)
+(defgeneric really-match-on (process kell)
+  (:documentation "Tries to find a match for all the patterns that could match
+                   channel NAME in KELL.")
+  (:method ((process message) (kell kell))
+    "Find all triggers that could match – up, down, or local."
+    (let ((name (name process)))
+      (catch 'match
+        (mapc (lambda (trigger)
+                (format t "attempt to match ~a against ~a~%" (pattern trigger) kell)
+                (handler-case
+                    (destructuring-bind (processes substitutions)
+                                        (match (pattern trigger) (parent trigger))
+                      (throw 'match (list trigger processes substitutions)))
+                  (error () nil))) ; FIXME: this should be tighter
+              (remove-duplicates (append (gethash name (local-patterns kell))
+                                         (gethash name (down-patterns (parent kell)))
+                                         (mapcan (lambda (subkell)
+                                                   (gethash name
+                                                            (up-patterns subkell)))
+                                                 (subkells kell))))))))
+  (:method ((process kell) (kell kell))
+    "Find all triggers that could match."
+    (catch 'match
+      (mapc (lambda (trigger)
+              (format t "attempt to match ~a against ~a~%" (pattern trigger) kell)
+              (handler-case
+                  (destructuring-bind (processes substitutions)
+                                      (match (pattern trigger) kell)
+                    (throw 'match (list trigger processes substitutions)))
+                (error () nil)))
+            (gethash (name process) (kell-patterns kell)))))
+  (:method ((process trigger) (kell kell))
+    "Just match on the new trigger."
+    (format t "attempt to match ~a against ~a~%" (pattern process) kell)
+    (handler-case
+        (destructuring-bind (processes substitutions)
+                            (match (pattern process) (parent process))
+          (list process processes substitutions))
+      (error () nil))))
+
+(defun match-on (process kell)
   (lock-neighboring-kells (kell)
-    (destructuring-bind (trigger matched-process) (really-match-on name type kell)
-      (when (and trigger matched-process)
+    (destructuring-bind (&optional trigger matched-processes substitutions)
+                        (really-match-on process kell)
+      (when (and trigger matched-processes)
         (format t
                 "The pattern ~a will match the process ~a and result in the ~
                  process ~a.~%"
-                (pattern trigger) matched-process (process trigger))
-        (trigger-process trigger (unify (pattern trigger) matched-process))
-        (activate-continuation matched-process)))))
-
-(defgeneric really-match-on (name type kell)
-  (:documentation "Tries to find a match for all the patterns that could match
-                   channel NAME in KELL.")
-  (:method (name (type (eql 'message)) (kell kell))
-    ;; FIXME: This should quit after a successful match, I think. If there are
-    ;;        more potential matches, there will be more MATCH-ON events in the
-    ;;        queue.
-    (or (really-match-on name 'local kell)
-        (car (mapcar (lambda (subkell) (really-match-on name 'up subkell))
-                     (subkells kell)))
-        (really-match-on name 'down (parent kell)))) ; FIXME: this could match wrong
-  (:method (name (type (eql 'kell)) (kell kell))
-    (list (car (gethash name (kell-patterns kell)))
-          (car (gethash name (kells kell)))))
-  (:method (name (type (eql 'local)) (kell kell))
-    (list (car (gethash name (local-patterns kell)))
-          (car (gethash name (messages kell)))))
-  (:method (name (type (eql 'down)) (kell kell))
-    (list (car (gethash name (down-patterns kell)))
-          (car (mapcan (lambda (subkell) (gethash name (messages subkell)))
-                       (subkells kell)))))
-  (:method (name (type (eql 'up)) (kell kell))
-    (list (car (gethash name (up-patterns kell)))
-          (car (gethash name (messages (parent kell)))))))
+                (pattern trigger) matched-processes (process trigger))
+        (trigger-process trigger substitutions)
+        (mapc #'activate-continuation matched-processes)))))
 
 (defun find-triggers-matching-message (name kell)
   "Collect down-patterns from parent kell, up-patterns from subkells, and local-

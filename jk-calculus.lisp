@@ -9,29 +9,37 @@
   (make-instance 'pattern-language ;:grammar ()
     ;; ξ ::= J | ξk | J|ξk
     ;; J ::= ξm | ξd | ξu | J|J
-    ;; ξm ::= a␣x␣
-    ;; ξu ::= a␣x␣↑
-    ;; ξd ::= a␣x␣↓
+    ;; ξm ::= a⟨x⟩
+    ;; ξu ::= a⟨x⟩↑
+    ;; ξd ::= a⟨x⟩↓
     ;; ξk ::= a[x]
     ))
 
 ;;; The matching functions for jK patterns are defined inductively as follows:
 
-(defmethod match-local ((pattern message) (message message) &optional pattern-language)
+(defmethod match-local
+           ((pattern message) (message message)
+            &optional (substitutions (make-empty-environment)))
   (if (equal (name pattern) (name message))
-    (unify (process pattern) (process message))))
+    (unify (process pattern) (process message) substitutions)))
 
-(defmethod match-down ((pattern message) (message message) &optional pattern-language)
+(defmethod match-down
+           ((pattern message) (message message)
+            &optional (substitutions (make-empty-environment)))
   (if (equal (name pattern) (name message))
-    (unify (process pattern) (process message))))
+    (unify (process pattern) (process message) substitutions)))
 
-(defmethod match-up ((pattern message) (message message) &optional pattern-language)
+(defmethod match-up
+           ((pattern message) (message message)
+            &optional (substitutions (make-empty-environment)))
   (if (equal (name pattern) (name message))
-    (unify (process pattern) (process message))))
+    (unify (process pattern) (process message) substitutions)))
 
-(defmethod match-kell ((pattern message) (kell kell) &optional pattern-language)
+(defmethod match-kell
+           ((pattern kell) (kell kell)
+            &optional (substitutions (make-empty-environment)))
   (if (equal (name pattern) (name kell))
-    (unify (process pattern) (process kell))))
+    (unify (process pattern) (process kell) substitutions)))
 
 ;;; Note that, apart from the use of join patterns (i.e. the possibility to
 ;;; receive multiple messages at once), the pattern language of jK is extremely
@@ -56,10 +64,10 @@
 ;;; received by a trigger. Using simple jK patterns, on can see immediately that 
 ;;; the following rules are derived reduction rules in jK:
 ;;; 
-;;; (a␣x␣␣P) | a␣Q␣.S → P{Q/x} | S [LOCAL]
-;;; (a␣x␣↓ ␣P) | b[a␣Q␣.S | R].T → P{Q/x} | b[S | R].T [OUT]
-;;; b[(a␣x␣↑ ␣P) | R].T | a␣Q␣.S → b[P{Q/x} | R].T | S [IN]
-;;; (a[x]␣P) | a[Q].S → P{Q/x} | S [KELL]
+;;; (a⟨x⟩▹P) | a⟨Q⟩.S → P{Q/x} | S [LOCAL]
+;;; (a⟨x⟩↓▹P) | b[a⟨Q⟩.S | R].T → P{Q/x} | b[S | R].T [OUT]
+;;; b[(a⟨x⟩↑▹P) | R].T | a⟨Q⟩.S → b[P{Q/x} | R].T | S [IN]
+;;; (a[x]▹P) | a[Q].S → P{Q/x} | S [KELL]
 ;;; 
 ;;; One can notice that the rules LOCAL, OUT, IN, and KELL correspond to the
 ;;; four kinds of actions discussed in Section 2.
