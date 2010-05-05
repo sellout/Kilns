@@ -1,10 +1,11 @@
 ;;; The Y combinator
 (def Y (process pattern u)
-  `(trigger (pattern-composition ,pattern
-                                 (message-pattern ,u (process-variable 'y)))
-            (parallel-composition ,process
-                                  (process-variable 'y)
-                                  (message ,u (process-variable 'y)))))
+  (let ((y (gensym "y")))
+    `(trigger (pattern-composition ,pattern
+                                   (message-pattern ,u (process-variable ',y)))
+              (parallel-composition ,process
+                                    (process-variable ',y)
+                                    (message ,u (process-variable ',y))))))
 
 ;;; A replicating trigger
 (def trigger* (pattern process)
