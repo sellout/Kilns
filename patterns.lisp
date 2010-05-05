@@ -100,7 +100,8 @@
                   ;; FIXME: need to return only _one_ of the results
                   (mapcar (lambda (subkell)
                             (destructuring-bind (procs subst)
-                                                (match-down (down-message-pattern pattern)
+                                                (match-down (down-message-pattern
+                                                             pattern)
                                                             (messages subkell)
                                                             substitutions)
                               (setf substitutions subst)
@@ -129,7 +130,8 @@
     (list (mapcar (lambda (pattern)
                     (block per-pattern
                       (mapc (lambda (process)
-                              (let ((subst (match-local pattern process substitutions)))
+                              (let ((subst (match-local pattern process
+                                                        substitutions)))
                                 (when subst
                                   (setf substitutions subst)
                                   (return-from per-pattern process))))
@@ -195,11 +197,14 @@
 ;;;   but cannot have free process variables (i.e. all process variables
 ;;;   appearing in a pattern are bound in the pattern).
 
-(defgeneric bound-names (process)
-  )
+(defgeneric bound-names (pattern)
+  (:documentation
+   "This returns a list of all channel-names that are bound by the given pattern."))
 
-(defgeneric bound-variables (process)
-  )
+(defgeneric bound-variables (pattern)
+  (:documentation
+   "This returns a list of all process-variables that are bound by the given
+    pattern."))
 
 (defgeneric free-names (process)
   (:documentation "Process -> {Name}")

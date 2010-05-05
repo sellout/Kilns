@@ -71,3 +71,13 @@
 ;;; 
 ;;; One can notice that the rules LOCAL, OUT, IN, and KELL correspond to the
 ;;; four kinds of actions discussed in Section 2.
+
+(defmethod bound-names ((pattern pattern))
+  '())
+
+(defmethod bound-variables ((pattern pattern))
+  (mapcar (lambda (pat) (process pat))
+          (append (local-message-pattern pattern)
+                  (down-message-pattern pattern)
+                  (up-message-pattern pattern)
+                  (kell-message-pattern pattern))))
