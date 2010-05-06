@@ -146,7 +146,12 @@
     (declare (ignore kell))
     '()))
 
-(defun toplevel (cpu-count)
+(defun get-cpu-count ()
+  (princ "How many CPUs/cores are in your computer? ")
+  (read))
+
+(defun toplevel (&optional cpu-count)
+  (unless cpu-count (setf cpu-count (get-cpu-count)))
   (let* ((*top-kell* (make-instance 'kell :name (gensym "LOCALHOST")))
          (kilns (start-kilns cpu-count))
          (*package* (find-package :kilns)) ; FIXME: should use a different package
