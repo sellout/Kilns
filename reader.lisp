@@ -8,13 +8,8 @@
 
 (in-package #:kiln-runner)
 
-(defvar *top-kell* (make-instance 'kell))
-
-(eval-when (:load-toplevel)
-  (start-kiln))
-
 (defun eval (form)
-  (cl:eval (list 'kilns::add-process *top-kell* form)))
+  (cl:eval (list 'kilns::add-process form kilns::*top-kell*)))
 
 (defun read (&rest read-args)
   (let (form)
