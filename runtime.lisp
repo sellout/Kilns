@@ -114,7 +114,7 @@
   (:documentation "This returns a list of events to add to the event queue.")
   (:method ((process process-variable) (kell kell))
     ;; FIXME: not good enough. Need to prevent it from getting into the kell.
-    (warn "Can't have a free variable in an active kell."))
+    (warn "Can't have a free variable (~a) in an active kell (~a)." process kell))
   (:method ((process parallel-composition) (kell kell))
     (apply #'append
            (map-parallel-composition (lambda (proc)
@@ -127,7 +127,8 @@
   (:method ((process kell) (kell kell))
     (let ((name (name process)))
       (push process (gethash name (kells kell)))
-      (list (list #'match-on process kell))))
+      (cons (list #'match-on process kell)
+            (collect-channel-names (process process) process))))
   (:method ((process trigger) (kell kell))
     (mapc (lambda (pattern)
             (push process (gethash (name pattern) (local-patterns kell))))

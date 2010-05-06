@@ -94,11 +94,11 @@
    (kell-patterns :initform (make-hash-table :test #'equal) :reader kell-patterns)))
 
 (defun kell (name &optional process continuation)
-  (let ((new-kell (if continuation
-                    (make-instance 'kell :name name :continuation continuation)
-                    (make-instance 'kell :name name))))
-    (if process (add-process process new-kell))
-    new-kell))
+  (if continuation
+    (make-instance 'kell :name name :process process :continuation continuation)
+    (if process
+      (make-instance 'kell :name name :process process)
+      (make-instance 'kell :name name))))
 
 (defmethod print-object ((obj kell) stream)
   (format stream "~a[~a]~:[.~a~;~]"
