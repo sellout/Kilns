@@ -159,11 +159,12 @@
     ;; dummy kell for now, to handle locking and other places we refer to parents
     (setf (parent *top-kell*) (make-instance 'kell :name (gensym "NETWORK")))
     (unwind-protect
-        (loop do
-          (princ "> ")
-          (let ((process (eval (read))))
-            (format t "~a~%" process)
-            (add-process process *top-kell*)))
+        (handler-case (loop do
+                        (princ "> ")
+                        (let ((process (eval (read))))
+                          (format t "~a~%" process)
+                          (add-process process *top-kell*)))
+          (end-of-file () nil))
       (mapc #'destroy-thread kilns))))
 
 (defgeneric remove-process (process)
