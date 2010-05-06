@@ -1,12 +1,12 @@
-(defpackage kiln-runner
+(defpackage kilns-runner
   (:use #:cl #:kilns)
   (:shadow #:load #:read #:eval)
   (:export #:load #:read #:eval))
 
-(defpackage kiln-user
-  (:use #:kilns))
+(defpackage kilns-user
+  (:use #:kilns #:kilns-runner))
 
-(in-package #:kiln-runner)
+(in-package #:kilns-runner)
 
 (defun eval (form)
   (cl:eval (list 'kilns::add-process form kilns::*top-kell*)))
