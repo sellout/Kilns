@@ -35,7 +35,8 @@
   (format stream "(~a ▹ ~a)" (pattern obj) (process obj)))
 
 (defun trigger (pattern process)
-  (make-instance 'trigger :pattern pattern :process process))
+  (make-instance 'trigger
+    :pattern (convert-process-to-pattern pattern) :process process))
 
 (defclass restriction (process)
   ((name :initarg :name :type name :reader name)

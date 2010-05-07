@@ -9,8 +9,4 @@
            #:kell
            #:∅
            #:def
-           ;;; FIXME: most or all of these shouldn't be exported – eventually
-           #:pattern
-           #:pattern-composition
-           #:message-pattern #:down-pattern #:up-pattern #:kell-pattern
            #:parallel-composition #:process-variable))
