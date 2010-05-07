@@ -1,13 +1,39 @@
+(def translate-lambda-term (term channel)
+  (cl:if (cl:listp term)
+    (cl:if (cl:eql (cl:car term) 'lambda)
+      ;; lambda
+      `(trigger (message ',channel (parallel-composition
+                                    (process-variable ,(cl:second term))
+                                    (process-variable 'v)))
+                (translate-lambda-term ,(cl:third term) (process-variable 'v)))
+      ;; apply
+      `(cl:let ((x (cl:gensym "x")))
+         (restriction 'v
+           (parallel-composition
+            (translate-lambda-term ,(cl:first term) 'v)
+            (restriction ',x
+              (parallel-composition
+               (message 'v (parallel-composition (message ',x)
+                                                 (message ',channel)))
+               (trigger* ',x (translate-lambda-term ,(cl:second term)))))))))
+    ;; variable
+    `(message ',term (message ',channel))))
+
+
+#| TODO: probably useless, but keep around until we're sure 'translate-lambda-term'
+         actually works
 (defmacro defvar (name)
   `(message ,name u))
 
 (defmacro lambda ((parameter) body)
-  `(receive u (,parameter v) (message ,body v)))
+  `(trigger u (,parameter v) ,body))
 
 (defmacro apply (function argument)
-  (let ((v (gensym))
-        (x (gensym)))
-    `(new ,v
-          {(message ,function ,v)
-           (new ,x {(message ,v (,x ,u))
-                    (receive* ,x ,argument)})})))
+  `(restriction 'v
+     (parallel-composition
+      ,function
+      (restriction 'x
+        (parallel-composition (message 'v (parallel-compositon (message 'x)
+                                                               (process-variable 'u)))
+                              (trigger* (message 'x) ,argument))))))
+|#
