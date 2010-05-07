@@ -11,7 +11,7 @@
 (defmethod print-object ((obj null-process) stream)
   (princ "∅" stream))
 
-(defvar ∅ (make-instance 'null-process))
+(defvar null-process (make-instance 'null-process))
 
 (defclass process-variable (process)
   ((name :initarg :name :type symbol :reader name))
@@ -61,8 +61,8 @@
 ;;; FIXME: need  a better name
 (defclass message-structure (process)
   ((name :initarg :name :type name :accessor name)
-   (process :initarg :process :initform ∅ :type process :accessor process)
-   (continuation :initarg :continuation :initform ∅
+   (process :initarg :process :initform null-process :type process :accessor process)
+   (continuation :initarg :continuation :initform null-process
                  :type (or process (member up down))
                  :reader continuation))
   (:documentation "The commonalities between messages and kells."))
@@ -76,8 +76,8 @@
            (slot-boundp obj 'continuation))
     (format stream "~a~:[〈~a〉~:[~a~;~]~;~]"
             (name obj)
-            (and (eql (process obj) ∅) (eql (continuation obj) ∅)) (process obj)
-            (eql (continuation obj) ∅)
+            (and (eql (process obj) null-process) (eql (continuation obj) null-process)) (process obj)
+            (eql (continuation obj) null-process)
             (case (continuation obj)
               (down "↓")
               (up "↑")
@@ -116,7 +116,7 @@
 (defmethod print-object ((obj kell) stream)
   (format stream "~a[~a]~:[.~a~;~]"
           (name obj) (process obj)
-          (eql (continuation obj) ∅) (continuation obj)))
+          (eql (continuation obj) null-process) (continuation obj)))
 
 (defclass parallel-composition (process)
   ((process-variables :initform nil :type list :accessor process-variables)
@@ -155,7 +155,7 @@
   (:method ((process process-variable) trigger)
     (if (find process (process-variables-in (process trigger)))
       (typecase (process trigger)
-        (process-variable (setf (process trigger) ∅))
+        (process-variable (setf (process trigger) null-process))
         (parallel-composition (setf (process-variables (process trigger))
                                     (delete process
                                             (process-variables (process trigger))))))
@@ -164,7 +164,7 @@
   (:method ((process message) kell)
     (if (find process (messages-in (process kell)))
       (typecase (process kell)
-        (message (setf (process kell) ∅))
+        (message (setf (process kell) null-process))
         (parallel-composition (setf (messages (process kell))
                                     (delete process (messages (process kell))))))
       (warn "The process ~a is not contained in ~a, and thus can not be removed."
@@ -172,7 +172,7 @@
   (:method ((process kell) kell)
     (if (find process (kells-in (process kell)))
       (typecase (process kell)
-        (kell (setf (process kell) ∅))
+        (kell (setf (process kell) null-process))
         (parallel-composition (setf (kells (process kell))
                                     (delete process (kells (process kell))))))
       (warn "The process ~a is not contained in ~a, and thus can not be removed."
@@ -180,7 +180,7 @@
   (:method ((process trigger) kell)
     (if (find process (triggers-in (process kell)))
       (typecase (process kell)
-        (trigger (setf (process kell) ∅))
+        (trigger (setf (process kell) null-process))
         (parallel-composition (setf (triggers (process kell))
                                     (delete process (triggers (process kell))))))
       (warn "The process ~a is not contained in ~a, and thus can not be removed."
@@ -236,9 +236,9 @@
     (let ((pc (make-instance 'parallel-composition)))
       (compose-processes (compose-processes pc process-a)
                          process-b)))
-  (:method ((process-a (eql ∅)) process-b)
+  (:method ((process-a null-process) process-b)
     process-b)
-  (:method (process-a (process-b (eql ∅)))
+  (:method (process-a (process-b null-process))
     process-a)
   (:method ((process-a parallel-composition) (process-b parallel-composition))
     (psetf (process-variables process-a)

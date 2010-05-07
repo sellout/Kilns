@@ -146,7 +146,7 @@
             (push process (gethash (name pattern) (kell-patterns kell))))
           (kell-message-pattern (pattern process)))
     (list (list #'match-on process kell)))
-  (:method ((process (eql ∅)) (kell kell))
+  (:method ((process null-process) (kell kell))
     (declare (ignore kell))
     '()))
 

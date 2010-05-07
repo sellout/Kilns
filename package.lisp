@@ -8,6 +8,6 @@
            #:restriction
            #:message #:up #:down
            #:kell
-           #:∅
+           #:null-process
            #:def
            #:parallel-composition #:process-variable))

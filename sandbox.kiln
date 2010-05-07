@@ -1,4 +1,4 @@
-;; I think this just requires the jk pattern language
+;; this just requires the jk pattern language
 
 (def sandbox (process channel)
   `(restriction 'b
@@ -6,7 +6,7 @@
        (parallel-composition
         (trigger (message 'r (process-variable 'z) 'down)
                  (parallel-composition
-                  (trigger (kell 'b (process-variable 'y)) ∅)
+                  (trigger (kell 'b (process-variable 'y)) null-process)
                   (message ,channel (process-variable 'z))))
         (kell 'b (parallel-composition
                   (trigger (message ,channel (process-variable 'z) 'down)
