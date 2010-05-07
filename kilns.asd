@@ -18,6 +18,7 @@
                ;;(:file "reduction-semantics" :depends-on ("utilities" "syntax"))
                (:file "runtime" :depends-on ("processes" "patterns" "unification"))
                (:file "reader" :depends-on ("runtime"))
+               (:file "debug" :depends-on ("reader"))
                (:file "jk-calculus" :depends-on ("patterns"))
                ;;(:file "pnpjk-calculus" :depends-on ("syntax"))
                ;;(:file "fraktal" :depends-on ("syntax"))
