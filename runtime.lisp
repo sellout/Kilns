@@ -240,11 +240,73 @@
                     (delete process (gethash (name proc) (kell-patterns kell)))))
             (kell-message-pattern (pattern process))))))
 
+;;; FIXME: this is crying out for some simplification
+(defgeneric substitute-variables (mapping process &optional ignored-vars)
+  (:method (mapping (process message) &optional ignored-vars)
+    (mapc (lambda (proc) (substitute-variables mapping proc ignored-vars))
+          (append (messages-in (process process))
+                  (kells-in (process process))
+                  (triggers-in (process process))
+                  (messages-in (continuation process))
+                  (kells-in (continuation process))
+                  (triggers-in (continuation process))))
+    (mapc (lambda (process-variable)
+            (when (not (find (name process-variable) ignored-vars :key #'name))
+              (warn "Replacing ~a with ~a" process-variable
+                    (find-process-variable-value process-variable mapping))
+              (setf (process process)
+                    (compose-processes (find-process-variable-value process-variable
+                                                                    mapping)
+                                       (process process)))
+              (remove-process-from process-variable process)))
+          (append (process-variables-in (process process))
+                  (process-variables-in (continuation process)))))
+  (:method (mapping (process kell) &optional ignored-vars)
+    (mapc (lambda (proc) (substitute-variables mapping proc ignored-vars))
+          (append (messages-in (process process))
+                  (kells-in (process process))
+                  (triggers-in (process process))
+                  (messages-in (continuation process))
+                  (kells-in (continuation process))
+                  (triggers-in (continuation process))))
+    (mapc (lambda (process-variable)
+            (when (not (find (name process-variable) ignored-vars :key #'name))
+              (warn "Replacing ~a with ~a" process-variable
+                    (find-process-variable-value process-variable mapping))
+              (setf (process process)
+                    (compose-processes (find-process-variable-value process-variable
+                                                                    mapping)
+                                       (process process)))
+              (remove-process-from process-variable process)))
+          (append (process-variables-in (process process))
+                  (process-variables-in (continuation process)))))
+  (:method (mapping (process trigger) &optional ignored-vars)
+    (setf ignored-vars (append (bound-variables (pattern process)) ignored-vars))
+    (warn "ignoring ~a" ignored-vars)
+    (mapc (lambda (proc) (substitute-variables mapping proc ignored-vars))
+          (append (messages-in (process process))
+                  (kells-in (process process))
+                  (triggers-in (process process))))
+    (mapc (lambda (process-variable)
+            (when (not (find (name process-variable) ignored-vars :key #'name))
+              (warn "Replacing ~a with ~a" process-variable
+                    (find-process-variable-value process-variable mapping))
+              (setf (process process)
+                    (compose-processes (find-process-variable-value process-variable
+                                                                    mapping)
+                                       (process process)))
+              (remove-process-from process-variable process)))
+          (process-variables-in (process process)))))
+
 (defmethod trigger-process ((trigger trigger) mapping)
   "Activates process after substituting the process-variables in the trigger."
+  ;; FIXME: basically a copy of substitute-variables (t trigger), except we don't
+  ;;        ignore the vars, because this is the trigger that's actually triggering.
+  (mapc (lambda (proc) (substitute-variables mapping proc))
+        (append (messages-in (process trigger))
+                (kells-in (process trigger))
+                (triggers-in (process trigger))))
   (mapc (lambda (process-variable)
-          ;; FIXME: this will replace the local instances of the variables, but
-          ;;        not ones more deeply nested.
           (warn "Replacing ~a with ~a" process-variable
                 (find-process-variable-value process-variable mapping))
           (setf (process trigger)
