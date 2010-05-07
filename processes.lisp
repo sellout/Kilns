@@ -59,7 +59,8 @@
 (defclass message-structure (process)
   ((name :initarg :name :type name :accessor name)
    (process :initarg :process :initform ∅ :type process :accessor process)
-   (continuation :initarg :continuation :initform ∅ :type process
+   (continuation :initarg :continuation :initform ∅
+                 :type (or process (member up down))
                  :reader continuation))
   (:documentation "The commonalities between messages and kells."))
 
@@ -67,10 +68,18 @@
   ())
 
 (defmethod print-object ((obj message) stream)
-  (format stream "~a~:[〈~a〉~:[.~a~;~]~;~]"
-          (name obj)
-          (and (eql (process obj) ∅) (eql (continuation obj) ∅)) (process obj)
-          (eql (continuation obj) ∅) (continuation obj)))
+  (if (and (slot-boundp obj 'name)
+           (slot-boundp obj 'process)
+           (slot-boundp obj 'continuation))
+    (format stream "~a~:[〈~a〉~:[~a~;~]~;~]"
+            (name obj)
+            (and (eql (process obj) ∅) (eql (continuation obj) ∅)) (process obj)
+            (eql (continuation obj) ∅)
+            (case (continuation obj)
+              (down "↓")
+              (up "↑")
+              (otherwise (format nil ".~a" (continuation obj)))))
+    (call-next-method)))
 
 (defun message (name &optional process continuation)
   (if continuation

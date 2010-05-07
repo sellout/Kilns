@@ -39,11 +39,12 @@
            ,@body)))))
 
 (defun run-kiln ()
-  (loop do (let ((event (pop-event)))
-             (if event
-               (apply (car event) (cdr event))
-               (with-lock-held (*dummy-wait-lock*)
-                   (condition-wait *new-events* *dummy-wait-lock*))))))
+  (loop do (handler-case (let ((event (pop-event)))
+                           (if event
+                             (apply (car event) (cdr event))
+                             (with-lock-held (*dummy-wait-lock*)
+                               (condition-wait *new-events* *dummy-wait-lock*))))
+             (error (c) (format t "~&ERROR: ~a~%" c)))))
 
 (defun start-kilns (count)
   (loop for i from 1 to count
@@ -108,7 +109,10 @@
   (:method ((process process) (kell kell))
     (setf (parent process) kell
           (process kell) (compose-processes process (process kell)))
-    (mapcar #'push-event (collect-channel-names process kell))))
+    (mapc #'push-event (collect-channel-names process kell)))
+  (:method ((process kell) (kell kell))
+    (call-next-method)
+    (add-process (process process) process)))
 
 (defgeneric collect-channel-names (process kell)
   (:documentation "This returns a list of events to add to the event queue.")
@@ -127,8 +131,7 @@
   (:method ((process kell) (kell kell))
     (let ((name (name process)))
       (push process (gethash name (kells kell)))
-      (cons (list #'match-on process kell)
-            (collect-channel-names (process process) process))))
+      (list (list #'match-on process kell))))
   (:method ((process trigger) (kell kell))
     (mapc (lambda (pattern)
             (push process (gethash (name pattern) (local-patterns kell))))
@@ -160,12 +163,13 @@
     ;; dummy kell for now, to handle locking and other places we refer to parents
     (setf (parent *top-kell*) (make-instance 'kell :name (gensym "NETWORK")))
     (unwind-protect
-        (handler-case (loop do
-                        (princ "> ")
-                        (let ((process (eval (read))))
-                          (format t "~a~%" process)
-                          (add-process process *top-kell*)))
-          (end-of-file () nil))
+        (loop do
+          (format t "~&> ")
+          (handler-case (let ((process (eval (read))))
+                          (format t "~&~a~%" process)
+                          (add-process process *top-kell*))
+            (end-of-file () (return))
+            (error (c) (format t "~&ERROR: ~a~%" c))))
       (mapc #'destroy-thread kilns))))
 
 (defgeneric remove-process (process)

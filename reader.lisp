@@ -26,5 +26,6 @@
              (if-does-not-exist :error))
   (let ((full-name (merge-pathnames file-name (make-pathname :type "kiln"))))
     (with-open-file (stream full-name :external-format :utf-8)
-      (handler-case (loop until (read stream))
+      (handler-case (loop until (let ((value (read stream)))
+                                  (if print (print value) value)))
         (end-of-file () full-name)))))

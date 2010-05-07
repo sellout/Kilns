@@ -6,7 +6,7 @@
   (:shadow #:match)
   (:export #:trigger
            #:restriction
-           #:message
+           #:message #:up #:down
            #:kell
            #:∅
            #:def
