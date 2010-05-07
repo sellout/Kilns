@@ -57,7 +57,8 @@
       (otherwise (push process (local-message-pattern pattern))))
     pattern)
   (:method ((process kell) &optional (pattern (make-instance 'pattern)))
-    (push process (kell-message-pattern pattern))))
+    (push process (kell-message-pattern pattern))
+    pattern))
 
 ;;; – One can decide whether a pattern matches a given term. More precisely,
 ;;;   each pattern language is equipped with a decidable relation match, which

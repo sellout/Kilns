@@ -32,7 +32,10 @@
    (process :initarg :process :type process :accessor process)))
 
 (defmethod print-object ((obj trigger) stream)
-  (format stream "(~a ▹ ~a)" (pattern obj) (process obj)))
+  (if (and (slot-boundp obj 'pattern)
+           (slot-boundp obj 'process))
+    (format stream "(~a ▹ ~a)" (pattern obj) (process obj))
+    (call-next-method)))
 
 (defun trigger (pattern process)
   (make-instance 'trigger
