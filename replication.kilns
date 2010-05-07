@@ -1,8 +1,8 @@
 ;;; The Y combinator
 (def Y (process pattern u)
   (cl:let ((y (cl:gensym "y")))
-    `(trigger (pattern-composition ,pattern
-                                   (message-pattern ,u (process-variable ',y)))
+    `(trigger (parallel-composition ,pattern
+                                    (message ,u (process-variable ',y)))
               (parallel-composition ,process
                                     (process-variable ',y)
                                     (message ,u (process-variable ',y))))))
