@@ -1,7 +1,7 @@
 (defpackage kilns-runner
   (:use #:cl #:kilns)
   (:shadow #:load #:read #:eval)
-  (:export #:load #:read #:eval))
+  (:export #:load #:read #:eval #:state))
 
 (defpackage kilns-user
   (:use #:kilns #:kilns-runner))
