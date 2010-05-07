@@ -10,23 +10,33 @@
 
 (defvar *top-kell*)
 
+(let ((lock (make-lock "print-lock")))
+  (defun printk (&rest arguments)
+    (with-lock-held (lock)
+      (apply #'format t arguments))))
+
 ;;; FIXME: make sure these threadsafe functions truly are
 
 (defvar *new-events* (make-condition-variable))
+(defvar *event-queue* '())
 (defvar *dummy-wait-lock* (make-lock "dummy-wait-lock"))
 
-(let ((event-queue ())
-      (lock (make-lock "event-lock")))
+(let ((lock (make-lock "event-lock")))
   (defun pop-event ()
     "THIS NEEDS TO BE THREADSAFE"
     (with-lock-held (lock)
-      (pop event-queue)))
+      (pop *event-queue*)))
 
   (defun push-event (item)
     "THIS NEEDS TO BE THREADSAFE"
     (with-lock-held (lock)
-      (setf event-queue (append event-queue (list item))))
-    (condition-notify *new-events*)))
+      (setf *event-queue* (append *event-queue* (list item))))
+    (condition-notify *new-events*))
+
+  (defun clear-events ()
+    "THIS NEEDS TO BE THREADSAFE"
+    (with-lock-held (lock)
+      (setf *event-queue* '()))))
 
 (defmacro lock-neighboring-kells ((kell) &body body)
   "This ensures that we always lock kells from the outermost to the innermost,
@@ -44,7 +54,7 @@
                              (apply (car event) (cdr event))
                              (with-lock-held (*dummy-wait-lock*)
                                (condition-wait *new-events* *dummy-wait-lock*))))
-             (error (c) (format t "~&ERROR: ~a~%" c)))))
+             (error (c) (printk t "~&ERROR: ~a~%" c)))))
 
 (defun start-kilns (count)
   (loop for i from 1 to count
@@ -97,7 +107,27 @@
     process))
 
 
+(defgeneric activate-process (process kell)
+  (:method :before (process kell)
+    (printk "~&Activating ~a in ~a~%" process kell))
+  (:method ((process process) (kell kell))
+    (setf (parent process) kell)
+    (mapc #'push-event (collect-channel-names process kell)))
+  (:method ((process kell) (kell kell))
+    (call-next-method)
+    (activate-process (process process) process))
+  (:method ((process parallel-composition) (kell kell))
+    (map-parallel-composition (lambda (sub-process)
+                                (activate-process sub-process kell))
+                              process))
+  (:method ((process restriction) (kell kell))
+    (let ((global-name (gensym (format nil "~a" (name process)))))
+      (activate-process (apply-restriction (name process) global-name (process process))
+                        kell))))
+
 (defgeneric add-process (process kell)
+  (:method :before ((process process) kell)
+    (printk "~&Adding ~a to ~a~%" process kell))
   (:method (process kell)
     ;; lets us run normal functions without consequence
     (declare (ignore process kell))
@@ -107,12 +137,15 @@
       (add-process (apply-restriction (name process) global-name (process process))
                    kell)))
   (:method ((process process) (kell kell))
-    (setf (parent process) kell
-          (process kell) (compose-processes process (process kell)))
-    (mapc #'push-event (collect-channel-names process kell)))
+    (setf (process kell) (compose-processes process (process kell)))
+    (activate-process process kell))
+  (:method ((process parallel-composition) (kell kell))
+    (map-parallel-composition (lambda (sub-process)
+                                (add-process sub-process kell))
+                              process))
   (:method ((process kell) (kell kell))
     (call-next-method)
-    (add-process (process process) process)))
+    (activate-process (process process) process)))
 
 (defgeneric collect-channel-names (process kell)
   (:documentation "This returns a list of events to add to the event queue.")
@@ -120,6 +153,7 @@
     ;; FIXME: not good enough. Need to prevent it from getting into the kell.
     (break "Can't have a free variable (~a) in an active kell (~a)." process kell))
   (:method ((process parallel-composition) (kell kell))
+    ;; FIXME: I don't think this ever gets called
     (apply #'append
            (map-parallel-composition (lambda (proc)
                                        (collect-channel-names proc kell))
@@ -146,7 +180,7 @@
             (push process (gethash (name pattern) (kell-patterns kell))))
           (kell-message-pattern (pattern process)))
     (list (list #'match-on process kell)))
-  (:method ((process null-process) (kell kell))
+  (:method ((process (eql null-process)) (kell kell))
     (declare (ignore kell))
     '()))
 
@@ -161,16 +195,18 @@
          (*package* (find-package :kilns-user))
          (*readtable* *kilns-readtable*))
     ;; dummy kell for now, to handle locking and other places we refer to parents
-    (setf (parent *top-kell*) (make-instance 'kell :name (gensym "NETWORK")))
+    (setf (parent *top-kell*) (make-instance 'kell
+                                :name (gensym "NETWORK") :process *top-kell*))
     (unwind-protect
         (loop do
-          (format t "~&> ")
+          (printk "~&> ")
           (handler-case (let ((process (eval (read))))
-                          (format t "~&~a~%" process)
+                          (printk "~&~a~%" process)
                           (add-process process *top-kell*))
             (end-of-file () (return))
-            (error (c) (format t "~&ERROR: ~a~%" c))))
-      (mapc #'destroy-thread kilns))))
+            (error (c) (printk "~&ERROR: ~a~%" c))))
+      (mapc #'destroy-thread kilns)
+      (clear-events))))
 
 (defgeneric remove-process (process)
   (:method ((process message))
@@ -232,7 +268,7 @@
     (let ((name (name process)))
       (catch 'match
         (mapc (lambda (trigger)
-                (format t "attempt to match ~a against ~a~%" (pattern trigger) kell)
+                (printk "attempt to match ~a against ~a~%" (pattern trigger) kell)
                 (handler-case
                     (destructuring-bind (processes substitutions)
                                         (match (pattern trigger) (parent trigger))
@@ -248,7 +284,7 @@
     "Find all triggers that could match."
     (catch 'match
       (mapc (lambda (trigger)
-              (format t "attempt to match ~a against ~a~%" (pattern trigger) kell)
+              (printk "attempt to match ~a against ~a~%" (pattern trigger) kell)
               (handler-case
                   (destructuring-bind (processes substitutions)
                                       (match (pattern trigger) kell)
@@ -257,7 +293,7 @@
             (gethash (name process) (kell-patterns kell)))))
   (:method ((process trigger) (kell kell))
     "Just match on the new trigger."
-    (format t "attempt to match ~a against ~a~%" (pattern process) kell)
+    (printk "attempt to match ~a against ~a~%" (pattern process) kell)
     (handler-case
         (destructuring-bind (processes substitutions)
                             (match (pattern process) (parent process))
@@ -265,16 +301,17 @@
       (error () nil))))
 
 (defun match-on (process kell)
+  (printk "~&Trying to match ~a in ~a.~%" process kell)
   (lock-neighboring-kells (kell)
     (destructuring-bind (&optional trigger matched-processes substitutions)
                         (really-match-on process kell)
       (when (and trigger matched-processes)
-        (format t
-                "The pattern ~a will match the process ~a and result in the ~
+        (printk "The pattern ~a will match the process ~a and result in the ~
                  process ~a.~%"
                 (pattern trigger) matched-processes (process trigger))
         (trigger-process trigger substitutions)
-        (mapc #'activate-continuation matched-processes)))))
+        (mapc #'activate-continuation matched-processes)
+        (printk "~&~a~%" (parent kell))))))
 
 (defun find-triggers-matching-message (name kell)
   "Collect down-patterns from parent kell, up-patterns from subkells, and local-

@@ -9,5 +9,6 @@
            #:message #:up #:down
            #:kell
            #:null-process
-           #:def
-           #:parallel-composition #:process-variable))
+           #:parallel-composition
+           #:process-variable
+           #:def))
