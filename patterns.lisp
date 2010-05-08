@@ -35,12 +35,11 @@
    (kell-message-pattern :initform nil :type list :accessor kell-message-pattern)))
 
 (defmethod print-object ((obj pattern) stream)
-  (format stream "~{~a~^ | ~}"
-          (remove-if (lambda (string) (= (length string) 0))
-                     (list (format nil "~{~a~^ | ~}" (local-message-pattern obj))
-                           (format nil "~{~a↓~^ | ~}" (down-message-pattern obj))
-                           (format nil "~{~a↑~^ | ~}" (up-message-pattern obj))
-                           (format nil "~{~a~^ | ~}" (kell-message-pattern obj))))))
+  (format stream "(par ~{~a~^ ~})"
+          (append (local-message-pattern obj)
+                  (down-message-pattern obj)
+                  (up-message-pattern obj)
+                  (kell-message-pattern obj))))
 
 ;;; FIXME: somewhere around here we need to ensure only one kell is in the pattern
 

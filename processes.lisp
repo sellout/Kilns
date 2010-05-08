@@ -9,7 +9,7 @@
   (:documentation "This is effectively nil. Maybe we should just use nil."))
 
 (defmethod print-object ((obj null-process) stream)
-  (princ "∅" stream))
+  (princ "null" stream))
 
 (defvar null-process (make-instance 'null-process))
 
@@ -34,7 +34,7 @@
 (defmethod print-object ((obj trigger) stream)
   (if (and (slot-boundp obj 'pattern)
            (slot-boundp obj 'process))
-    (format stream "(~a ▹ ~a)" (pattern obj) (process obj))
+    (format stream "(trigger ~a ~a)" (pattern obj) (process obj))
     (call-next-method)))
 
 (defun trigger (pattern process)
@@ -53,7 +53,7 @@
     managed."))
 
 (defmethod print-object ((obj restriction) stream)
-  (format stream "(ν~a.~a)" (name obj) (process obj)))
+  (format stream "(res ~a ~a)" (name obj) (process obj)))
 
 (defun restriction (name process)
   (make-instance 'restriction :name name :process process))
@@ -64,7 +64,7 @@
    (process :initarg :process :initform null-process :type process :accessor process)
    (continuation :initarg :continuation :initform null-process
                  :type (or process (member up down))
-                 :reader continuation))
+                 :accessor continuation))
   (:documentation "The commonalities between messages and kells."))
 
 (defclass message (message-structure)
@@ -74,14 +74,11 @@
   (if (and (slot-boundp obj 'name)
            (slot-boundp obj 'process)
            (slot-boundp obj 'continuation))
-    (format stream "~a~:[〈~a〉~:[~a~;~]~;~]"
+    (format stream "{~a~:[ ~a~:[ ~a~;~]~;~]}"
             (name obj)
             (and (eql (process obj) null-process) (eql (continuation obj) null-process)) (process obj)
             (eql (continuation obj) null-process)
-            (case (continuation obj)
-              (down "↓")
-              (up "↑")
-              (otherwise (format nil ".~a" (continuation obj)))))
+            (continuation obj))
     (call-next-method)))
 
 (defun message (name &optional process continuation)
@@ -114,7 +111,7 @@
       (make-instance 'kell :name name))))
 
 (defmethod print-object ((obj kell) stream)
-  (format stream "~a[~a]~:[.~a~;~]"
+  (format stream "[~a ~a~:[ ~a~;~]]"
           (name obj) (process obj)
           (eql (continuation obj) null-process) (continuation obj)))
 
@@ -129,7 +126,7 @@
     access in the way we usually deal with them."))
 
 (defmethod print-object ((obj parallel-composition) stream)
-  (format stream "~{~a~^ | ~}"
+  (format stream "(par~{ ~a~})"
           (map-parallel-composition #'identity obj)))
 
 (defun parallel-composition (&rest processes)
