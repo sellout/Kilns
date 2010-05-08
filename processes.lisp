@@ -144,7 +144,6 @@
                               (setf (parent proc) value))
                             process))
 
-
 (defgeneric remove-process-from (process kell)
   (:method (process kell)
     (warn "The process ~a is not contained in ~a, and thus can not be removed."
@@ -155,7 +154,12 @@
         (process-variable (setf (process trigger) null-process))
         (parallel-composition (setf (process-variables (process trigger))
                                     (delete process
-                                            (process-variables (process trigger))))))
+                                            (process-variables (process trigger))))
+                              (case (length (map-parallel-composition #'identity
+                                                                      (process trigger)))
+                                (0 (setf (process trigger) null-process))
+                                (1 (setf (process trigger) (car (map-parallel-composition #'identity
+                                                                                          (process trigger))))))))
       (warn "The process ~a is not contained in ~a, and thus can not be removed."
             process (process trigger))))
   (:method ((process message) kell)
@@ -163,7 +167,12 @@
       (typecase (process kell)
         (message (setf (process kell) null-process))
         (parallel-composition (setf (messages (process kell))
-                                    (delete process (messages (process kell))))))
+                                    (delete process (messages (process kell))))
+                              (case (length (map-parallel-composition #'identity
+                                                                      (process kell)))
+                                (0 (setf (process kell) null-process))
+                                (1 (setf (process kell) (car (map-parallel-composition #'identity
+                                                                                          (process kell))))))))
       (warn "The process ~a is not contained in ~a, and thus can not be removed."
             process (process kell))))
   (:method ((process kell) kell)
@@ -171,7 +180,12 @@
       (typecase (process kell)
         (kell (setf (process kell) null-process))
         (parallel-composition (setf (kells (process kell))
-                                    (delete process (kells (process kell))))))
+                                    (delete process (kells (process kell))))
+                              (case (length (map-parallel-composition #'identity
+                                                                      (process kell)))
+                                (0 (setf (process kell) null-process))
+                                (1 (setf (process kell) (car (map-parallel-composition #'identity
+                                                                                          (process kell))))))))
       (warn "The process ~a is not contained in ~a, and thus can not be removed."
             process (process kell))))
   (:method ((process trigger) kell)
@@ -179,7 +193,12 @@
       (typecase (process kell)
         (trigger (setf (process kell) null-process))
         (parallel-composition (setf (triggers (process kell))
-                                    (delete process (triggers (process kell))))))
+                                    (delete process (triggers (process kell))))
+                              (case (length (map-parallel-composition #'identity
+                                                                      (process kell)))
+                                (0 (setf (process kell) null-process))
+                                (1 (setf (process kell) (car (map-parallel-composition #'identity
+                                                                                          (process kell))))))))
       (warn "The process ~a is not contained in ~a, and thus can not be removed."
             process (process kell)))))
 
