@@ -87,8 +87,8 @@
     '())
   (:method ((pattern message))
     (if (typep (name pattern) 'name-variable)
-      (cons (name pattern) (collect-bounds-names (process pattern)))
-      (collect-bounds-names (process pattern))))
+      (cons (name pattern) (collect-bound-names (process pattern)))
+      (collect-bound-names (process pattern))))
   (:method ((pattern parallel-composition))
     (mapcan #'collect-bound-names (messages pattern))))
 
