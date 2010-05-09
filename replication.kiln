@@ -9,6 +9,7 @@
 
 ;;; A replicating trigger
 (def trigger* (pattern process)
-  `(restriction 't
-                (parallel-composition (Y ,process ,pattern 't)
-                                      (message 't (Y ,process ,pattern 't)))))
+  (cl:let ((t (cl:gensym "t")))
+    `(restriction ',t
+                  (parallel-composition (Y ,process ,pattern ',t)
+                                        (message ',t (Y ,process ,pattern ',t))))))
