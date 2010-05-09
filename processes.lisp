@@ -144,10 +144,33 @@
                               (setf (parent proc) value))
                             process))
 
+;;; FIXME: there are really two functions here – one replaces the value in place in the
+;;; parent container, the other is functional. The functional one is right, but we have
+;;; to convert other code.
 (defgeneric remove-process-from (process kell)
   (:method (process kell)
     (warn "The process ~a is not contained in ~a, and thus can not be removed."
           process (process kell)))
+  (:method ((process process-variable) (par parallel-composition))
+    (if (find process (process-variables-in par))
+      (progn
+        (setf (process-variables par)
+              (delete process (process-variables par)))
+        (case (length (map-parallel-composition #'identity par))
+          (0 null-process)
+          (1 (car (map-parallel-composition #'identity par)))
+          (otherwise par)))
+      (progn
+        (warn "The process ~a is not contained in ~a, and thus can not be removed."
+              process par)
+        par)))
+  (:method ((process process-variable) (var process-variable))
+    (if (find process (process-variables-in var))
+      null-process
+      (progn
+        (warn "The process ~a is not contained in ~a, and thus can not be removed."
+              process var)
+        var)))
   (:method ((process process-variable) trigger)
     (if (find process (process-variables-in (process trigger)))
       (typecase (process trigger)

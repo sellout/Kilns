@@ -6,7 +6,6 @@
 (defmethod unify
     ((pattern process-variable) agent
      &optional (substitutions (make-empty-environment)))
-  (warn "unifying ~a and ~a with ~a" pattern agent substitutions)
   (unify (intern (format nil "?~a" (name pattern))) agent substitutions))
 
 (defmethod unify
@@ -18,7 +17,6 @@
 (defmethod unify
     ((pattern message) (agent message)
      &optional (substitutions (make-empty-environment)))
-  (warn "unifying ~a and ~a with ~a" pattern agent substitutions)
   (unify (process pattern) (process agent)
          (unify (name pattern) (name agent) substitutions)))
 
@@ -73,17 +71,29 @@
 |#
 
 (defmethod unify::occurs-in-p ((var symbol) (pat null-process) env)
+  (declare (ignore env))
   nil)
+
+(defmethod unify::occurs-in-p ((var symbol) (pat restriction) env)
+  (unify::occurs-in-p var (process pat) env))
 
 (defmethod unify::occurs-in-p ((var symbol) (pat message) env)
   (or (unify::occurs-in-p var (name pat) env)
       (unify::occurs-in-p var (process pat) env)))
+
+(defmethod unify::occurs-in-p ((var symbol) (pat trigger) env)
+  (unify::occurs-in-p var (process pat) env))
 
 (defmethod unify::occurs-in-p ((var symbol) (pat kell) env)
   (or (unify::occurs-in-p var (name pat) env)
       (unify::occurs-in-p var (process pat) env)))
 
 #|
-(defmethod unify::occurs-in-p ((var symbol) (pat parallel) env)
-  (unify::occurs-in-p var (list-from pat) env))
+(defmethod unify::occurs-in-p ((var symbol) (pat process-variable) env)
+  (unify::occurs-in-p var (intern (format nil "?~a" (name pat))) env))
+
+(defmethod unify::occurs-in-p ((var symbol) (pat parallel-composition) env)
+  (map-parallel-composition (lambda (process)
+                              (unify::occurs-in-p var process env))
+                            pat))
 |#
