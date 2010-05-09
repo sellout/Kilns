@@ -266,7 +266,7 @@
                     (delete process (gethash (name proc) (kell-patterns kell)))))
             (kell-message-pattern (pattern process))))))
 
-(defun replace-variables (process container mapping &optional ignored-vars)
+(defun replace-variables (process mapping &optional ignored-vars)
   (let ((substituted-processes (mapcar (lambda (process-variable)
                                            (when (not (find (name process-variable) ignored-vars
                                            :key #'name))
@@ -283,6 +283,8 @@
       (reduce #'compose-processes (cons process substituted-processes))))
 
 ;;; FIXME: this is crying out for some simplification
+;;; FIXME: this should be perhaps part of the pattern languages – EG, some languages have name variables,
+;;;        others don't, so that knowledge shouldn't be in the core calculus.
 (defgeneric substitute-variables (mapping process &optional ignored-vars)
   (:method (mapping (process message) &optional ignored-vars)
     (mapc (lambda (proc) (substitute-variables mapping proc ignored-vars))
@@ -292,8 +294,8 @@
                   (messages-in (continuation process))
                   (kells-in (continuation process))
                   (triggers-in (continuation process))))
-    (setf (process process) (replace-variables (process process) process mapping ignored-vars)
-          (continuation process) (replace-variables (continuation process) process mapping ignored-vars))
+    (setf (process process) (replace-variables (process process) mapping ignored-vars)
+          (continuation process) (replace-variables (continuation process) mapping ignored-vars))
     (printk "new process: ~a~%" process))
   (:method (mapping (process kell) &optional ignored-vars)
     (mapc (lambda (proc) (substitute-variables mapping proc ignored-vars))
@@ -303,8 +305,8 @@
                   (messages-in (continuation process))
                   (kells-in (continuation process))
                   (triggers-in (continuation process))))
-    (setf (process process) (replace-variables (process process) process mapping ignored-vars)
-          (continuation process) (replace-variables (continuation process) process mapping ignored-vars))
+    (setf (process process) (replace-variables (process process) mapping ignored-vars)
+          (continuation process) (replace-variables (continuation process) mapping ignored-vars))
     (printk "new process: ~a~%" process))
   (:method (mapping (process trigger) &optional ignored-vars)
     (setf ignored-vars (append (bound-variables (pattern process)) ignored-vars))
@@ -313,7 +315,7 @@
           (append (messages-in (process process))
                   (kells-in (process process))
                   (triggers-in (process process))))
-    (setf (process process) (replace-variables (process process) process mapping ignored-vars))
+    (setf (process process) (replace-variables (process process) mapping ignored-vars))
     (printk "new process: ~a~%" process)))
 
 (defmethod trigger-process ((trigger trigger) mapping)
