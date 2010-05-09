@@ -1,0 +1,8 @@
+;;; This is an ugly little thing that uses way too much CL to give us a list shorthand.
+;;; You can write (list ?x ?y) and it will expand into (par {1 ?x} {2 ?y}).
+(def (list cl:&rest processes)
+  `(cl:let ((index 0))
+     (cl:apply #'parallel-composition
+               (cl:mapcar (cl:lambda (process)
+                            (message (cl:incf index) (cl:eval process)))
+                          ',processes))))
