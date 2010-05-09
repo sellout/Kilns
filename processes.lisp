@@ -27,6 +27,20 @@
 (defun process-variable (name)
   (make-instance 'process-variable :name name))
 
+(defclass name-variable ()
+  ((name :initarg :name :type symbol :reader name))
+  (:documentation
+   "These only exist in “potential” processes. When a trigger is triggered, we
+    convert each name-variable into its “realized” name and do so
+    recursively through nested processes, except where the variable is shadowed
+    by a more local variable with the same name."))
+
+(defmethod print-object ((obj name-variable) stream)
+  (format stream "?~a" (name obj)))
+
+(defun name-variable (name)
+  (make-instance 'name-variable :name name))
+
 (defclass trigger (process)
   ((pattern :initarg :pattern :type pattern :accessor pattern)
    (process :initarg :process :type process :accessor process)))

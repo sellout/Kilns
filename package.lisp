@@ -4,11 +4,18 @@
     the behavior of more advanced implementations.")
   (:use #:cl #:bordeaux-threads #:unify)
   (:shadow #:match)
-  (:export #:trigger
+  (:export ;; core calculus
+           #:trigger
            #:restriction
            #:message #:up #:down
            #:kell
            #:null-process
            #:parallel-composition
+           #:def
+           ;; jK pattern language
            #:process-variable
-           #:def))
+           ;; pnp-jK pattern language
+           #:_
+           #:name-variable
+           ;; fraKtal pattern language
+           #:mismatch))

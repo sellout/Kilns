@@ -5,7 +5,7 @@
 
 ;;; NOTE: need some way to tell that this is an extension of the jk-calculus
 (defvar +pnpjk-calculus+
-  (make-instance 'pattern-language :grammar
+  (make-instance 'pattern-language
     ;; ξ ::= J | ξk | J|ξk
     ;; J ::= ξm | ξd | ξu | J|J
     ;; ξm ::= a␣ρ̅␣
@@ -18,10 +18,13 @@
 
 ;;; In this pattern language, the special pattern _ matches anything.
 
-(defclass blank ()
+(defclass blank (process)
   ())
 
 (defvar _ (make-instance 'blank))
+
+(defmethod print-object ((obj blank) stream)
+  (format stream "_"))
 
 ;;; For convenience, we write a␣x1, ⋯, xn␣ for a␣1␣x1␣ | ⋯ | n␣xn␣␣ where
 ;;; 1, ⋯, n only occur in these encodings.
@@ -37,37 +40,77 @@
 ;;; 
 ;;; The matching functions are easily defined by induction:
 
-(defmethod message-match ((language (eql +pnpjk-calculus+))
-                          (pattern local-message) (message message))
+(defmethod match-local
+           ((pattern message) (message message)
+            &optional (substitutions (make-empty-environment)))
   (if (equal (name pattern) (name message))
-    (recursive-match (process pattern) (process message))))
+    (recursive-match (process pattern) (process message) substitutions)))
 
-(defmethod message-match ((language (eql +pnpjk-calculus+))
-                          (pattern down-message) (message message))
+(defmethod match-down
+           ((pattern message) (message message)
+            &optional (substitutions (make-empty-environment)))
   (if (equal (name pattern) (name message))
-    (recursive-match (process pattern) (process message))))
+    (recursive-match (process pattern) (process message) substitutions)))
 
-(defmethod message-match ((language (eql +pnpjk-calculus+))
-                          (pattern up-message) (message message))
+(defmethod match-up
+           ((pattern message) (message message)
+            &optional (substitutions (make-empty-environment)))
   (if (equal (name pattern) (name message))
-    (recursive-match (process pattern) (process message))))
+    (recursive-match (process pattern) (process message) substitutions)))
 
-(defmethod message-match ((language (eql +pnpjk-calculus+))
-                          (pattern kell-message) (message kell))
-  (if (equal (name pattern) (name message))
-    (bind (process pattern) (process message))))
+(defmethod match-kell
+           ((pattern kell) (kell kell)
+            &optional (substitutions (make-empty-environment)))
+  (if (equal (name pattern) (name kell))
+    (unify (process pattern) (process kell) substitutions)))
 
-(defgeneric recursive-match (language pattern process)
-  (:method ((language (eql +pnpjk-calculus+)) (pattern blank) (process process))
+(defgeneric recursive-match (pattern process &optional substitutions)
+  (:method ((pattern blank) (process process)
+            &optional (substitutions (make-empty-environment)))
+    substitutions)
+  (:method ((pattern process-variable) (process process)
+            &optional (substitutions (make-empty-environment)))
+    (unify pattern process substitutions))
+  (:method ((pattern process) (process process)
+            &optional (substitutions (make-empty-environment)))
+    (cdr (match pattern process substitutions)))
+  (:method ((pattern message) (process message)
+            &optional (substitutions (make-empty-environment)))
+    (if (typep (name pattern) 'name-variable)
+      (recursive-match (process pattern) (process process)
+                       (unify (name pattern) (name process) substitutions))
+      (cdr (match pattern process substitutions)))))
+
+(defgeneric collect-bound-names (pattern)
+  (:method (pattern)
+    (declare (ignore pattern))
     '())
-  (:method ((language (eql +pnpjk-calculus+))
-            (pattern process-variable) (process process))
-    (bind pattern process))
-  (:method ((language (eql +pnpjk-calculus+)) (pattern pattern) (process process))
-    (match pattern process))
-  (:method ((language (eql +pnpjk-calculus+)) (pattern message) (process message))
-    (if (typep (name pattern) 'process-variable)
-      (progn
-        (bind (name pattern) (name process))
-        (recursive-match (process pattern) (process process)))
-      (match pattern process)))
+  (:method ((pattern message))
+    (if (typep (name pattern) 'name-variable)
+      (cons (name pattern) (collect-bounds-names (process pattern)))
+      (collect-bounds-names (process pattern))))
+  (:method ((pattern parallel-composition))
+    (mapcan #'collect-bound-names (messages pattern))))
+
+(defmethod bound-names ((pattern pattern))
+  (mapcan #'collect-bound-names
+          (append (local-message-pattern pattern)
+                  (down-message-pattern pattern)
+                  (up-message-pattern pattern))))
+
+(defgeneric collect-bound-variables (pattern)
+  (:method ((pattern process-variable))
+    (list pattern))
+  (:method ((pattern message))
+    (collect-bound-variables (process pattern)))
+  (:method ((pattern kell))
+    (list (process pattern)))
+  (:method ((pattern parallel-composition))
+    (mapcan #'collect-bound-variables (messages pattern))))
+
+(defmethod bound-variables ((pattern pattern))
+  (mapcar #'collect-bound-variables
+          (append (local-message-pattern pattern)
+                  (down-message-pattern pattern)
+                  (up-message-pattern pattern)
+                  (kell-message-pattern pattern))))

@@ -8,6 +8,16 @@
      &optional (substitutions (make-empty-environment)))
   (unify (intern (format nil "?~a" (name pattern))) agent substitutions))
 
+;;; FIXME: currently, name variables and process variables can conflict. Do we want to
+;;;        be able to have a namevar and procvar with the same name – yes, this is
+;;;        important with nested triggers, where a deeper one might use a procvar with
+;;;        the same name as a shallower namevar, and they can't clash because the types
+;;;        would conflict.
+(defmethod unify
+    ((pattern name-variable) agent
+     &optional (substitutions (make-empty-environment)))
+  (unify (intern (format nil "?~a" (name pattern))) agent substitutions))
+
 (defmethod unify
     ((pattern kell) (agent kell) &optional (substitutions (make-empty-environment)))
   (unify (process pattern) (process agent)
@@ -50,6 +60,9 @@
 ;; NOTE: FIND-VARIABLE-VALUE isn't generic, so we use a different name
 (defmethod find-process-variable-value
     ((variable process-variable) &optional env errorp)
+  (find-variable-value (intern (format nil "?~a" (name variable))) env errorp))
+(defmethod find-name-variable-value
+    ((variable name-variable) &optional env errorp)
   (find-variable-value (intern (format nil "?~a" (name variable))) env errorp))
 
 #| FIXME: this is specific to Fraktal
