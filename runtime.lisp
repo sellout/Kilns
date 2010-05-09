@@ -12,8 +12,11 @@
 
 (let ((lock (make-lock "print-lock")))
   (defun printk (&rest arguments)
+    "This is our log-to-screen function. Works like format, but makes sure messages are printed atomically.
+     It also starts each new message on its own line (since there's no guarantee that the previous message
+    is even from the same thread, this is totally reasonable)."
     (with-lock-held (lock)
-      (apply #'format t arguments))))
+      (apply #'format t "~&~@?" arguments))))
 
 ;;; FIXME: make sure these threadsafe functions truly are
 
@@ -54,7 +57,7 @@
                              (apply (car event) (cdr event))
                              (with-lock-held (*dummy-wait-lock*)
                                (condition-wait *new-events* *dummy-wait-lock*))))
-             (error (c) (printk "~&ERROR: ~a~%" c)))))
+             (error (c) (printk "ERROR: ~a~%" c)))))
 
 (defun start-kilns (count)
   (loop for i from 1 to count
@@ -195,12 +198,12 @@
                                 :name (gensym "NETWORK") :process *top-kell*))
     (unwind-protect
         (loop do
-          (printk "~&> ")
+          (printk "> ")
           (handler-case (let ((process (eval (read))))
-                          (printk "~&~a~%" process)
+                          (printk "~a~%" process)
                           (add-process process *top-kell*))
             (end-of-file () (return))
-            (error (c) (printk "~&ERROR: ~a~%" c))))
+            (error (c) (printk "ERROR: ~a~%" c))))
       (mapc #'destroy-thread kilns)
       (clear-events))))
 
@@ -397,7 +400,7 @@
       (error () nil))))
 
 (defun match-on (process kell)
-  (printk "~&Trying to match ~a in ~a.~%" process kell)
+  (printk "Trying to match ~a in ~a.~%" process kell)
   (lock-neighboring-kells (kell)
     (destructuring-bind (&optional trigger matched-processes substitutions)
                         (really-match-on process kell)
@@ -407,7 +410,7 @@
                 (pattern trigger) matched-processes (process trigger))
         (trigger-process trigger substitutions)
         (mapc #'activate-continuation matched-processes)
-        (printk "~&~a~%" (parent kell))))))
+        (printk "~a~%" (parent kell))))))
 
 (defun find-triggers-matching-message (name kell)
   "Collect down-patterns from parent kell, up-patterns from subkells, and local-
