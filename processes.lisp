@@ -67,7 +67,7 @@
     managed."))
 
 (defmethod print-object ((obj restriction) stream)
-  (format stream "(res ~a ~a)" (name obj) (process obj)))
+  (format stream "(new ~a ~a)" (name obj) (process obj)))
 
 (defun restriction (name process)
   (make-instance 'restriction :name name :process process))
