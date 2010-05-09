@@ -5,9 +5,6 @@
 
 (in-package #:kilns)
 
-(defvar *kilns-readtable* (copy-readtable))
-(setf (readtable-case *kilns-readtable*) :invert)
-
 (defvar *top-kell*)
 
 (let ((lock (make-lock "print-lock")))

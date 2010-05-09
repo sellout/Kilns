@@ -11,12 +11,13 @@
   :components ((:file "package")
                (:file "utilities" :depends-on ("package"))
                (:file "processes" :depends-on ("package"))
-               ;;(:file "syntax" :depends-on ("package"))
+               (:file "syntax" :depends-on ("package"))
                ;;(:file "identifier" :depends-on ("package" "processes"))
                (:file "patterns" :depends-on ("package" "processes"))
                (:file "unification" :depends-on ("package" "processes" "patterns"))
                ;;(:file "reduction-semantics" :depends-on ("utilities" "syntax"))
-               (:file "runtime" :depends-on ("processes" "patterns" "unification"))
+               (:file "runtime"
+                      :depends-on ("syntax" "processes" "patterns" "unification"))
                (:file "reader" :depends-on ("runtime"))
                (:file "debug" :depends-on ("reader"))
                ;; pattern languages
