@@ -1,5 +1,4 @@
-#+xcvb (module (:depends-on ("pnpjk-calculus")))
-(in-package :kilns)
+(load "utilities")
 
 ;;; As an illlustration of the expressive power of the polyadic name-passing jK
 ;;; calculus, we consider an encoding of a π-calculus based instance (without
@@ -39,15 +38,20 @@
 ;;; the locality or the control process S —and from the inside—the plain
 ;;; process P):
 
-(def MS (a)
-  (receive (up-message 'in (a x)) x)
-  (receive (down-message 'up (x)) S x))
+(def (MS a)
+  `(parallel-composition
+    (trigger* (message 'in (list (message ',a) (process-variable 'x)) 'up)
+              (process-variable 'x))
+    (trigger* (message 'up (process-variable 'x) 'down) (process-variable 'x))))
 
-(def MP (a)
-  (receive (up-message 'in (a x)) x))
+(def (MP a)
+  `(trigger* (message 'in (list (message ',a) (process-variable 'x)) 'up)
+             (process-variable 'x)))
 
-(def Env ()
-  (receive (down-message 'out (?b x)) (message 'in (b x))))
+(def (Env)
+  `(trigger* (message 'out (list (message (name-variable 'b)) (process-variable 'x))
+                      'down)
+             (message 'in (list (message (name-variable 'b)) (process-variable 'x)))))
 
 ;;; As one can see, the notion of membrane readily translates into a pair of
 ;;; nested kells, with the outer one containing an encoding of the control part,
