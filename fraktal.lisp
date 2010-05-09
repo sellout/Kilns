@@ -24,7 +24,7 @@
 ;;; m.
 
 (defvar +fraktal+
-  (make-instance 'pattern-language :grammar
+  (make-instance 'pattern-language
     ;; ξ ::= J | ξk | J|ξk
     ;; J ::= ξm | ξd | ξu | J|J
     ;; ξm ::= a␣ρ̅␣
@@ -39,15 +39,32 @@
   ((complement :initarg :complement :reader the-complement)
    (variable :initarg :variable :reader variable)))
 
+(defun != (complement &optional variable)
+  (make-instance 'mismatch :variable variable :complement complement))
+
+(defmethod print-object ((obj mismatch) stream)
+  (format stream "(!= ~a~@[ ~a~])" (the-complement obj) (variable obj)))
+
 ;;; We similarly extend the matching functions, adding two cases for the helper
 ;;; function matchr
 
-(defmethod recursive-match ((language fraktal)
-                            (pattern message) (process message))
-  (let ((name (name pattern)))
-    (if (typep name 'mismatch)
-      (when (not (eql (the-complement name) (name process)))
-        (when (variable name)
-          (bind (variable name) (name process)))
-        (recursive-match (process pattern) (process process)))
-      (call-next-method))))
+(defmethod recursive-match ((pattern message) (process message)
+                            &optional (substitutions (make-empty-environment)))
+  (typecase (name pattern)
+    (name-variable (recursive-match (process pattern) (process process)
+                                    (unify (name pattern) (name process)
+                                           substitutions)))
+    (mismatch (let ((name (name pattern)))
+                (when (not (eql (the-complement name) (name process)))
+                  (recursive-match (process pattern) (process process)
+                                   (if (variable name)
+                                     (unify (variable name) (name process)
+                                            substitutions)
+                                     substitutions)))))
+    (otherwise (cdr (match pattern process substitutions)))))
+
+(defmethod collect-bound-names ((pattern message))
+  (typecase (name pattern)
+    (name-variable (cons (name pattern) (collect-bound-names (process pattern))))
+    (mismatch (cons (variable (name pattern)) (collect-bound-names (process pattern))))
+    (otherwise (collect-bound-names (process pattern)))))

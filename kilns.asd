@@ -22,5 +22,4 @@
                ;; pattern languages
                (:file "jk-calculus" :depends-on ("patterns"))
                (:file "pnpjk-calculus" :depends-on ("jk-calculus"))
-               ;;(:file "fraktal" :depends-on ("syntax"))
-               ))
+               (:file "fraktal" :depends-on ("pnpjk-calculus"))))

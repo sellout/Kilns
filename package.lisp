@@ -18,4 +18,4 @@
            #:_
            #:name-variable
            ;; fraKtal pattern language
-           #:mismatch))
+           #:!=))
