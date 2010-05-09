@@ -1,4 +1,4 @@
-(def translate-lambda-term (term channel)
+(def (translate-lambda-term term channel)
   (cl:if (cl:listp term)
     (cl:if (cl:eql (cl:car term) 'lambda)
       ;; lambda
@@ -7,8 +7,8 @@
                                     (process-variable 'v)))
                 (translate-lambda-term ,(cl:third term) (process-variable 'v)))
       ;; apply
-      `(cl:let ((x (cl:gensym "x")))
-         (restriction 'v
+      (cl:let ((x (cl:gensym "x")))
+        `(restriction 'v
            (parallel-composition
             (translate-lambda-term ,(cl:first term) 'v)
             (restriction ',x

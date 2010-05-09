@@ -1,6 +1,6 @@
 ;; this just requires the jk pattern language
 
-(def sandbox (process channel)
+(def (sandbox process channel)
   `(restriction 'b
      (restriction 'r
        (parallel-composition
