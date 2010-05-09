@@ -53,8 +53,8 @@
 (defun par (&rest processes)
   (apply #'parallel-composition processes))
 
-(defun new (name process)
-  (apply #'restriction name process))
+(defmacro new (name process)
+  `(restriction ',name ,process))
 
 ;;; The syntax of the Kell calculus is given in Figure 1. It is parameterized by
 ;;; the pattern language used to define patterns ξ in triggers ξ ␣ P.

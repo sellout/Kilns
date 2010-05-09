@@ -1,14 +1,11 @@
 ;; this just requires the jk pattern language
 
-(def (sandbox process channel)
-  `(restriction 'b
-     (restriction 'r
-       (parallel-composition
-        (trigger (message 'r (process-variable 'z) 'down)
-                 (parallel-composition
-                  (trigger (kell 'b (process-variable 'y)) null-process)
-                  (message ,channel (process-variable 'z))))
-        (kell 'b (parallel-composition
-                  (trigger (message ,channel (process-variable 'z) 'down)
-                           (message 'r (process-variable 'z)))
-                  (kell 'b ,process)))))))
+(def (sandbox temp-process final-response-channel)
+  `(new sandbox
+     (new response
+       (par (trigger {response ?result down}
+                     (par (trigger [sandbox ?completed-process] null-process)
+                          {,final-response-channel ?result}))
+            [sandbox (par (trigger {,final-response-channel ?result down}
+                                   {response ?result})
+                          [sandbox ,temp-process])]))))

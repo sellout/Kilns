@@ -18,4 +18,6 @@
            #:_
            #:name-variable
            ;; fraKtal pattern language
-           #:!=))
+           #:!=
+           ;; abbreviated syntax
+           #:par #:new))
