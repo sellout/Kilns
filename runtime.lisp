@@ -14,7 +14,8 @@
      no guarantee that the previous message is even from the same thread, this is
      totally reasonable)."
     (with-lock-held (lock)
-      (apply #'format t "~&~@?" arguments))))
+      (apply #'format t "~&~@?" arguments)
+      (finish-output))))
 
 ;;; FIXME: make sure these threadsafe functions truly are
 
