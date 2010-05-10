@@ -101,7 +101,6 @@
   (or (unify::occurs-in-p var (name pat) env)
       (unify::occurs-in-p var (process pat) env)))
 
-#|
 (defmethod unify::occurs-in-p ((var symbol) (pat process-variable) env)
   (unify::occurs-in-p var (intern (format nil "?~a" (name pat))) env))
 
@@ -109,4 +108,3 @@
   (map-parallel-composition (lambda (process)
                               (unify::occurs-in-p var process env))
                             pat))
-|#
