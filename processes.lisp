@@ -4,6 +4,10 @@
 (defclass process ()
   ((parent :accessor parent))) ; FIXME: really only a property of _active_ processes …
 
+(deftype generic-process ()
+  "This allows us to use various primitives as processes."
+  `(or process string number list))
+
 (defclass null-process (process)
   ()
   (:documentation "This is effectively nil. Maybe we should just use nil."))
@@ -43,7 +47,7 @@
 
 (defclass trigger (process)
   ((pattern :initarg :pattern :type pattern :accessor pattern)
-   (process :initarg :process :type process :accessor process)))
+   (process :initarg :process :type generic-process :accessor process)))
 
 (defmethod print-object ((obj trigger) stream)
   (if (and (slot-boundp obj 'pattern)
@@ -57,7 +61,7 @@
 
 (defclass restriction (process)
   ((name :initarg :name :type name :reader name)
-   (process :initarg :process :type process :reader process))
+   (process :initarg :process :type generic-process :reader process))
   (:documentation
    "We store everything in normal form, which means that restrictions don't
     actually exist, per se. They are all brought to the top-level as global
@@ -75,7 +79,7 @@
 ;;; FIXME: need  a better name
 (defclass message-structure (process)
   ((name :initarg :name :type name :accessor name)
-   (process :initarg :process :initform null-process :type process :accessor process)
+   (process :initarg :process :initform null-process :type generic-process :accessor process)
    (continuation :initarg :continuation :initform null-process
                  :type (or process (member up down))
                  :accessor continuation))

@@ -112,6 +112,8 @@
 
 
 (defgeneric activate-process (process kell)
+  (:method ((process list) (kell kell))
+    (add-process (eval process) kell))
   (:method ((process process) (kell kell))
     (setf (parent process) kell)
     (mapc #'push-event (collect-channel-names process kell)))
@@ -134,6 +136,8 @@
     ;; lets us run normal functions without consequence
     (declare (ignore process kell))
     (values))
+  (:method ((process list) (kell kell))
+    (add-process (eval process) kell))
   (:method ((process restriction) (kell kell))
     (let ((global-name (gensym (format nil "~a" (name process)))))
       (add-process (apply-restriction (name process) global-name (process process))
@@ -272,19 +276,27 @@
                     (delete process (gethash (name proc) (kell-patterns kell)))))
             (kell-message-pattern (pattern process))))))
 
-(defun replace-variables (process mapping &optional ignored-vars)
-  (let ((substituted-processes
-         (mapcar (lambda (process-variable)
-                   (when (not (find (name process-variable) ignored-vars
-                                    :key #'name))
-                     (printk "Replacing ~a with ~a in ~a~%"
-                             process-variable
-                             (find-process-variable-value process-variable mapping)
-                             process)
-                     (setf process (remove-process-from process-variable process))
-                     (find-process-variable-value process-variable mapping)))
-                 (process-variables-in process))))
-    (reduce #'compose-processes (cons process substituted-processes))))
+(defgeneric replace-variables (process mapping &optional ignored-vars)
+  (:method (process mapping &optional ignored-vars)
+    "This just skips over primitives."
+    (declare (ignore mapping ignored-vars))
+    process)
+  (:method ((process list) mapping &optional ignored-vars)
+    (printk "Replacing variables in ~a" process)
+    (mapcar (lambda (item) (replace-variables item mapping ignored-vars)) process))
+  (:method ((process process) mapping &optional ignored-vars)
+    (let ((substituted-processes
+           (mapcar (lambda (process-variable)
+                     (when (not (find (name process-variable) ignored-vars
+                                      :key #'name))
+                       (printk "Replacing ~a with ~a in ~a~%"
+                               process-variable
+                               (find-process-variable-value process-variable mapping)
+                               process)
+                       (setf process (remove-process-from process-variable process))
+                       (find-process-variable-value process-variable mapping)))
+                   (process-variables-in process))))
+      (reduce #'compose-processes (cons process substituted-processes)))))
 
 (defgeneric replace-name (name mapping &optional ignored-vars)
   (:method ((name symbol) mapping &optional ignored-vars)
@@ -308,8 +320,7 @@
     (psetf (name process) (replace-name (name process) mapping ignored-vars)
            (process process) (replace-variables (process process) mapping ignored-vars)
            (continuation process) (replace-variables (continuation process) mapping
-                                                     ignored-vars))
-    (printk "new process: ~a~%" process))
+                                                     ignored-vars)))
   (:method (mapping (process kell) &optional ignored-vars)
     (mapc (lambda (proc) (substitute-variables mapping proc ignored-vars))
           (append (messages-in (process process))
@@ -320,8 +331,7 @@
                   (triggers-in (continuation process))))
     (psetf (process process) (replace-variables (process process) mapping ignored-vars)
            (continuation process) (replace-variables (continuation process) mapping
-                                                     ignored-vars))
-    (printk "new process: ~a~%" process))
+                                                     ignored-vars)))
   (:method (mapping (process trigger) &optional ignored-vars)
     (setf ignored-vars (append (bound-names (pattern process))
                                (bound-variables (pattern process))
@@ -332,8 +342,7 @@
                   (kells-in (process process))
                   (triggers-in (process process))))
     (psetf (process process) (replace-variables (process process) mapping
-                                                ignored-vars))
-    (printk "new process: ~a~%" process)))
+                                                ignored-vars))))
 
 (defmethod trigger-process ((trigger trigger) mapping)
   "Activates process after substituting the process-variables in the trigger."
@@ -345,19 +354,7 @@
           (append (messages-in process)
                   (kells-in process)
                   (triggers-in process)))
-    (let ((substituted-processes
-           (mapcar (lambda (process-variable)
-                     (printk "Replacing (top) ~a with ~a in ~a~%"
-                             process-variable
-                             (find-process-variable-value process-variable mapping)
-                             process)
-                     (setf process (remove-process-from process-variable process))
-                     (find-process-variable-value process-variable mapping))
-                   (process-variables-in (process trigger)))))
-      (add-process (reduce #'compose-processes
-                         (cons process
-                               substituted-processes))
-                   (parent trigger)))))
+    (add-process (replace-variables (process trigger) mapping) (parent trigger))))
 
 (defmethod activate-continuation (process)
     (remove-process process)

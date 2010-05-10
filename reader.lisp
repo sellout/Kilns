@@ -1,7 +1,7 @@
 (defpackage kilns-runner
   (:use #:cl #:kilns)
   (:shadow #:load #:read #:eval)
-  (:export #:load #:read #:eval #:state))
+  (:export #:load #:read #:eval #:state #:lisp))
 
 (defpackage kilns-user
   (:use #:kilns #:kilns-runner))
@@ -29,3 +29,8 @@
       (handler-case (loop until (let ((value (read stream)))
                                   (if print (print value) value)))
         (end-of-file () full-name)))))
+
+(defmacro lisp (&rest forms)
+  `'(cl:progn
+      ,@forms
+      null-process))

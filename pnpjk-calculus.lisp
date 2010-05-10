@@ -65,13 +65,13 @@
     (unify (process pattern) (process kell) substitutions)))
 
 (defgeneric recursive-match (pattern process &optional substitutions)
-  (:method ((pattern blank) (process process)
+  (:method ((pattern blank) process
             &optional (substitutions (make-empty-environment)))
     substitutions)
-  (:method ((pattern process-variable) (process process)
+  (:method ((pattern process-variable) process
             &optional (substitutions (make-empty-environment)))
     (unify pattern process substitutions))
-  (:method ((pattern process) (process process)
+  (:method ((pattern process) process
             &optional (substitutions (make-empty-environment)))
     (cdr (match pattern process substitutions)))
   (:method ((pattern message) (process message)
