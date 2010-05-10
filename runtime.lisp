@@ -283,17 +283,12 @@
     (declare (ignore mapping ignored-vars))
     process)
   (:method ((process list) mapping &optional ignored-vars)
-    (printk "Replacing variables in ~a" process)
     (mapcar (lambda (item) (replace-variables item mapping ignored-vars)) process))
   (:method ((process process) mapping &optional ignored-vars)
     (let ((substituted-processes
            (mapcar (lambda (process-variable)
                      (when (not (find (name process-variable) ignored-vars
                                       :key #'name))
-                       (printk "Replacing ~a with ~a in ~a~%"
-                               process-variable
-                               (find-process-variable-value process-variable mapping)
-                               process)
                        (setf process (remove-process-from process-variable process))
                        (find-process-variable-value process-variable mapping)))
                    (process-variables-in process))))
@@ -369,7 +364,6 @@
     (let ((name (name process)))
       (catch 'match
         (mapc (lambda (trigger)
-                (printk "attempt to match ~a against ~a~%" (pattern trigger) kell)
                 (handler-case
                     (destructuring-bind (processes substitutions)
                                         (match (pattern trigger) (parent trigger))
@@ -385,7 +379,6 @@
     "Find all triggers that could match."
     (catch 'match
       (mapc (lambda (trigger)
-              (printk "attempt to match ~a against ~a~%" (pattern trigger) kell)
               (handler-case
                   (destructuring-bind (processes substitutions)
                                       (match (pattern trigger) kell)
@@ -394,7 +387,6 @@
             (gethash (name process) (kell-patterns kell)))))
   (:method ((process trigger) (kell kell))
     "Just match on the new trigger."
-    (printk "attempt to match ~a against ~a~%" (pattern process) kell)
     (handler-case
         (destructuring-bind (processes substitutions)
                             (match (pattern process) (parent process))
@@ -402,7 +394,6 @@
       (error () nil))))
 
 (defun match-on (process kell)
-  (printk "Trying to match ~a in ~a.~%" process kell)
   (lock-neighboring-kells (kell)
     (destructuring-bind (&optional trigger matched-processes substitutions)
                         (really-match-on process kell)
