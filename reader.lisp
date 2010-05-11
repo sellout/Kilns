@@ -9,15 +9,10 @@
 (in-package #:kilns-runner)
 
 (defun eval (form)
-  (cl:eval (list 'kilns::add-process form kilns::*top-kell*)))
+  (kilns::add-process form kilns::*top-kell*))
 
 (defun read (&rest read-args)
-  (let (form)
-    (let ((*read-eval* nil))
-      (setf form (apply #'cl:read read-args)))
-    (if *read-eval*
-        (eval form)
-        form)))
+  (eval (apply #'cl:read read-args)))
 
 (defun load (file-name
              &key
