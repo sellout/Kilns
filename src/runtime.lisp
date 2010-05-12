@@ -138,7 +138,6 @@
     (declare (ignore process kell))
     (values))
   (:method ((process cons) (kell kell))
-    (printk "adding ~a" process)
     (add-process (eval process) kell))
   (:method ((process restriction) (kell kell))
     (let ((global-name (gensym (format nil "~a" (name process)))))
