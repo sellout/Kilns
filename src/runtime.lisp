@@ -298,6 +298,12 @@
   (:method (name mapping &optional ignored-vars)
     (declare (ignore mapping ignored-vars))
     name)
+  (:method ((name process-variable) mapping &optional ignored-vars)
+    ;; FIXME: this method only exists because sometimes '?x' is being read as a
+    ;;        process-variable instead of read as a name-variable
+    (if (find (name name) ignored-vars :key #'name)
+      name
+      (find-process-variable-value name mapping)))
   (:method ((name name-variable) mapping &optional ignored-vars)
     (if (find (name name) ignored-vars :key #'name)
       name
@@ -368,7 +374,7 @@
                     (destructuring-bind (processes substitutions)
                                         (match (pattern trigger) (parent trigger))
                       (throw 'match (list trigger processes substitutions)))
-                  (error () nil))) ; FIXME: this should be tighter
+                  (unification-failure ())))
               (remove-duplicates (append (gethash name (local-patterns kell))
                                          (gethash name (down-patterns (parent kell)))
                                          (mapcan (lambda (subkell)
@@ -383,7 +389,7 @@
                   (destructuring-bind (processes substitutions)
                                       (match (pattern trigger) kell)
                     (throw 'match (list trigger processes substitutions)))
-                (error () nil)))
+                (unification-failure ())))
             (gethash (name process) (kell-patterns kell)))))
   (:method ((process trigger) (kell kell))
     "Just match on the new trigger."
@@ -391,7 +397,7 @@
         (destructuring-bind (processes substitutions)
                             (match (pattern process) (parent process))
           (list process processes substitutions))
-      (error () nil))))
+      (unification-failure ()))))
 
 (defun match-on (process kell)
   (lock-neighboring-kells (kell)

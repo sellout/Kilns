@@ -65,21 +65,25 @@
     (unify (process pattern) (process kell) substitutions)))
 
 (defgeneric recursive-match (pattern process &optional substitutions)
+  (:method ((pattern null-process) (process null-process)
+            &optional (substitutions (make-empty-environment)))
+    substitutions)
   (:method ((pattern blank) process
             &optional (substitutions (make-empty-environment)))
+    (declare (ignore process))
     substitutions)
   (:method ((pattern process-variable) process
             &optional (substitutions (make-empty-environment)))
     (unify pattern process substitutions))
   (:method ((pattern process) process
             &optional (substitutions (make-empty-environment)))
-    (cdr (match pattern process substitutions)))
+    (second (match pattern process substitutions)))
   (:method ((pattern message) (process message)
             &optional (substitutions (make-empty-environment)))
     (if (typep (name pattern) 'name-variable)
       (recursive-match (process pattern) (process process)
                        (unify (name pattern) (name process) substitutions))
-      (cdr (match pattern process substitutions)))))
+      (second (match pattern process substitutions)))))
 
 (defgeneric collect-bound-names (pattern)
   (:method (pattern)

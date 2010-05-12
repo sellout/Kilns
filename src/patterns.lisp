@@ -68,37 +68,56 @@
 ;;;   and with ∅ otherwise (see section 3.2 for more details).
 ;;;   We write θ ∈ match(ξ, M) for ⟨⟨ξ, M⟩, θ⟩ ∈ match.
 
-(defun match (pattern kell &optional (pattern-language *current-pattern-language*))
+(defgeneric match (pattern process &optional substitutions)
   ;; NOTE: In theory I might have to worry about the same variable occuring multiple
   ;;       times in a pattern, but I have to read more to find out one way or the
   ;;       other. In any case, I'm currently disallowing it.
-  (let ((substitutions (make-empty-environment)))
+  (:method ((pattern pattern) (kell kell) &optional (substitutions (make-empty-environment)))
     (remove nil
             (list (append (destructuring-bind (procs subst)
-                                              (match-local (local-message-pattern pattern)
-                                                           (messages kell)
-                                                           substitutions)
+                              (match-local (local-message-pattern pattern)
+                                           (messages kell)
+                                           substitutions)
                             (setf substitutions subst)
                             procs)
+                          ;; FIXME: this requires that all matched messages are within the same
+                          ;;;       subkell. I don't think that's the correct behavior
                           (car (mapcar (lambda (subkell)
                                          (destructuring-bind (procs subst)
-                                                             (match-down (down-message-pattern
-                                                                          pattern)
-                                                                         (messages subkell)
-                                                                         substitutions)
+                                             (match-down (down-message-pattern
+                                                          pattern)
+                                                         (messages subkell)
+                                                         substitutions)
                                            (setf substitutions subst)
                                            procs))
                                        (subkells kell)))
                           (destructuring-bind (procs subst)
-                                              (match-up (up-message-pattern pattern)
-                                                        (messages (parent kell))
-                                                        substitutions)
+                              (match-up (up-message-pattern pattern)
+                                        (messages (parent kell))
+                                        substitutions)
                             (setf substitutions subst)
                             procs)
                           (destructuring-bind (procs subst)
-                                              (match-kell (kell-message-pattern pattern)
-                                                          (kells kell)
-                                                          substitutions)
+                              (match-kell (kell-message-pattern pattern)
+                                          (kells kell)
+                                          substitutions)
+                            (setf substitutions subst)
+                            procs))
+                  substitutions)))
+  (:method ((pattern process) (process process)
+            &optional (substitutions (make-empty-environment)))
+    ;;; FIXME: This should ensure that _all_ processes match, not just enough to satisfy pattern
+    (remove nil
+            (list (append (destructuring-bind (procs subst)
+                              (match-local (messages-in pattern)
+                                           (messages-in process)
+                                           substitutions)
+                            (setf substitutions subst)
+                            procs)
+                          (destructuring-bind (procs subst)
+                              (match-kell (kells-in pattern)
+                                          (kells-in process)
+                                          substitutions)
                             (setf substitutions subst)
                             procs))
                   substitutions))))
@@ -106,8 +125,8 @@
 (defgeneric match-local (pattern process &optional substitutions)
   (:method ((patterns list) (processes hash-table)
             &optional (substitutions (make-empty-environment)))
-    "Finds one match in PROCESSES for each item in PATTERNS. Also ensures that the same
-     process doesn’t match multiple patterns."
+    "Finds one match in PROCESSES for each item in PATTERNS. Also ensures that
+     the same process doesn’t match multiple patterns."
     (list (mapcar (lambda (pattern)
                     (block per-pattern
                       (mapc (lambda (process)
@@ -117,58 +136,97 @@
                                   (setf substitutions subst)
                                   (return-from per-pattern process))))
                             (gethash (name pattern) processes))
-                      (error "no match")))
+                      (error 'unification-failure)))
                   patterns)
-          substitutions)))
+          substitutions))
+  (:method ((patterns list) (processes list)
+            &optional (substitutions (make-empty-environment)))
+    "Finds one match in PROCESSES for each item in PATTERNS. Also ensures that
+     the same process doesn’t match multiple patterns."
+    (if (= (length patterns) (length processes))
+        (list (mapcar (lambda (pattern)
+                        (block per-pattern
+                          (mapc (lambda (process)
+                                  (let ((subst (match-local pattern process
+                                                            substitutions)))
+                                    (when subst
+                                      (setf substitutions subst)
+                                      (setf processes (remove process processes))
+                                      (return-from per-pattern process))))
+                                processes)
+                          (error 'unification-failure)))
+                      patterns)
+              substitutions)
+        (error 'unification-failure))))
 
 (defgeneric match-down (pattern process &optional substitutions)
   (:method ((patterns list) (processes hash-table)
             &optional (substitutions (make-empty-environment)))
-    "Finds one match in PROCESSES for each item in PATTERNS. Also ensures that the same
-     process doesn’t match multiple patterns."
+    "Finds one match in PROCESSES for each item in PATTERNS. Also ensures that
+     the same process doesn’t match multiple patterns."
     (list (mapcar (lambda (pattern)
                     (block per-pattern
                       (mapc (lambda (process)
-                              (let ((subst (match-down pattern process substitutions)))
+                              (let ((subst (match-down pattern process
+                                                       substitutions)))
                                 (when subst
                                   (setf substitutions subst)
                                   (return-from per-pattern process))))
                             (gethash (name pattern) processes))
-                      (error "no match")))
+                      (error 'unification-failure)))
                   patterns)
           substitutions)))
 
 (defgeneric match-up (pattern process &optional substitutions)
   (:method ((patterns list) (processes hash-table)
             &optional (substitutions (make-empty-environment)))
-    "Finds one match in PROCESSES for each item in PATTERNS. Also ensures that the same
-     process doesn’t match multiple patterns."
+    "Finds one match in PROCESSES for each item in PATTERNS. Also ensures that
+     the same process doesn’t match multiple patterns."
     (list (mapcar (lambda (pattern)
                     (block per-pattern
                       (mapc (lambda (process)
-                              (let ((subst (match-up pattern process substitutions)))
+                              (let ((subst (match-up pattern process
+                                                     substitutions)))
                                 (when subst
                                   (setf substitutions subst)
                                   (return-from per-pattern process))))
                             (gethash (name pattern) processes))
-                      (error "no match")))
+                      (error 'unification-failure)))
                   patterns)
           substitutions)))
 
 (defgeneric match-kell (pattern process &optional substitutions)
   (:method ((patterns list) (processes hash-table)
             &optional (substitutions (make-empty-environment)))
-    "Finds one match in PROCESSES for each item in PATTERNS. Also ensures that the same
-     process doesn’t match multiple patterns."
+    "Finds one match in PROCESSES for each item in PATTERNS. Also ensures that
+     the same process doesn’t match multiple patterns."
     (list (mapcar (lambda (pattern)
                     (block per-pattern
                       (mapc (lambda (process)
-                              (let ((subst (match-kell pattern process substitutions)))
+                              (let ((subst (match-kell pattern process
+                                                       substitutions)))
                                 (when subst
                                   (setf substitutions subst)
                                   (return-from per-pattern process))))
                             (gethash (name pattern) processes))
-                      (error "no match")))
+                      (error 'unification-failure)))
+                  patterns)
+          substitutions))
+  (:method ((patterns list) (processes list)
+            &optional (substitutions (make-empty-environment)))
+    "Finds one match in PROCESSES for each item in PATTERNS. Also ensures that
+     the same process doesn’t match multiple patterns."
+    (list (mapcar (lambda (pattern)
+                    (block per-pattern
+                      (mapc (lambda (process)
+                              (let ((subst (match-kell pattern process
+                                                       substitutions)))
+                                (when subst
+                                  (setf substitutions subst)
+                                  (setf processes (remove process processes))
+                                  (return-from per-pattern process))))
+                            processes)
+                      (error 'unification-failure)))
                   patterns)
           substitutions)))
 

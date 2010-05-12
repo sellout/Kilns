@@ -61,7 +61,7 @@
                                      (unify (variable name) (name process)
                                             substitutions)
                                      substitutions)))))
-    (otherwise (cdr (match pattern process substitutions)))))
+    (otherwise (second (match pattern process substitutions)))))
 
 (defmethod collect-bound-names ((pattern message))
   (typecase (name pattern)
