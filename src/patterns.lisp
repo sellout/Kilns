@@ -35,11 +35,12 @@
    (kell-message-pattern :initform nil :type list :accessor kell-message-pattern)))
 
 (defmethod print-object ((obj pattern) stream)
-  (format stream "(par ~{~a~^ ~})"
-          (append (local-message-pattern obj)
-                  (down-message-pattern obj)
-                  (up-message-pattern obj)
-                  (kell-message-pattern obj))))
+  (let ((patterns (append (local-message-pattern obj)
+                          (down-message-pattern obj)
+                          (up-message-pattern obj)
+                          (kell-message-pattern obj))))
+    (format stream "~:[~{~a~}~;(par ~{~a~^ ~})~]"
+            (< 1 (length patterns)) patterns)))
 
 ;;; FIXME: somewhere around here we need to ensure only one kell is in the pattern
 
