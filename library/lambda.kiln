@@ -27,4 +27,4 @@
                         (par {,v (par {,x} {,channel})}
                              {replicate {,x (translate-lambda-term ,(cl:second term) ,v)}}))))))
     ;; variable
-    `{,term {,channel}}))
+    `{(name-variable ',term) {,channel}}))
