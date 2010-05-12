@@ -65,46 +65,9 @@
     ((variable name-variable) &optional env errorp)
   (find-variable-value (intern (format nil "?~a" (name variable))) env errorp))
 
-#| FIXME: this is specific to Fraktal
-(defmethod unify
-    ((pattern mismatch) agent
-     &optional (substitutions (make-empty-environment)))
-  (if (eql (the-complement pattern) agent)
-      (error 'unification-failure
-         :format-control "could not unify ~a and ~a"
-         :format-arguments (list pattern agent))
-      (unify (variable pattern) agent substitutions)))
-|#
-
-#|
-(defmethod unify
-    ((pattern pattern) (agent list)
-     &optional (substitutions (make-empty-environment)))
-     )
-|#
-
-(defmethod unify::occurs-in-p ((var symbol) (pat null-process) env)
+;;; It turns out that occurs-in-p is used to make sure that variables don't
+;;; match things that contain the same variable - but we don't care, that's
+;;; fine in our calculus.
+(defmethod unify::occurs-in-p ((var symbol) pat env)
   (declare (ignore env))
   nil)
-
-(defmethod unify::occurs-in-p ((var symbol) (pat restriction) env)
-  (unify::occurs-in-p var (process pat) env))
-
-(defmethod unify::occurs-in-p ((var symbol) (pat message) env)
-  (or (unify::occurs-in-p var (name pat) env)
-      (unify::occurs-in-p var (process pat) env)))
-
-(defmethod unify::occurs-in-p ((var symbol) (pat trigger) env)
-  (unify::occurs-in-p var (process pat) env))
-
-(defmethod unify::occurs-in-p ((var symbol) (pat kell) env)
-  (or (unify::occurs-in-p var (name pat) env)
-      (unify::occurs-in-p var (process pat) env)))
-
-(defmethod unify::occurs-in-p ((var symbol) (pat process-variable) env)
-  (unify::occurs-in-p var (intern (format nil "?~a" (name pat))) env))
-
-(defmethod unify::occurs-in-p ((var symbol) (pat parallel-composition) env)
-  (map-parallel-composition (lambda (process)
-                              (unify::occurs-in-p var process env))
-                            pat))
