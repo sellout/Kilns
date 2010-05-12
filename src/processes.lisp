@@ -94,7 +94,9 @@
            (slot-boundp obj 'continuation))
     (format stream "{~a~:[ ~a~:[ ~a~;~]~;~]}"
             (name obj)
-            (and (eql (process obj) null-process) (eql (continuation obj) null-process)) (process obj)
+            (and (eql (process obj) null-process)
+                 (eql (continuation obj) null-process))
+            (process obj)
             (eql (continuation obj) null-process)
             (continuation obj))
     (call-next-method)))
@@ -116,10 +118,13 @@
    ;; it means we have to keep the data structures in sync.
    (messages :initform (make-hash-table :test #'equal) :reader messages)
    (kells :initform (make-hash-table :test #'equal) :reader kells)
-   (local-patterns :initform (make-hash-table :test #'equal) :reader local-patterns)
+   (local-patterns :initform (make-hash-table :test #'equal)
+                   :reader local-patterns)
    (up-patterns :initform (make-hash-table :test #'equal) :reader up-patterns)
-   (down-patterns :initform (make-hash-table :test #'equal) :reader down-patterns)
-   (kell-patterns :initform (make-hash-table :test #'equal) :reader kell-patterns)))
+   (down-patterns :initform (make-hash-table :test #'equal)
+                  :reader down-patterns)
+   (kell-patterns :initform (make-hash-table :test #'equal)
+                  :reader kell-patterns)))
 
 (defun kell (name &optional process continuation)
   (if continuation
@@ -138,7 +143,10 @@
    (messages :initform nil :type list :accessor messages)
    (kells :initform nil :type list :accessor kells)
    (triggers :initform nil :type list :accessor triggers)
-   (primitives :initform nil :type list :accessor primitives))
+   (primitives :initform nil :type list :accessor primitives
+               :documentation "This contains lists, strings, numbers, etc., but
+                               also restrictions and any other type of process
+                               that doesn't need to be singled out."))
   (:documentation
    "A parallel composition is an unordered set of processes. We flatten nested
     compositions and split them up based on their type. This makes for quicker
@@ -168,9 +176,9 @@
   "Do nothing for primitives."
   (values))
 
-;;; FIXME: there are really two functions here – one replaces the value in place in the
-;;; parent container, the other is functional. The functional one is right, but we have
-;;; to convert other code.
+;;; FIXME: there are really two functions here – one replaces the value in place
+;;;        in the parent container, the other is functional. The functional one
+;;;        is right, but we have to convert other code.
 (defgeneric remove-process-from (process kell)
   (:method (process kell)
     (warn "The process ~a is not contained in ~a, and thus can not be removed."
