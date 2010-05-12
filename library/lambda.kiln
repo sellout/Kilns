@@ -7,12 +7,11 @@
 (trigger* {replicate {?name ?process}}
           {?name ?process {replicate {?name ?process}}})
 
-
 ;;;     [[x]](u) = {x u}
 ;;;  [[lx M]](u) = (trigger {u (list ?x ?v)} [[M]]<v>)
 ;;; [[(M N)]](u) = (new v (par [[M]]<v>
 ;;;                            (new x (par {v (list x u)}
-;;;                                        (trigger* {x [[N]]})))))
+;;;                                        {replicate {x [[N]]}}))))
 (def (translate-lambda-term term channel)
   (cl:if (cl:listp term)
     (cl:if (cl:eql (cl:first term) 'lambda)
