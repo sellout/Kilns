@@ -137,7 +137,8 @@
     ;; lets us run normal functions without consequence
     (declare (ignore process kell))
     (values))
-  (:method ((process list) (kell kell))
+  (:method ((process cons) (kell kell))
+    (printk "adding ~a" process)
     (add-process (eval process) kell))
   (:method ((process restriction) (kell kell))
     (let ((global-name (gensym (format nil "~a" (name process)))))
@@ -400,16 +401,18 @@
       (unification-failure ()))))
 
 (defun match-on (process kell)
-  (lock-neighboring-kells (kell)
-    (destructuring-bind (&optional trigger matched-processes substitutions)
-                        (really-match-on process kell)
-      (when (and trigger matched-processes)
-        (printk "The pattern ~a will match the process ~a and result in the ~
-                 process ~a.~%"
-                (pattern trigger) matched-processes (process trigger))
-        (trigger-process trigger substitutions)
-        (mapc #'activate-continuation matched-processes)
-        (printk "~a~%" (parent kell))))))
+  (handler-case
+      (lock-neighboring-kells (kell)
+        (destructuring-bind (&optional trigger matched-processes substitutions)
+            (really-match-on process kell)
+          (when (and trigger matched-processes)
+            (printk "The pattern ~a will match the process ~a and result in ~
+                     the process ~a.~%"
+                    (pattern trigger) matched-processes (process trigger))
+                                  (trigger-process trigger substitutions)
+                                  (mapc #'activate-continuation matched-processes)
+                                  (printk "~a~%" (parent kell)))))
+    (error (c) (printk "ERROR: ~a~%" c))))
 
 (defun find-triggers-matching-message (name kell)
   "Collect down-patterns from parent kell, up-patterns from subkells, and local-
