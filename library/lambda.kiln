@@ -1,39 +1,31 @@
+(load "library/replication")
+(load "library/utilities")
+
+;;; pi-calculus [!P] replication, needed to implement the pi-calc encoding of
+;;; the lambda-calc. There might be a more direct encoding - anyone want to tell
+;;; me what it is?
+(trigger* {replicate {?name ?process}}
+          {?name ?process {replicate {?name ?process}}})
+
+
+;;;     [[x]](u) = {x u}
+;;;  [[lx M]](u) = (trigger {u (list ?x ?v)} [[M]]<v>)
+;;; [[(M N)]](u) = (new v (par [[M]]<v>
+;;;                            (new x (par {v (list x u)}
+;;;                                        (trigger* {x [[N]]})))))
 (def (translate-lambda-term term channel)
   (cl:if (cl:listp term)
-    (cl:if (cl:eql (cl:car term) 'lambda)
+    (cl:if (cl:eql (cl:first term) 'lambda)
       ;; lambda
-      `(trigger (message ',channel (parallel-composition
-                                    (process-variable ,(cl:second term))
-                                    (process-variable 'v)))
-                (translate-lambda-term ,(cl:third term) (process-variable 'v)))
+      `(trigger {,channel (list {(name-variable ',(cl:second term))} {?v})}
+                (translate-lambda-term ,(cl:third term) ?v))
       ;; apply
-      (cl:let ((x (cl:gensym "x")))
-        `(restriction 'v
-           (parallel-composition
-            (translate-lambda-term ,(cl:first term) 'v)
-            (restriction ',x
-              (parallel-composition
-               (message 'v (parallel-composition (message ',x)
-                                                 (message ',channel)))
-               (trigger* ',x (translate-lambda-term ,(cl:second term)))))))))
+      (cl:let ((v (cl:gensym "v"))
+               (x (cl:gensym "x")))
+        `(new ,v
+              (par (translate-lambda-term ,(cl:first term) ,v)
+                   (new ,x
+                        (par {,v (par {,x} {,channel})}
+                             {replicate {,x (translate-lambda-term ,(cl:second term) ,v)}}))))))
     ;; variable
-    `(message ',term (message ',channel))))
-
-
-#| TODO: probably useless, but keep around until we're sure 'translate-lambda-term'
-         actually works
-(defmacro defvar (name)
-  `(message ,name u))
-
-(defmacro lambda ((parameter) body)
-  `(trigger u (,parameter v) ,body))
-
-(defmacro apply (function argument)
-  `(restriction 'v
-     (parallel-composition
-      ,function
-      (restriction 'x
-        (parallel-composition (message 'v (parallel-compositon (message 'x)
-                                                               (process-variable 'u)))
-                              (trigger* (message 'x) ,argument))))))
-|#
+    `{,term {,channel}}))
