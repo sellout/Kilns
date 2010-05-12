@@ -8,11 +8,11 @@
      &optional (substitutions (make-empty-environment)))
   (unify (intern (format nil "?~a" (name pattern))) agent substitutions))
 
-;;; FIXME: currently, name variables and process variables can conflict. Do we want to
-;;;        be able to have a namevar and procvar with the same name – yes, this is
-;;;        important with nested triggers, where a deeper one might use a procvar with
-;;;        the same name as a shallower namevar, and they can't clash because the types
-;;;        would conflict.
+;;; FIXME: currently, name variables and process variables can conflict. Do we
+;;;        want to be able to have a namevar and procvar with the same name –
+;;;        yes, this is important with nested triggers, where a deeper one might
+;;;        use a procvar with the same name as a shallower namevar, and they
+;;;        can't clash because the types would conflict.
 (defmethod unify
     ((pattern name-variable) agent
      &optional (substitutions (make-empty-environment)))
@@ -39,10 +39,11 @@
   (unify::make-environment
    :frames (list (copy-structure (unify::first-frame env)))))
 
-;;; -----------------------------------------------------------------------------------
-;;; This set of methods (with PATTERN specialized on PATTERN) represents the top-level
-;;; match that sends off all the sub-matches, so it works a little differently. EG, we
-;;; already know that the pattern has a 1-1 correspondence with messages.
+;;; ----------------------------------------------------------------------------
+;;; This set of methods (with PATTERN specialized on PATTERN) represents the
+;;; top-level match that sends off all the sub-matches, so it works a little
+;;; differently. EG, we already know that the pattern has a 1-1 correspondence
+;;; with messages.
 
 (defmethod unify
     ((pattern pattern) (agent message)
@@ -54,7 +55,8 @@
          substitutions))
 
 (defmethod unify
-    ((pattern pattern) (agent kell) &optional (substitutions (make-empty-environment)))
+    ((pattern pattern) (agent kell) &optional
+     (substitutions (make-empty-environment)))
   (unify (car (kell-message-pattern pattern)) agent substitutions))
 
 ;; NOTE: FIND-VARIABLE-VALUE isn't generic, so we use a different name
