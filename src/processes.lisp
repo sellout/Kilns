@@ -2,7 +2,8 @@
 (in-package :kilns)
 
 (defclass process ()
-  ((parent :accessor parent))) ; FIXME: really only a property of _active_ processes …
+  ;; FIXME: really only a property of _active_ processes …
+  ((parent :accessor parent)))
 
 (deftype generic-process ()
   "This allows us to use various primitives as processes."
@@ -66,9 +67,9 @@
    "We store everything in normal form, which means that restrictions don't
     actually exist, per se. They are all brought to the top-level as global
     channels with uniqified names (and the original name retained as a
-   “nickname”). This also simplifies the communication of restricted channels, as
-    only the unique name needs to be shared, and no handling of scope needs to be
-    managed."))
+   “nickname”). This also simplifies the communication of restricted channels,
+    as only the unique name needs to be shared, and no handling of scope needs
+    to be managed."))
 
 (defmethod print-object ((obj restriction) stream)
   (format stream "(new ~a ~a)" (name obj) (process obj)))
@@ -79,7 +80,8 @@
 ;;; FIXME: need  a better name
 (defclass message-structure (process)
   ((name :initarg :name :type name :accessor name)
-   (process :initarg :process :initform null-process :type generic-process :accessor process)
+   (process :initarg :process :initform null-process :type generic-process
+            :accessor process)
    (continuation :initarg :continuation :initform null-process
                  :type (or process (member up down))
                  :accessor continuation))
@@ -189,30 +191,33 @@
           (0 null-process)
           (1 (car (map-parallel-composition #'identity par)))
           (otherwise par)))
-      (progn
-        (error "The (variable) process ~a is not contained in ~a, and thus can not be removed."
-               process par)
-        par)))
+      (error "The (variable) process ~a is not contained in ~a, and thus can ~
+              not be removed."
+             process par)))
   (:method ((process process-variable) (var process-variable))
     (if (find process (process-variables-in var))
       null-process
-      (progn
-        (error "The (variable) process ~a is not contained in ~a, and thus can not be removed."
-               process var)
-        var)))
+      (error "The (variable) process ~a is not contained in ~a, and thus can ~
+              not be removed."
+             process var)))
   (:method ((process process-variable) trigger)
     (if (find process (process-variables-in (process trigger)))
       (typecase (process trigger)
         (process-variable (setf (process trigger) null-process))
         (parallel-composition (setf (process-variables (process trigger))
                                     (delete process
-                                            (process-variables (process trigger))))
-                              (case (length (map-parallel-composition #'identity
-                                                                      (process trigger)))
+                                            (process-variables
+                                             (process trigger))))
+                              (case (length (map-parallel-composition
+                                             #'identity
+                                             (process trigger)))
                                 (0 (setf (process trigger) null-process))
-                                (1 (setf (process trigger) (car (map-parallel-composition #'identity
-                                                                                          (process trigger))))))))
-      (error "The (variable) process ~a is not contained in ~a, and thus can not be removed."
+                                (1 (setf (process trigger)
+                                         (car (map-parallel-composition
+                                               #'identity
+                                               (process trigger))))))))
+      (error "The (variable) process ~a is not contained in ~a, and thus can ~
+              not be removed."
              process (process trigger))))
   (:method ((process message) kell)
     (if (find process (messages-in (process kell)))
@@ -220,12 +225,16 @@
         (message (setf (process kell) null-process))
         (parallel-composition (setf (messages (process kell))
                                     (delete process (messages (process kell))))
-                              (case (length (map-parallel-composition #'identity
-                                                                      (process kell)))
+                              (case (length (map-parallel-composition
+                                             #'identity
+                                             (process kell)))
                                 (0 (setf (process kell) null-process))
-                                (1 (setf (process kell) (car (map-parallel-composition #'identity
-                                                                                          (process kell))))))))
-      (error "The (message) process ~a is not contained in ~a, and thus can not be removed."
+                                (1 (setf (process kell)
+                                         (car (map-parallel-composition
+                                               #'identity
+                                               (process kell))))))))
+      (error "The (message) process ~a is not contained in ~a, and thus can ~
+              not be removed."
              process (process kell))))
   (:method ((process kell) kell)
     (if (find process (kells-in (process kell)))
@@ -233,12 +242,16 @@
         (kell (setf (process kell) null-process))
         (parallel-composition (setf (kells (process kell))
                                     (delete process (kells (process kell))))
-                              (case (length (map-parallel-composition #'identity
-                                                                      (process kell)))
+                              (case (length (map-parallel-composition
+                                             #'identity
+                                             (process kell)))
                                 (0 (setf (process kell) null-process))
-                                (1 (setf (process kell) (car (map-parallel-composition #'identity
-                                                                                          (process kell))))))))
-      (error "The (kell) process ~a is not contained in ~a, and thus can not be removed."
+                                (1 (setf (process kell)
+                                         (car (map-parallel-composition
+                                               #'identity
+                                               (process kell))))))))
+      (error "The (kell) process ~a is not contained in ~a, and thus can not ~
+              be removed."
              process (process kell))))
   (:method ((process trigger) kell)
     (if (find process (triggers-in (process kell)))
@@ -246,12 +259,16 @@
         (trigger (setf (process kell) null-process))
         (parallel-composition (setf (triggers (process kell))
                                     (delete process (triggers (process kell))))
-                              (case (length (map-parallel-composition #'identity
-                                                                      (process kell)))
+                              (case (length (map-parallel-composition
+                                             #'identity
+                                             (process kell)))
                                 (0 (setf (process kell) null-process))
-                                (1 (setf (process kell) (car (map-parallel-composition #'identity
-                                                                                          (process kell))))))))
-      (error "The (trigger) process ~a is not contained in ~a, and thus can not be removed."
+                                (1 (setf (process kell)
+                                         (car (map-parallel-composition
+                                               #'identity
+                                               (process kell))))))))
+      (error "The (trigger) process ~a is not contained in ~a, and thus can ~
+              not be removed."
              process (process kell))))
   (:method (process kell)
     (if (find process (primitives-in (process kell)))
@@ -259,14 +276,17 @@
         (parallel-composition (setf (primitives (process kell))
                                     (delete process
                                             (primitives (process kell))))
-                              (case (length (map-parallel-composition #'identity
-                                                                      (process kell)))
+                              (case (length (map-parallel-composition
+                                             #'identity
+                                             (process kell)))
                                 (0 (setf (process kell) null-process))
                                 (1 (setf (process kell)
-                                         (car (map-parallel-composition #'identity
-                                                                        (process kell)))))))
+                                         (car (map-parallel-composition
+                                               #'identity
+                                               (process kell)))))))
         (t (setf (process kell) null-process)))
-      (error "The (restriction) process ~a is not contained in ~a, and thus can not be removed."
+      (error "The (restriction) process ~a is not contained in ~a, and thus ~
+              can not be removed."
              process (process kell)))))
 
 (defgeneric process-variables-in (process)
@@ -311,7 +331,8 @@
     (triggers process)))
 
 (defgeneric primitives-in (process)
-  (:documentation "Retrieves a list of the triggers contained in the process.")
+  (:documentation
+   "Retrieves a list of the primitives contained in the process.")
   (:method (process)
     (list process))
   (:method ((process process))
@@ -326,7 +347,8 @@
 
 (defgeneric compose-processes (process-a process-b)
   (:documentation
-   "Conses up a new parallel composition that contains both process-a and process-b.")
+   "Conses up a new parallel composition that contains both process-a and
+    process-b.")
   (:method (process-a process-b)
     (let ((pc (make-instance 'parallel-composition)))
       (compose-processes (compose-processes pc process-a)
@@ -338,7 +360,8 @@
   (:method ((process-a parallel-composition) (process-b parallel-composition))
     (let ((pc (make-instance 'parallel-composition)))
       (psetf (process-variables pc)
-             (append (process-variables process-a) (process-variables process-b))
+             (append (process-variables process-a)
+                     (process-variables process-b))
              (messages pc)
              (append (messages process-a) (messages process-b))
              (kells pc)
@@ -377,7 +400,8 @@
       pc))
   (:method ((process-a parallel-composition) (process-b process-variable))
     (let ((pc (make-instance 'parallel-composition)))
-      (psetf (process-variables pc) (cons process-b (process-variables process-a))
+      (psetf (process-variables pc) (cons process-b
+                                          (process-variables process-a))
              (messages pc) (messages process-a)
              (kells pc) (kells process-a)
              (triggers pc) (triggers process-a)
@@ -391,28 +415,3 @@
              (triggers pc) (cons process-b (triggers process-a))
              (primitives pc) (primitives process-a))
       pc)))
-
-#| not sure if we ever need this – annotated messages aren't a thing so much as a category
-(defmethod annotated-messages ((kell kell))
-  "Collects the set of local, up, down, and subkell messages for the given kell."
-  (append (messages kell)
-          (mapcar (lambda (message) (annotate-message message 'up))
-                  (messages (parent kell)))
-          (mapcar (lambda (message) (annotate-message message 'down))
-                  (mapcan #'messages (subkells kell)))
-          (subkells kell)))
-|#
-
-#| new definition in syntax.lisp
-(defgeneric add-process (kell process)
-  (:documentation "Adds a new process to a kell and triggers an attempt to match
-                  on the new process."
-  (:method :before (kell process)
-    (push-process process kell))
-  (:method ((kell kell) (process trigger))
-    (match (pattern trigger) (annotated-messages kell)))
-  (:method ((kell kell) (process message))
-    (match (patterns kell) (annotated-messages kell)))
-  (:method ((kell kell) (process parallel-composition))
-    (match (patterns kell) (annotated-messages kell)))))
-|#
