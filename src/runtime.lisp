@@ -55,7 +55,8 @@
                            (if event
                              (apply (car event) (cdr event))
                              (with-lock-held (*dummy-wait-lock*)
-                               (condition-wait *new-events* *dummy-wait-lock*))))
+                               (condition-wait *new-events*
+                                               *dummy-wait-lock*))))
              (error (c) (printk "ERROR: ~a~%" c)))))
 
 (defun start-kilns (count)
@@ -104,17 +105,22 @@
           (kell-message-pattern process))
     process)
   (:method (local-name global-name (process restriction))
-    (apply-restriction local-name global-name (process process))
-    process)
+    (apply-restriction local-name global-name
+                       (let ((global-name (gensym (format nil "~a-"
+                                                          (name process)))))
+                         (apply-restriction (name process)
+                                            global-name
+                                            (process process))))
+    (process process))
   (:method (local-name global-name (process trigger))
     (apply-restriction local-name global-name (pattern process))
     (apply-restriction local-name global-name (process process))
     process))
 
-
 (defgeneric activate-process (process kell)
-  (:method ((process list) (kell kell))
-    (add-process (eval process) kell))
+  (:method ((process cons) (kell kell))
+    (printk "activating ~a" process)
+    (activate-process (eval process) kell))
   (:method ((process process) (kell kell))
     (setf (parent process) kell)
     (mapc #'push-event (collect-channel-names process kell)))
@@ -126,11 +132,12 @@
                                 (activate-process sub-process kell))
                               process))
   (:method ((process restriction) (kell kell))
-    (let ((global-name (gensym (format nil "~a" (name process)))))
-      (activate-process (apply-restriction (name process)
-                                           global-name
-                                           (process process))
-                        kell))))
+    (let ((global-name (gensym (format nil "~a-" (name process)))))
+      (remove-process-from process kell)
+      (add-process (apply-restriction (name process)
+                                      global-name
+                                      (process process))
+                   kell))))
 
 (defgeneric add-process (process kell)
   (:method (process kell)
@@ -201,7 +208,8 @@
          (kilns (start-kilns cpu-count))
          (*package* (find-package :kilns-user))
          (*readtable* *kilns-readtable*))
-    ;; dummy kell for now, to handle locking and other places we refer to parents
+    ;; dummy kell for now, to handle locking and other places we refer to
+    ;; parents
     (setf (parent *top-kell*) (make-instance 'kell
                                 :name (gensym "NETWORK") :process *top-kell*))
     (unwind-protect
@@ -252,7 +260,8 @@
       (setf (gethash (name process) (messages kell))
             (delete process (gethash (name process) (messages kell))))))
   (:method ((process kell))
-    ;; FIXME: also need to remove anything referring to this kell from the event-queue
+    ;; FIXME: also need to remove anything referring to this kell from the
+    ;;        event-queue
     (let ((kell (parent process)))
       (remove-process-from process kell)
       (setf (gethash (name process) (kells kell))
@@ -262,11 +271,13 @@
       (remove-process-from process kell)
       (mapc (lambda (proc)
               (setf (gethash (name proc) (local-patterns kell))
-                    (delete process (gethash (name proc) (local-patterns kell)))))
+                    (delete process
+                            (gethash (name proc) (local-patterns kell)))))
             (local-message-pattern (pattern process)))
       (mapc (lambda (proc)
               (setf (gethash (name proc) (down-patterns kell))
-                    (delete process (gethash (name proc) (down-patterns kell)))))
+                    (delete process
+                            (gethash (name proc) (down-patterns kell)))))
             (down-message-pattern (pattern process)))
       (mapc (lambda (proc)
               (setf (gethash (name proc) (up-patterns kell))
@@ -274,7 +285,8 @@
             (up-message-pattern (pattern process)))
       (mapc (lambda (proc)
               (setf (gethash (name proc) (kell-patterns kell))
-                    (delete process (gethash (name proc) (kell-patterns kell)))))
+                    (delete process
+                            (gethash (name proc) (kell-patterns kell)))))
             (kell-message-pattern (pattern process))))))
 
 (defgeneric replace-variables (process mapping &optional ignored-vars)
@@ -348,8 +360,9 @@
 
 (defmethod trigger-process ((trigger trigger) mapping)
   "Activates process after substituting the process-variables in the trigger."
-  ;; FIXME: basically a copy of substitute-variables (t trigger), except we don't
-  ;;        ignore the vars, because this is the trigger that's actually triggering.
+  ;; FIXME: basically a copy of substitute-variables (t trigger), except we
+  ;;        don't ignore the vars, because this is the trigger that's actually
+  ;;        triggering.
   (let ((process (duplicate-process (process trigger))))
     (remove-process trigger)
     (mapc (lambda (proc) (substitute-variables mapping proc))
@@ -362,42 +375,35 @@
     (remove-process process)
     (add-process (continuation process) (parent process)))
 
+(defun select-matching-pattern (patterns)
+  (catch 'match
+    (mapc (lambda (trigger)
+            (handler-case
+                (destructuring-bind (processes substitutions)
+                    (match (pattern trigger) (parent trigger))
+                  (throw 'match (list trigger processes substitutions)))
+              (unification-failure ())))
+          patterns)))
+
 (defgeneric really-match-on (process kell)
   (:documentation "Tries to find a match for all the patterns that could match
                    channel NAME in KELL.")
   (:method ((process message) (kell kell))
     "Find all triggers that could match – up, down, or local."
     (let ((name (name process)))
-      (catch 'match
-        (mapc (lambda (trigger)
-                (handler-case
-                    (destructuring-bind (processes substitutions)
-                                        (match (pattern trigger) (parent trigger))
-                      (throw 'match (list trigger processes substitutions)))
-                  (unification-failure ())))
-              (remove-duplicates (append (gethash name (local-patterns kell))
-                                         (gethash name (down-patterns (parent kell)))
-                                         (mapcan (lambda (subkell)
-                                                   (gethash name
-                                                            (up-patterns subkell)))
-                                                 (subkells kell))))))))
+      (select-matching-pattern
+       (remove-duplicates (append (gethash name (local-patterns kell))
+                                  (gethash name (down-patterns (parent kell)))
+                                  (mapcan (lambda (subkell)
+                                            (gethash name
+                                                     (up-patterns subkell)))
+                                          (subkells kell)))))))
   (:method ((process kell) (kell kell))
     "Find all triggers that could match."
-    (catch 'match
-      (mapc (lambda (trigger)
-              (handler-case
-                  (destructuring-bind (processes substitutions)
-                                      (match (pattern trigger) kell)
-                    (throw 'match (list trigger processes substitutions)))
-                (unification-failure ())))
-            (gethash (name process) (kell-patterns kell)))))
+    (select-matching-pattern (gethash (name process) (kell-patterns kell))))
   (:method ((process trigger) (kell kell))
     "Just match on the new trigger."
-    (handler-case
-        (destructuring-bind (processes substitutions)
-                            (match (pattern process) (parent process))
-          (list process processes substitutions))
-      (unification-failure ()))))
+    (select-matching-pattern (list process))))
 
 (defun match-on (process kell)
   (handler-case
@@ -408,9 +414,8 @@
             (printk "The pattern ~a will match the process ~a and result in ~
                      the process ~a.~%"
                     (pattern trigger) matched-processes (process trigger))
-                                  (trigger-process trigger substitutions)
-                                  (mapc #'activate-continuation matched-processes)
-                                  (printk "~a~%" (parent kell)))))
+            (trigger-process trigger substitutions)
+            (mapc #'activate-continuation matched-processes))))
     (error (c) (printk "ERROR: ~a~%" c))))
 
 (defun find-triggers-matching-message (name kell)
