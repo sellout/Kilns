@@ -9,10 +9,10 @@
 
 (let ((lock (make-lock "print-lock")))
   (defun printk (&rest arguments)
-    "This is our log-to-screen function. Works like format, but makes sure messages are
-     printed atomically. It also starts each new message on its own line (since there's
-     no guarantee that the previous message is even from the same thread, this is
-     totally reasonable)."
+    "This is our log-to-screen function. Works like format, but makes sure
+     messages are printed atomically. It also starts each new message on its own
+     line (since there's no guarantee that the previous message is even from the
+     same thread, this is totally reasonable)."
     (with-lock-held (lock)
       (apply #'format t "~&~@?" arguments)
       (finish-output))))
@@ -216,7 +216,7 @@
         (loop do
           (printk "> ")
           (handler-case (let ((process (eval (read))))
-                          (printk "~a~%" process)
+                          ;; (printk "~a~%" process)
                           (add-process process *top-kell*))
             (end-of-file () (return))
             (error (c) (printk "ERROR: ~a~%" c))))
@@ -364,6 +364,14 @@
     (setf ignored-vars (append (bound-names (pattern process))
                                (bound-variables (pattern process))
                                ignored-vars))
+    (mapc (lambda (proc) (substitute-variables mapping proc ignored-vars))
+          (append (messages-in (process process))
+                  (kells-in (process process))
+                  (triggers-in (process process))
+                  (primitives-in (process process))))
+    (psetf (process process) (replace-variables (process process) mapping
+                                                ignored-vars)))
+  (:method (mapping (process restriction) &optional ignored-vars)
     (mapc (lambda (proc) (substitute-variables mapping proc ignored-vars))
           (append (messages-in (process process))
                   (kells-in (process process))

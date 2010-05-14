@@ -62,7 +62,7 @@
 
 (defclass restriction (process)
   ((name :initarg :name :type name :reader name)
-   (process :initarg :process :type generic-process :reader process))
+   (process :initarg :process :type generic-process :accessor process))
   (:documentation
    "We store everything in normal form, which means that restrictions don't
     actually exist, per se. They are all brought to the top-level as global
