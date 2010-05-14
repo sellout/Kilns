@@ -1,0 +1,13 @@
+(load "library/replication")
+
+;;; IO can not be implemented directly in the calculus, so we need to call out
+;;; to lisp to actually read and write. This library provides a few basic tools
+;;; for reading and writing.
+
+(trigger* {echo ?string up} (lisp (kilns::printk "~a~%" #.?string)))
+
+(trigger* {read {?rc} up}
+          (lisp (make-instance 'message :name #.?rc :process (kilns::read))))
+
+(trigger* {read-string {?rc} up}
+          (lisp (make-instance 'message :name #.?rc :process (read-line))))

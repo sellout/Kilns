@@ -1,0 +1,30 @@
+(load "library/replication")
+
+;;; This file implements a very basic component model that allows for sending
+;;; either qualified or unqualified messages to the component. It is not a rich
+;;; model, but it illustrates the simplicity with which components can be
+;;; realized.
+;;;
+;;; In this model, a component is a file that contains (among other things)
+;;; triggers at the top level that match on {?x ?y up}. These can be equated to
+;;; public methods or exported functions.
+
+;;; `include-component` will allow you to send messages that match those
+;;; triggers directly. EG, if there is a trigger in the component that matches
+;;; "{echo ?string up}", then {echo "test"} will cause a reaction with it. This
+;;; gives you direct access, but you need to be careful that the "exported"
+;;; triggers don't conflict with your own triggers. This is similar to :USEing
+;;; the component in a Common Lisp DEFPACKAGE.
+(def (include-component filename kellname)
+     `[,kellname (load ,filename)])
+
+;;; `load-component` gives you better isolation, but requires that you "qualify"
+;;; the message with the name of the kell you pass in. Using the same example as
+;;; above, if you name the component "io", then you need to send the message
+;;; {io {echo "test"}} to cause a reaction in the component. With this version,
+;;; you only need to ensure that {io ...} doesn't conflict with your own
+;;; triggers. Nothing the component writer does can interfere with your other
+;;; messages and triggers.
+(def (load-component filename kellname)
+     `[,kellname (par (trigger* {,kellname ?message up} ?message)
+                      (include-component ,filename ,kellname))])
