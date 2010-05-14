@@ -103,6 +103,8 @@
                   (up-message-pattern pattern))))
 
 (defgeneric collect-bound-variables (pattern)
+  (:method (pattern)
+    nil)
   (:method ((pattern process-variable))
     (list pattern))
   (:method ((pattern message))
@@ -113,7 +115,7 @@
     (mapcan #'collect-bound-variables (messages pattern))))
 
 (defmethod bound-variables ((pattern pattern))
-  (mapcar #'collect-bound-variables
+  (mapcan #'collect-bound-variables
           (append (local-message-pattern pattern)
                   (down-message-pattern pattern)
                   (up-message-pattern pattern)

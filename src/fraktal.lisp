@@ -65,6 +65,10 @@
 
 (defmethod collect-bound-names ((pattern message))
   (typecase (name pattern)
-    (name-variable (cons (name pattern) (collect-bound-names (process pattern))))
-    (mismatch (cons (variable (name pattern)) (collect-bound-names (process pattern))))
+    (name-variable (cons (name pattern)
+                         (collect-bound-names (process pattern))))
+    (mismatch (if (variable (name pattern))
+                  (cons (variable (name pattern))
+                        (collect-bound-names (process pattern)))
+                  (collect-bound-names (process pattern))))
     (otherwise (collect-bound-names (process pattern)))))
