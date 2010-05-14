@@ -180,9 +180,6 @@
 ;;;        in the parent container, the other is functional. The functional one
 ;;;        is right, but we have to convert other code.
 (defgeneric remove-process-from (process kell)
-  (:method (process kell)
-    (error "The process ~a is not contained in ~a, and thus can not be removed."
-          process (process kell)))
   (:method ((process process-variable) (par parallel-composition))
     (if (find process (process-variables-in par))
       (progn
@@ -193,14 +190,14 @@
           (1 (car (map-parallel-composition #'identity par)))
           (otherwise par)))
       (progn
-        (error "The process ~a is not contained in ~a, and thus can not be removed."
+        (error "The (variable) process ~a is not contained in ~a, and thus can not be removed."
                process par)
         par)))
   (:method ((process process-variable) (var process-variable))
     (if (find process (process-variables-in var))
       null-process
       (progn
-        (error "The process ~a is not contained in ~a, and thus can not be removed."
+        (error "The (variable) process ~a is not contained in ~a, and thus can not be removed."
                process var)
         var)))
   (:method ((process process-variable) trigger)
@@ -215,7 +212,7 @@
                                 (0 (setf (process trigger) null-process))
                                 (1 (setf (process trigger) (car (map-parallel-composition #'identity
                                                                                           (process trigger))))))))
-      (error "The process ~a is not contained in ~a, and thus can not be removed."
+      (error "The (variable) process ~a is not contained in ~a, and thus can not be removed."
              process (process trigger))))
   (:method ((process message) kell)
     (if (find process (messages-in (process kell)))
@@ -228,7 +225,7 @@
                                 (0 (setf (process kell) null-process))
                                 (1 (setf (process kell) (car (map-parallel-composition #'identity
                                                                                           (process kell))))))))
-      (error "The process ~a is not contained in ~a, and thus can not be removed."
+      (error "The (message) process ~a is not contained in ~a, and thus can not be removed."
              process (process kell))))
   (:method ((process kell) kell)
     (if (find process (kells-in (process kell)))
@@ -241,7 +238,7 @@
                                 (0 (setf (process kell) null-process))
                                 (1 (setf (process kell) (car (map-parallel-composition #'identity
                                                                                           (process kell))))))))
-      (error "The process ~a is not contained in ~a, and thus can not be removed."
+      (error "The (kell) process ~a is not contained in ~a, and thus can not be removed."
              process (process kell))))
   (:method ((process trigger) kell)
     (if (find process (triggers-in (process kell)))
@@ -254,12 +251,11 @@
                                 (0 (setf (process kell) null-process))
                                 (1 (setf (process kell) (car (map-parallel-composition #'identity
                                                                                           (process kell))))))))
-      (error "The process ~a is not contained in ~a, and thus can not be removed."
+      (error "The (trigger) process ~a is not contained in ~a, and thus can not be removed."
              process (process kell))))
-  (:method ((process restriction) kell)
+  (:method (process kell)
     (if (find process (primitives-in (process kell)))
       (typecase (process kell)
-        (restriction (setf (process kell) null-process))
         (parallel-composition (setf (primitives (process kell))
                                     (delete process
                                             (primitives (process kell))))
@@ -268,8 +264,9 @@
                                 (0 (setf (process kell) null-process))
                                 (1 (setf (process kell)
                                          (car (map-parallel-composition #'identity
-                                                                        (process kell))))))))
-      (error "The process ~a is not contained in ~a, and thus can not be removed."
+                                                                        (process kell)))))))
+        (t (setf (process kell) null-process)))
+      (error "The (restriction) process ~a is not contained in ~a, and thus can not be removed."
              process (process kell)))))
 
 (defgeneric process-variables-in (process)

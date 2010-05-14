@@ -8,11 +8,11 @@
 
 (in-package #:kilns-runner)
 
-(defun eval (form)
-  (kilns::add-process form kilns::*top-kell*))
+;; (defun eval (form)
+;;   (kilns::add-process form kilns::*top-kell*))
 
 (defun read (&rest read-args)
-  (eval (apply #'cl:read read-args)))
+  (apply #'cl:read read-args))
 
 (defun load (file-name
              &key
@@ -21,9 +21,11 @@
              (if-does-not-exist :error))
   (let ((full-name (merge-pathnames file-name (make-pathname :type "kiln"))))
     (with-open-file (stream full-name :external-format :utf-8)
-      (handler-case (loop until (let ((value (read stream)))
-                                  (if print (print value) value)))
-        (end-of-file () full-name)))))
+      (reduce #'kilns::compose-processes
+              (loop for value = (read stream nil)
+                 while value
+                 do (if print (print value) value)
+                 collecting value)))))
 
 (defmacro lisp (&rest forms)
   `'(cl:progn
