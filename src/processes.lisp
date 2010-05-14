@@ -318,7 +318,7 @@
   (:method (process)
     (list process))
   (:method ((process process))
-    process)
+    nil)
   (:method ((process restriction))
     (list process))
   (:method ((process parallel-composition))

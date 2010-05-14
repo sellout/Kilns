@@ -119,7 +119,6 @@
 
 (defgeneric activate-process (process kell)
   (:method ((process cons) (kell kell))
-    (printk "activating ~a" process)
     (activate-process (eval process) kell))
   (:method ((process process) (kell kell))
     (setf (parent process) kell)
@@ -246,7 +245,8 @@
              (kells pc) (mapcar #'duplicate-process (kells process))
              (triggers pc) (mapcar #'duplicate-process (triggers process))
              (process-variables pc) (mapcar #'duplicate-process
-                                            (process-variables process)))
+                                            (process-variables process))
+             (primitives pc) (mapcar #'duplicate-process (primitives process)))
       pc))
   (:method ((process restriction))
     (make-instance 'restriction
@@ -295,7 +295,8 @@
     (declare (ignore mapping ignored-vars))
     process)
   (:method ((process list) mapping &optional ignored-vars)
-    (mapcar (lambda (item) (replace-variables item mapping ignored-vars)) process))
+    (mapcar (lambda (item) (replace-variables item mapping ignored-vars))
+            process))
   (:method ((process process) mapping &optional ignored-vars)
     (let ((substituted-processes
            (mapcar (lambda (process-variable)
@@ -323,29 +324,40 @@
 
 ;;; FIXME: this is crying out for some simplification
 (defgeneric substitute-variables (mapping process &optional ignored-vars)
+  (:method (mapping (process cons) &optional ignored-vars)
+    (setf (car process) (replace-variables (car process) mapping ignored-vars)
+          (cdr process) (replace-variables (cdr process) mapping ignored-vars)))
   (:method (mapping (process message) &optional ignored-vars)
     (mapc (lambda (proc) (substitute-variables mapping proc ignored-vars))
           (append (messages-in (process process))
                   (kells-in (process process))
                   (triggers-in (process process))
+                  (primitives-in (process process))
                   (messages-in (continuation process))
                   (kells-in (continuation process))
-                  (triggers-in (continuation process))))
+                  (triggers-in (continuation process))
+                  (primitives-in (continuation process))))
     (psetf (name process) (replace-name (name process) mapping ignored-vars)
-           (process process) (replace-variables (process process) mapping ignored-vars)
-           (continuation process) (replace-variables (continuation process) mapping
+           (process process) (replace-variables (process process) mapping
+                                                ignored-vars)
+           (continuation process) (replace-variables (continuation process)
+                                                     mapping
                                                      ignored-vars)))
   (:method (mapping (process kell) &optional ignored-vars)
     (mapc (lambda (proc) (substitute-variables mapping proc ignored-vars))
           (append (messages-in (process process))
                   (kells-in (process process))
                   (triggers-in (process process))
+                  (primitives-in (process process))
                   (messages-in (continuation process))
                   (kells-in (continuation process))
-                  (triggers-in (continuation process))))
+                  (triggers-in (continuation process))
+                  (primitives-in (continuation process))))
     (psetf (name process) (replace-name (name process) mapping ignored-vars)
-           (process process) (replace-variables (process process) mapping ignored-vars)
-           (continuation process) (replace-variables (continuation process) mapping
+           (process process) (replace-variables (process process) mapping
+                                                ignored-vars)
+           (continuation process) (replace-variables (continuation process)
+                                                     mapping
                                                      ignored-vars)))
   (:method (mapping (process trigger) &optional ignored-vars)
     (setf ignored-vars (append (bound-names (pattern process))
@@ -354,7 +366,8 @@
     (mapc (lambda (proc) (substitute-variables mapping proc ignored-vars))
           (append (messages-in (process process))
                   (kells-in (process process))
-                  (triggers-in (process process))))
+                  (triggers-in (process process))
+                  (primitives-in (process process))))
     (psetf (process process) (replace-variables (process process) mapping
                                                 ignored-vars))))
 
@@ -368,7 +381,8 @@
     (mapc (lambda (proc) (substitute-variables mapping proc))
           (append (messages-in process)
                   (kells-in process)
-                  (triggers-in process)))
+                  (triggers-in process)
+                  (primitives-in process)))
     (add-process (replace-variables process mapping) (parent trigger))))
 
 (defmethod activate-continuation (process)
@@ -411,9 +425,6 @@
         (destructuring-bind (&optional trigger matched-processes substitutions)
             (really-match-on process kell)
           (when (and trigger matched-processes)
-            (printk "The pattern ~a will match the process ~a and result in ~
-                     the process ~a.~%"
-                    (pattern trigger) matched-processes (process trigger))
             (trigger-process trigger substitutions)
             (mapc #'activate-continuation matched-processes))))
     (error (c) (printk "ERROR: ~a~%" c))))
