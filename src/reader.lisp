@@ -14,6 +14,10 @@
 (defun read (&rest read-args)
   (apply #'cl:read read-args))
 
+;;; FIXME: for networking, load needs to be able to take a path to a subkell
+;;;        that represents what is to be run in the local instance. It should
+;;;        work as if the following (illegal) trigger were used:
+;;;            (trigger [path [to [correct [kell ?process]]]] ?process)
 (defun load (file-name
              &key
              (verbose *load-verbose*)
@@ -28,6 +32,4 @@
                           collecting value))))))
 
 (defmacro lisp (&rest forms)
-  `'(cl:progn
-      ,@forms
-      null-process))
+  `'(cl:progn ,@forms))
