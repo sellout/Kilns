@@ -3,7 +3,11 @@
 
 (defclass process ()
   ;; FIXME: really only a property of _active_ processes …
-  ((parent :accessor parent)))
+  ((parent :accessor parent)
+   (deadp :initform nil :accessor deadp
+          :documentation "After a message has been successfully matched, it may
+                          still exist in the event queue. This ensures we don't
+                          waste time trying to match it again.")))
 
 (deftype generic-process ()
   "This allows us to use various primitives as processes."

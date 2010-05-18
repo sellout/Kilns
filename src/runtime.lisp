@@ -158,8 +158,12 @@
                                 (add-process sub-process kell))
                               process))
   (:method ((process kell) (kell kell))
-    (call-next-method)
-    (activate-process (process process) process)))
+    (if (gethash (name process) (kells kell))
+        (error "Can't have two kells with the same name (~a) in the same kell."
+               (name process))
+        (progn
+          (call-next-method)
+          (activate-process (process process) process)))))
 
 (defgeneric collect-channel-names (process kell)
   (:documentation "This returns a list of events to add to the event queue.")
@@ -404,6 +408,8 @@
             (handler-case
                 (destructuring-bind (processes substitutions)
                     (match (pattern trigger) (parent trigger))
+                  (setf (deadp trigger) t)
+                  (mapc (lambda (process) (setf (deadp process) t)) processes)
                   (throw 'match (list trigger processes substitutions)))
               (unification-failure ())))
           patterns)))
@@ -429,14 +435,15 @@
     (select-matching-pattern (list process))))
 
 (defun match-on (process kell)
-  (handler-case
-      (lock-neighboring-kells (kell)
-        (destructuring-bind (&optional trigger matched-processes substitutions)
-            (really-match-on process kell)
-          (when (and trigger matched-processes)
-            (trigger-process trigger substitutions)
-            (mapc #'activate-continuation matched-processes))))
-    (error (c) (printk "ERROR: ~a~%" c))))
+  (when (not (deadp process))
+    (handler-case
+        (lock-neighboring-kells (kell)
+          (destructuring-bind (&optional trigger matched-processes substitutions)
+              (really-match-on process kell)
+            (when (and trigger matched-processes)
+              (trigger-process trigger substitutions)
+              (mapc #'activate-continuation matched-processes))))
+      (error (c) (printk "ERROR: ~a~%" c)))))
 
 (defun find-triggers-matching-message (name kell)
   "Collect down-patterns from parent kell, up-patterns from subkells, and local-
