@@ -106,6 +106,7 @@
 
 (defgeneric collect-bound-variables (pattern)
   (:method (pattern)
+    (declare (ignore pattern))
     nil)
   (:method ((pattern process-variable))
     (list pattern))
