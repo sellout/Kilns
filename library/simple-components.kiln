@@ -15,8 +15,8 @@
 ;;; gives you direct access, but you need to be careful that the "exported"
 ;;; triggers don't conflict with your own triggers. This is similar to :USEing
 ;;; the component in a Common Lisp DEFPACKAGE.
-(def (include-component filename kellname)
-     `[,kellname (load ,filename)])
+(def (include-component filename)
+     `(new component [component (load ,filename)]))
 
 ;;; `load-component` gives you better isolation, but requires that you "qualify"
 ;;; the message with the name of the kell you pass in. Using the same example as
@@ -25,6 +25,8 @@
 ;;; you only need to ensure that {io ...} doesn't conflict with your own
 ;;; triggers. Nothing the component writer does can interfere with your other
 ;;; messages and triggers.
-(def (load-component filename kellname)
-     `[,kellname (par (trigger* {,kellname ?message up} ?message)
-                      (include-component ,filename ,kellname))])
+(def (load-component filename prefix)
+     (cl:let ((kellname (cl:gensym (cl:symbol-name prefix))))
+       `(new ,kellname
+           [,kellname (par (trigger* {,prefix ?message up} ?message)
+                           [,kellname (load ,filename)])])))
