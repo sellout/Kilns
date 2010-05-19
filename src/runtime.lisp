@@ -425,10 +425,10 @@
       (select-matching-pattern
        (remove-duplicates (append (gethash name (local-patterns kell))
                                   (gethash name (down-patterns (parent kell)))
-                                  (mapcan (lambda (subkell)
-                                            (gethash name
-                                                     (up-patterns subkell)))
-                                          (subkells kell)))))))
+                                  (mappend (lambda (subkell)
+                                             (gethash name
+                                                      (up-patterns subkell)))
+                                           (subkells kell)))))))
   (:method ((process kell) (kell kell))
     "Find all triggers that could match."
     (select-matching-pattern (gethash (name process) (kell-patterns kell))))
