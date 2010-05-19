@@ -412,16 +412,15 @@
     (add-process (continuation process) (parent process)))
 
 (defun select-matching-pattern (patterns)
-  (mapc (lambda (trigger)
-          (handler-case
-              (destructuring-bind (processes substitutions)
-                  (match (pattern trigger) (parent trigger))
-                (setf (deadp trigger) t)
-                (mapc (lambda (process) (setf (deadp process) t)) processes)
-                (return-from select-matching-pattern
-                  (list trigger processes substitutions)))
-            (unification-failure ())))
-        patterns))
+  (loop for trigger in patterns
+     for (processes substitutions)
+       = (handler-case (match (pattern trigger) (parent trigger))
+           (unification-failure () (list nil nil)))
+     if processes
+     return (progn
+              (setf (deadp trigger) t)
+              (mapc (lambda (process) (setf (deadp process) t)) processes)
+              (list trigger processes substitutions))))
 
 (defgeneric really-match-on (process kell)
   (:documentation "Tries to find a match for all the patterns that could match
