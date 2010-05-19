@@ -331,6 +331,8 @@
 
 ;;; FIXME: this is crying out for some simplification
 (defgeneric substitute-variables (mapping process &optional ignored-vars)
+  (:method (mapping process &optional ignored-vars)
+    (values))
   (:method (mapping (process cons) &optional ignored-vars)
     (setf (car process) (replace-variables (car process) mapping ignored-vars)
           (cdr process) (replace-variables (cdr process) mapping ignored-vars)))

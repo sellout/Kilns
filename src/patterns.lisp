@@ -71,47 +71,52 @@
 ;;;   and with ∅ otherwise (see section 3.2 for more details).
 ;;;   We write θ ∈ match(ξ, M) for ⟨⟨ξ, M⟩, θ⟩ ∈ match.
 
+(defun compose-hash-tables (&rest hash-tables)
+  (let ((combined-hash-table (make-hash-table)))
+    (mapc (lambda (hash-table)
+            (maphash (lambda (key value)
+                       (setf (gethash key combined-hash-table)
+                             (append (gethash key combined-hash-table)
+                                     value)))
+                     hash-table))
+          hash-tables)
+    combined-hash-table))
+
 (defgeneric match (pattern process &optional substitutions)
   ;; NOTE: In theory I might have to worry about the same variable occuring
   ;;       multiple times in a pattern, but I have to read more to find out one
   ;;       way or the other. In any case, I'm currently disallowing it.
   (:method ((pattern pattern) (kell kell)
             &optional (substitutions (make-empty-environment)))
-    (list (remove nil
-                  (append (destructuring-bind (procs subst)
-                              (match-list #'match-local
-                                          (local-message-pattern pattern)
-                                          (messages kell)
-                                          substitutions)
-                            (setf substitutions subst)
-                            procs)
-                          ;; FIXME: this requires that all matched messages are
-                          ;;        within the same subkell. I don't think
-                          ;;        that's the correct behavior.
-                          (car (mapcar (lambda (subkell)
-                                         (destructuring-bind (procs subst)
-                                             (match-list #'match-down
-                                                         (down-message-pattern
-                                                          pattern)
-                                                         (messages subkell)
-                                                         substitutions)
-                                           (setf substitutions subst)
-                                           procs))
-                                       (subkells kell)))
-                          (destructuring-bind (procs subst)
-                              (match-list #'match-up
-                                          (up-message-pattern pattern)
-                                          (messages (parent kell))
-                                          substitutions)
-                            (setf substitutions subst)
-                            procs)
-                          (destructuring-bind (procs subst)
-                              (match-list #'match-kell
-                                          (kell-message-pattern pattern)
-                                          (kells kell)
-                                          substitutions)
-                            (setf substitutions subst)
-                            procs)))
+    (list (append (destructuring-bind (procs subst)
+                      (match-list #'match-local
+                                  (local-message-pattern pattern)
+                                  (messages kell)
+                                  substitutions)
+                    (setf substitutions subst)
+                    procs)
+                  (destructuring-bind (procs subst)
+                      (match-list #'match-down
+                                  (down-message-pattern pattern)
+                                  (apply #'compose-hash-tables
+                                         (mapcar #'messages (subkells kell)))
+                                  substitutions)
+                    (setf substitutions subst)
+                    procs)
+                  (destructuring-bind (procs subst)
+                      (match-list #'match-up
+                                  (up-message-pattern pattern)
+                                  (messages (parent kell))
+                                  substitutions)
+                    (setf substitutions subst)
+                    procs)
+                  (destructuring-bind (procs subst)
+                      (match-list #'match-kell
+                                  (kell-message-pattern pattern)
+                                  (kells kell)
+                                  substitutions)
+                    (setf substitutions subst)
+                    procs))
           substitutions))
   (:method ((pattern process) (process process)
             &optional (substitutions (make-empty-environment)))
