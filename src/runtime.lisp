@@ -47,8 +47,13 @@
     `(let ((,kellvar ,kell))
        (with-lock-held ((lock (parent ,kellvar)))
          (with-lock-held ((lock ,kellvar))
-           ;;; FIXME: need to lock all immediate children
-           ,@body)))))
+           (mapcar (lambda (subkell)
+                     (acquire-lock (lock subkell) t))
+                   (subkells ,kellvar))
+           ,@body
+           (mapcar (lambda (subkell)
+                     (release-lock (lock subkell)))
+                   (reverse (subkells ,kellvar))))))))
 
 (defun run-kiln ()
   (loop do (handler-case (let ((event (pop-event)))
@@ -407,16 +412,16 @@
     (add-process (continuation process) (parent process)))
 
 (defun select-matching-pattern (patterns)
-  (catch 'match
-    (mapc (lambda (trigger)
-            (handler-case
-                (destructuring-bind (processes substitutions)
-                    (match (pattern trigger) (parent trigger))
-                  (setf (deadp trigger) t)
-                  (mapc (lambda (process) (setf (deadp process) t)) processes)
-                  (throw 'match (list trigger processes substitutions)))
-              (unification-failure ())))
-          patterns)))
+  (mapc (lambda (trigger)
+          (handler-case
+              (destructuring-bind (processes substitutions)
+                  (match (pattern trigger) (parent trigger))
+                (setf (deadp trigger) t)
+                (mapc (lambda (process) (setf (deadp process) t)) processes)
+                (return-from select-matching-pattern
+                  (list trigger processes substitutions)))
+            (unification-failure ())))
+        patterns))
 
 (defgeneric really-match-on (process kell)
   (:documentation "Tries to find a match for all the patterns that could match
