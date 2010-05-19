@@ -230,6 +230,8 @@
 (defgeneric duplicate-process (process)
   (:method (process)
     process)
+  (:method ((process list))
+    (copy-list process))
   (:method ((process message))
     (make-instance 'message
       :name (duplicate-process (name process))
