@@ -65,7 +65,7 @@
     :pattern (convert-process-to-pattern pattern) :process process))
 
 (defclass restriction (process)
-  ((name :initarg :name :type name :reader name)
+  ((name :initarg :name :reader name)
    (process :initarg :process :type generic-process :accessor process))
   (:documentation
    "We store everything in normal form, which means that restrictions don't
@@ -83,7 +83,7 @@
 
 ;;; FIXME: need  a better name
 (defclass message-structure (process)
-  ((name :initarg :name :type name :accessor name)
+  ((name :initarg :name :accessor name)
    (process :initarg :process :initform null-process :type generic-process
             :accessor process)
    (continuation :initarg :continuation :initform null-process
