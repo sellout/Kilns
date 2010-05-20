@@ -1,0 +1,4 @@
+(load "library/simple-components")
+(include-component "library/simple-io")
+
+{echo "Hello World"}

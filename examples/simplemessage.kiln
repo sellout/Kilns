@@ -1,0 +1,7 @@
+(load "library/simple-components")
+(include-component "library/simple-io")
+
+(new a
+     (par {a "Hello"}
+          {a "World"}
+          (trigger {a ?x} {echo ?x})))

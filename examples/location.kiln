@@ -1,0 +1,7 @@
+(load "library/simple-components")
+(include-component "library/simple-io")
+
+(new (a signal b)
+     (par [b (trigger {a _ up} {signal})]
+          {a}
+          (trigger {signal _ down} {echo "Hello World"})))
