@@ -1,0 +1,16 @@
+Kilns is a programming language based on the kell calculus. In addition to
+managed memory, it also has managed concurrency and managed networking. It is a
+"higher-order" distributed programming language, which means that running
+processes can be moved between machines, or paused and restarted.
+
+## Disclaimer
+
+The language is still in the early stages of development. Much functionality is
+missing, syntax and semantics are in flux, performance is something that hasn't
+been paid any attention, and it'll probably crash a lot.
+
+## Building
+
+The current implementation is written in Common Lisp. If you have a lisp
+installed and the requisite libraries (Bordeaux Threads, CL Unification, IOLib,
+etc.), poking at the `build-application.*` scripts should get you going.
