@@ -1,7 +1,7 @@
 Kilns is a programming language based on the kell calculus. In addition to
 managed memory, it also has managed concurrency and managed networking. It is a
 "higher-order" distributed programming language, which means that running
-processes can be moved between machines, or paused and restarted.
+processes can be paused and resumed, or even moved between machines.
 
 ## Disclaimer
 
