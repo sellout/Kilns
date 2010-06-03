@@ -308,6 +308,11 @@
     "This just skips over primitives."
     (declare (ignore mapping ignored-vars))
     process)
+  (:method ((name symbol) mapping &optional ignored-vars)
+    (if (find name ignored-vars :key #'name)
+      name
+      (or (find-symbol-value name mapping)
+          name)))
   (:method ((process list) mapping &optional ignored-vars)
     (mapcar (lambda (item) (replace-variables item mapping ignored-vars))
             process))
@@ -325,6 +330,11 @@
   (:method (name mapping &optional ignored-vars)
     (declare (ignore mapping ignored-vars))
     name)
+  (:method ((name symbol) mapping &optional ignored-vars)
+    (if (find name ignored-vars :key #'name)
+      name
+      (or (find-symbol-value name mapping)
+          name)))
   (:method ((name process-variable) mapping &optional ignored-vars)
     ;; FIXME: this method only exists because sometimes '?x' is being read as a
     ;;        process-variable instead of read as a name-variable

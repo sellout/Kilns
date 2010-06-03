@@ -13,7 +13,7 @@
 
 (deftype generic-process ()
   "This allows us to use various primitives as processes."
-  `(or process string number list))
+  `(or process string number list symbol))
 
 (defclass concretion (agent)
   ((restricted-names)
