@@ -1,18 +1,6 @@
 #+xcvb (module (:depends-on ("package")))
 (in-package :kilns)
 
-(defclass process ()
-  ;; FIXME: really only a property of _active_ processes …
-  ((parent :accessor parent)
-   (deadp :initform nil :accessor deadp
-          :documentation "After a message has been successfully matched, it may
-                          still exist in the event queue. This ensures we don't
-                          waste time trying to match it again.")))
-
-(deftype generic-process ()
-  "This allows us to use various primitives as processes."
-  `(or process string number list))
-
 (defclass null-process (process)
   ()
   (:documentation "This is effectively nil. Maybe we should just use nil."))
@@ -180,6 +168,7 @@
 
 (defmethod (setf parent) (value process)
   "Do nothing for primitives."
+  (declare (ignore value process))
   (values))
 
 ;;; FIXME: there are really two functions here – one replaces the value in place

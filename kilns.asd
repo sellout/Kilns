@@ -12,7 +12,8 @@
                         :components
                         ((:file "package")
                          (:file "utilities" :depends-on ("package"))
-                         (:file "processes" :depends-on ("package"))
+                         (:file "agents" :depends-on ("package"))
+                         (:file "processes" :depends-on ("package" "agents"))
                          (:file "syntax" :depends-on ("package"))
                          ;;(:file "identifier" :depends-on ("package" "processes"))
                          (:file "patterns" :depends-on ("package" "processes"))
