@@ -101,14 +101,20 @@
 
 ;;; TODO: With abstraction, we should now have a better DEF that doesn't rely on
 ;;;       the CL macro facility - but the names are still global ...
+#|
+(defmacro trigger (pattern process)
+  `(make-instance 'pattern-abstraction :pattern pattern :process process))
+
+(defmacro new (names process)
+  `(make-instance 'restriction-abstraction :names names :abstraction process))
 
 (defmacro named-abstraction (name abstraction)
   `(defmacro ,name (concretion)
      `(@ ,,abstraction ,concretion)))
 
-;; FIXME: need to turn parameters into messages
 (defmacro def (name parameters process)
   `(defmacro ,name (,@parameters)
      `(@ (make-instance 'pattern-abstraction
-                        :pattern ,,parameters :process ,,process)
+                        :pattern (list ,,@parameters) :process ,,process)
          (make-instance 'concretion :messages ,,@parameters))))
+|#
