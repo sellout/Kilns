@@ -321,7 +321,8 @@
            (mapcar (lambda (process-variable)
                      (when (not (find (name process-variable) ignored-vars
                                       :key #'name))
-                       (setf process (remove-process-from process-variable process))
+                       (setf process
+                             (remove-process-from process-variable process))
                        (find-process-variable-value process-variable mapping)))
                    (process-variables-in process))))
       (reduce #'compose-processes (cons process substituted-processes)))))
@@ -394,7 +395,9 @@
                   (kells-in (process process))
                   (triggers-in (process process))
                   (primitives-in (process process))))
-    (psetf (process process) (replace-variables (process process) mapping
+    (psetf (pattern process) (replace-variables (pattern process) mapping
+                                                ignored-vars)
+           (process process) (replace-variables (process process) mapping
                                                 ignored-vars)))
   (:method (mapping (process restriction) &optional ignored-vars)
     (mapc (lambda (proc) (substitute-variables mapping proc ignored-vars))
