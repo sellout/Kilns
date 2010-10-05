@@ -140,10 +140,6 @@
     process))
 
 (defgeneric activate-process (process kell)
-  (:method ((process null) (kell kell))
-    ;; FIXME: this method is just a hack to deal with NIL processes that shouldn't even
-    ;;        exist in the first place. Remove when issue #4 is fixed.
-    null-process)
   (:method ((process cons) (kell kell))
     (remove-process-from process kell)
     (add-process (eval process) kell))
@@ -166,8 +162,9 @@
                    kell))))
 
 (defgeneric add-process (process kell)
+  (:documentation "Pushes PROCESS onto the given KELL.")
   (:method (process kell)
-    ;; lets us run normal functions without consequence
+    "Handles any other “primitive” processes (strings, numbers, etc.)"
     (declare (ignore process kell))
     (values))
   (:method ((process cons) (kell kell))
@@ -240,8 +237,8 @@
          (*readtable* *kilns-readtable*))
     ;; dummy kell for now, to handle locking and other places we refer to
     ;; parents
-    (setf (parent *top-kell*) (make-instance 'kell
-                                :name (gensym "NETWORK") :process *top-kell*))
+    (setf (parent *top-kell*)
+          (make-instance 'kell :name (gensym "NETWORK") :process *top-kell*))
     (unwind-protect
         (loop do
           (printk "> ")
@@ -332,19 +329,20 @@
       name
       (or (find-symbol-value name mapping)
           name)))
-  (:method ((process list) mapping &optional ignored-vars)
+  (:method ((process cons) mapping &optional ignored-vars)
     (mapcar (lambda (item) (replace-variables item mapping ignored-vars))
             process))
   (:method ((process process) mapping &optional ignored-vars)
     (let ((substituted-processes
-           (mapcar (lambda (process-variable)
+           (mapcan (lambda (process-variable)
                      (when (not (find (name process-variable) ignored-vars
                                       :key #'name))
                        (setf process
                              (remove-process-from process-variable process))
-                       (find-process-variable-value process-variable mapping)))
+                       (list (find-process-variable-value process-variable mapping))))
                    (process-variables-in process))))
-      (reduce #'compose-processes (cons process substituted-processes)))))
+      (reduce #'compose-processes (cons process substituted-processes)
+              :initial-value null-process))))
 
 (defgeneric replace-name (name mapping &optional ignored-vars)
   (:method (name mapping &optional ignored-vars)
@@ -368,6 +366,7 @@
 
 ;;; FIXME: this is crying out for some simplification
 (defgeneric substitute-variables (mapping process &optional ignored-vars)
+  (:documentation "Replaces all the variables in place.")
   (:method (mapping process &optional ignored-vars)
     (values))
   (:method (mapping (process cons) &optional ignored-vars)

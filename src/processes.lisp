@@ -154,7 +154,7 @@
           (map-parallel-composition #'identity obj)))
 
 (defun parallel-composition (&rest processes)
-  (reduce #'compose-processes processes))
+  (reduce #'compose-processes processes :initial-value null-process))
 
 (defun map-parallel-composition (fn pc)
   (append (mapcar fn (process-variables pc))

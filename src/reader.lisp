@@ -29,7 +29,8 @@
               (reverse (loop for value = (read stream nil)
                           while value
                           do (if print (print value) value)
-                          collecting value))))))
+                          collecting value))
+              :initial-value null-process))))
 
 (defmacro lisp (&rest forms)
   `'(cl:progn ,@forms))
