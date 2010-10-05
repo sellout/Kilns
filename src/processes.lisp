@@ -105,7 +105,7 @@
 
 (defclass kell (message-structure)
   (;; implementation details
-   (lock :initform (make-lock) :reader lock)
+   (lock :reader lock)
    ;; while each trigger pattern contains a multiset of typed patterns, we keep
    ;; them aggregated here in a hash-table mapping the channel-name to the
    ;; trigger that they are a part of. This makes the matching much easier, but
@@ -119,6 +119,9 @@
                   :reader down-patterns)
    (kell-patterns :initform (make-hash-table :test #'equal)
                   :reader kell-patterns)))
+
+(defmethod initialize-instance :after ((obj kell) &key &allow-other-keys)
+  (setf (slot-value obj 'lock) (make-lock (format nil "kell ~a" (name obj)))))
 
 (defun kell (name &optional process continuation)
   (if continuation
