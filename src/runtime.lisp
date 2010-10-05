@@ -47,13 +47,16 @@
     `(let ((,kellvar ,kell))
        (with-lock-held ((lock (parent ,kellvar)))
          (with-lock-held ((lock ,kellvar))
-           (mapcar (lambda (subkell)
-                     (acquire-lock (lock subkell) t))
-                   (subkells ,kellvar))
-           ,@body
-           (mapcar (lambda (subkell)
-                     (release-lock (lock subkell)))
-                   (reverse (subkells ,kellvar))))))))
+           ;; FIXME: this should probably use some fancy WITH-LOCK-HELD macroexpansion
+           ;;        in order to UNWIND-PROTECT all of the lock releases 
+           (let ((subkells (subkells ,kellvar)))
+             (mapcar (lambda (subkell)
+                       (acquire-lock (lock subkell) t))
+                     subkells)
+             ,@body
+             (mapcar (lambda (subkell)
+                       (release-lock (lock subkell)))
+                     (reverse subkells))))))))
 
 (defparameter *debugp* nil
   "If T, errors will dump you to the debugger (although you still need to do some work
