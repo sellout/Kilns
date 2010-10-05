@@ -5,22 +5,20 @@
 
 (def (List l-op g s r l cons nil)
      `(trigger* {,l-op (list ?p {?k})}
-                ;; FIXME: how do we distinguish a process variable (?p) from a
-                ;; channel name (?k) here?
-                (Lop ?p ?k ,g ,s ,r ,l ,cons ,nil)))
+                (Lop ?p k ,g ,s ,r ,l ,cons ,nil)))
 
 (def (Lop p k g s r l cons nil)
      `(new k*
            (trigger {,l ?x}
                     (par (sandbox (par ,p
                                        {,l ?x}
-                                       (L ,g ,s ,r ,l ,cons ,nil)
+                                       (create-list-operations ,g ,s ,r ,l ,cons ,nil)
                                        (trigger (par {,k ?z} {,l ?x*})
                                                 {k* (list ?z ?x*)}))
                                   k*)
                          (trigger {k* (list ?z ?x*)} (par {,k ?z} {,l ?x*}))))))
 
-(def (L g s r l cons nil)
+(def (create-list-operations g s r l cons nil)
      `(par (Set ,s ,l ,cons)
            (Get ,g ,l ,cons ,nil)
            (Rem ,r ,l ,cons ,nil)))
@@ -61,4 +59,5 @@
 (trigger* {new-list {?response-channel}}
           (new (l-op g s r l cons nil)
                (par (List l-op g s r l cons nil)
+                    {l {nil}}
                     {?response-channel (list {l-op} {g} {s} {r})})))
