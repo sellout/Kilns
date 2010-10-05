@@ -1,3 +1,4 @@
+(declaim (optimize (debug 3)))
 (require :asdf)
 (load "kilns.asd")
 (asdf:load-system :kilns)
