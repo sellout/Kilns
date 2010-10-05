@@ -60,8 +60,7 @@
   (unify (car (kell-message-pattern pattern)) agent substitutions))
 
 ;; NOTE: FIND-VARIABLE-VALUE isn't generic, so we use a different name
-(defmethod find-symbol-value
-    ((variable symbol) &optional env errorp)
+(defmethod find-symbol-value ((variable symbol) &optional env errorp)
   (find-variable-value (intern (format nil "?~a" variable)) env errorp))
 (defmethod find-process-variable-value
     ((variable process-variable) &optional env errorp)
