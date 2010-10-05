@@ -140,6 +140,10 @@
     process))
 
 (defgeneric activate-process (process kell)
+  (:method ((process null) (kell kell))
+    ;; FIXME: this method is just a hack to deal with NIL processes that shouldn't even
+    ;;        exist in the first place. Remove when issue #4 is fixed.
+    null-process)
   (:method ((process cons) (kell kell))
     (remove-process-from process kell)
     (add-process (eval process) kell))
