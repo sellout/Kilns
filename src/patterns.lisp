@@ -135,7 +135,9 @@
                                           substitutions)
                             (setf substitutions subst)
                             procs)))
-          substitutions)))
+          substitutions))
+  (:method (pattern process &optional (substitutions (make-empty-environment)))
+    (unify pattern process substitutions)))
 
 (defun match-list (type-function patterns processes substitutions)
   "Finds one match in PROCESSES for each item in PATTERNS. Also ensures that the
