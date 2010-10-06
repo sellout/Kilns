@@ -5,7 +5,7 @@
 
 (def (List l-op g s r l cons nil)
      `(trigger* {,l-op (list ?p {?k})}
-                (Lop ?p k ,g ,s ,r ,l ,cons ,nil)))
+                (Lop ?p 'k ,g ,s ,r ,l ,cons ,nil)))
 
 (def (Lop p k g s r l cons nil)
      `(new k*
@@ -25,11 +25,11 @@
 
 (def (Set s l cons)
      `(trigger* (par {,s (list {?n} ?y ?z)} {,l ?x})
-                (par {,l {,cons (list {?n ?y} ?x)}} ?z)))
+                (par {,l {,cons (list {n ?y} ?x)}} ?z)))
 
 (def (Get g l cons nil)
      `(trigger* (par {,g (list {?n} {?k} ?x)} {,l ?xl})
-                (par (Get-i ?n ?k ?x ?xl ,cons ,nil) {,l ?xl})))
+                (par (Get-i 'n 'k ?x ?xl ,cons ,nil) {,l ?xl})))
 
 (def (Get-i n k x x-l cons nil)
      `(new g-i
@@ -40,14 +40,14 @@
 
 (def (Rem r l cons nil)
      `(trigger* (par {,r (list {?n} {?k} ?x)} {,l ?x-l})
-                (par (Rem-i ?n ?k ?x ?x-l ,l ,cons ,nil) {,l ?x-l})))
+                (par (Rem-i 'n 'k ?x ?x-l ,l ,cons ,nil) {,l ?x-l})))
 
 (def (Rem-i n k x x-l l cons nil)
      `(new (r-i rev)
            (par (trigger* {r-i (list {,cons (list {,n ?y} ?z)} ?z*)}
                           (par {,k ?y} {rev (list ?z ?z*)}))
                 (trigger* {r-i (list {,cons (list {(!= ,n ?m) ?y} ?z)} ?z*)}
-                          {r-i (list ?z {,cons (list {?m ?y} ?z*)})})
+                          {r-i (list ?z {,cons (list {m ?y} ?z*)})})
                 (trigger* {r-i (list {,nil} ?z)}
                           (par ,x {rev (list {,nil} ?z*)}))
                 (trigger* {rev (list ?z {,cons (list ,x ?z*)})}
