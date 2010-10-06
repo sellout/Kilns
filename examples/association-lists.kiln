@@ -1,0 +1,69 @@
+(load "library/association-lists")
+(load "library/simple-components")
+(load-component "library/simple-io" io)
+
+;;; general structure of list requests
+#|
+(new (list)
+     ;; request a fresh list
+     (par {new-list {list}}
+          ;; receive the operations for the list
+          (trigger {list (list {?l-op} {?get} {?set} {?rem})}
+                   ;; all operations must occur within an l-op
+                   {?l-op (list (par {?set (list {key} "value" continuation)}
+                                     {?get (list {key} {result-channel} fail-cont)}
+                                     {?rem (list {key} {result-channel} fail-cont)})
+                                {result-channel})})))
+|#
+
+;;; defining and using a new operation
+(new (list)
+     (par {new-list {list}}
+          (trigger {list (list {?l-op} {?get} {?set} {?rem})}
+                   ;; define a new operation that adds a value to a key only if the key
+                   ;; is not already present
+                   (par (trigger* {add (list {?key} ?value {?ok} {?fail})}
+                                  (new k
+                                       (par {?l-op (list (par {?get (list {?key}
+                                                                          {?fail}
+                                                                          {set (list {?key}
+                                                                                     ?value
+                                                                                     {k {?ok}})})}
+                                                              (trigger {fail ?y} {k {fail ?y}}))
+                                                         {k})}
+                                            (trigger {k ?z} ?z))))
+                        ;; test the new operation
+                        (new (ok exists done res)
+                             ;; add {test "it worked"} to the alist, sending on channel
+                             ;; `ok` if it succeeded, and on channel `exists` if it
+                             ;; failed
+                             (par {add (list {test} "it worked" {ok} {exists})}
+                                  (trigger {ok _}
+                                           ;; try adding the same key again, which
+                                           ;; should fail
+                                           {add (list {test}
+                                                      "double add"
+                                                      {done}
+                                                      {done})})
+                                  (trigger {exists _} {io {echo "already exists"}})
+                                  (trigger {done _}
+                                           ;; lookup the key, sending either the value
+                                           ;; or "key is missing" over channel `res`
+                                           {?l-op (list {?get (list {test}
+                                                                    {res}
+                                                                    {res "key is missing"})}
+                                                        {res})})
+                                  (trigger {res ?value} {io {echo ?value}})))))))
+
+;;; This may print "success" or "failed", depending on whether the set operations are
+;;; executed before the get
+(new (list result k)
+     (par {new-list {list}}
+          (trigger {list (list {?l-op} {?get} {?set} {?rem})}
+                   (par {?l-op (list (par {?set (list {foo} "success" null-process)}
+                                          {?set (list {bar} "extra" null-process)}
+                                          {?get (list {foo}
+                                                      {result}
+                                                      {result "failed"})})
+                                     {result})}
+                        (trigger {result ?r} {io {echo ?r}})))))
