@@ -36,14 +36,14 @@
     ))
 
 (defclass mismatch ()
-  ((complement :initarg :complement :reader the-complement)
+  ((complement :initarg :complement :accessor complement)
    (variable :initarg :variable :reader variable)))
 
 (defun != (complement &optional variable)
   (make-instance 'mismatch :variable variable :complement complement))
 
 (defmethod print-object ((obj mismatch) stream)
-  (format stream "(!= ~a~@[ ~a~])" (the-complement obj) (variable obj)))
+  (format stream "(!= ~a~@[ ~a~])" (complement obj) (variable obj)))
 
 ;;; We similarly extend the matching functions, adding two cases for the helper
 ;;; function matchr
@@ -55,13 +55,19 @@
                                     (unify (name pattern) (name process)
                                            substitutions)))
     (mismatch (let ((name (name pattern)))
-                (when (not (eql (the-complement name) (name process)))
+                (when (not (eql (complement name) (name process)))
                   (recursive-match (process pattern) (process process)
                                    (if (variable name)
                                      (unify (variable name) (name process)
                                             substitutions)
                                      substitutions)))))
     (otherwise (second (match pattern process substitutions)))))
+
+;; FIXME: This is fraktal-specific, but kind of digs a bit more into the internals than
+;;        I'd like
+(defmethod replace-name ((name mismatch) mapping &optional ignored-vars)
+    (setf (complement name) (replace-name (complement name) mapping ignored-vars))
+    name)
 
 (defmethod collect-bound-names ((pattern message))
   (typecase (name pattern)
