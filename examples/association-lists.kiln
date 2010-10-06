@@ -10,9 +10,9 @@
           ;; receive the operations for the list
           (trigger {list (list {?l-op} {?get} {?set} {?rem})}
                    ;; all operations must occur within an l-op
-                   {?l-op (list (par {?set (list {key} "value" continuation)}
-                                     {?get (list {key} {result-channel} fail-cont)}
-                                     {?rem (list {key} {result-channel} fail-cont)})
+                   {l-op (list (par {set (list {key} "value" continuation)}
+                                    {get (list {key} {result-channel} fail-cont)}
+                                    {rem (list {key} {result-channel} fail-cont)})
                                 {result-channel})})))
 |#
 
