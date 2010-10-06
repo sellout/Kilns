@@ -24,13 +24,13 @@
                    ;; is not already present
                    (par (trigger* {add (list {?key} ?value {?ok} {?fail})}
                                   (new k
-                                       (par {?l-op (list (par {?get (list {?key}
-                                                                          {?fail}
-                                                                          {set (list {?key}
-                                                                                     ?value
-                                                                                     {k {?ok}})})}
-                                                              (trigger {fail ?y} {k {fail ?y}}))
-                                                         {k})}
+                                       (par {l-op (list (par {get (list {key}
+                                                                        {fail}
+                                                                        {set (list {key}
+                                                                                   ?value
+                                                                                   {k {ok}})})}
+                                                                   (trigger {fail ?y} {k {fail ?y}}))
+                                                        {k})}
                                             (trigger {k ?z} ?z))))
                         ;; test the new operation
                         (new (ok exists done res)
@@ -60,10 +60,10 @@
 (new (list result k)
      (par {new-list {list}}
           (trigger {list (list {?l-op} {?get} {?set} {?rem})}
-                   (par {?l-op (list (par {?set (list {foo} "success" null-process)}
-                                          {?set (list {bar} "extra" null-process)}
-                                          {?get (list {foo}
-                                                      {result}
-                                                      {result "failed"})})
+                   (par {l-op (list (par {set (list {foo} "success" null-process)}
+                                         {set (list {bar} "extra" null-process)}
+                                         {get (list {foo}
+                                                    {result}
+                                                    {result "failed"})})
                                      {result})}
                         (trigger {result ?r} {io {echo ?r}})))))
