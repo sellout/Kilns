@@ -1,0 +1,82 @@
+(load "library/replication")
+(load "library/utilities")
+(load "library/simple-components")
+(include-component "library/identity")
+(include-component "library/ordering")
+
+;; primitives
+
+(trigger* {+ (list ?augend ?addend {?rc}) up}
+          {component-out {rc (lisp (cl:+ #.?augend #.?addend))}})
+(trigger* {- (list ?minuend ?subtrahend {?rc}) up}
+          {component-out {rc (lisp (cl:- #.?minuend #.?subtrahend))}})
+(trigger* {* (list ?multiplier ?multiplicand {?rc}) up}
+          {component-out {rc (lisp (cl:* #.?multiplier #.?multiplicand))}})
+(trigger* {/ (list ?dividend ?divisor {?rc}) up}
+          {component-out {rc (lisp (cl:/ #.?dividend #.?divisor))}})
+
+(trigger* {zerop (list ?number ?true ?false) up}
+          {= (list ?number 0 {component-out ?true} {component-out ?false})})
+
+(trigger* {plusp (list ?number ?true ?false) up}
+          {< (list 0 ?number {component-out ?true} {component-out ?false})})
+
+(trigger* {minusp (list ?number ?true ?false) up}
+          {< (list ?number 0 {component-out ?true} {component-out ?false})})
+
+#|
+(trigger* {evenp (list ?integer ?true ?false) up}
+          (new bin
+               (par {mod (list ?integer 2 {bin})}
+                    (trigger {bin ?binary} {= (list ?binary 2 ?true ?false)})))
+
+
+(trigger* {remainder (list ?number ?divisor {?rc}) up}
+          (new trc
+               (par {truncate (list ?number ?divisor {trc})}
+                    (trigger {trc (list _ ?remainder)}
+                             {rc ?remainder}))))
+
+(trigger* {mod (list ?number ?divisor {?rc}) up}
+          (new frc
+               (par {floor (list ?number ?divisor {frc})}
+                    (trigger {frc (list _ ?remainder)}
+                             {rc ?remainder}))))
+          
+(trigger* {abs (list ?number {?rc})}
+          {complexp (list ?number
+                          (new (part pow sum)
+                               (par {realpart (list ?number {part})}
+                                    {imagpart (list ?number {part})}
+                                    ;; need to clean up
+                                    (trigger* {part ?part}
+                                              {expt (list ?part 2 {pow})})
+                                    (trigger (par {pow ?a} {pow ?b})
+                                             {+ (list ?a ?b {sum})})
+                                    (trigger {sum ?sum}
+                                             {sqrt (list ?sum {rc})})))
+                          {minusp (list ?number
+                                        {- (list ?number {rc})}
+                                        {rc ?number})})})
+
+(trigger* {conjugate (list ?complex {?rc})}
+          (par {realpart (list ?complex {real})}
+               {imagpart (list ?complex {imag})}
+               (trigger {imag ?real} {- (list ?real {ima})})
+               (trigger (par {real ?r} {ima ?i}) {complex (list ?r ?i {rc})})))
+
+;;(trigger* {least-common-multiple (list ?a ?b {?rc})}
+
+(trigger* {signum (list ?number {?rc})}
+          {zerop (list ?number
+                       {rc ?number}
+                       (new ab
+                            (par {abs (list ?number {ab})}
+                                 (trigger {ab ?val} {/ ?number ?val}))))})
+
+(trigger* {tan (list ?number {?rc})}
+          (new (s c)
+               (par {sin ?number {s}}
+                    {cos ?number {c}}
+                    (trigger (par {s ?s} {c ?c}) {/ (list ?s ?c {rc})}))))
+|#
