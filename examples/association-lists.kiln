@@ -13,7 +13,7 @@
                    {l-op (list (par {set (list {key} "value" continuation)}
                                     {get (list {key} {result-channel} fail-cont)}
                                     {rem (list {key} {result-channel} fail-cont)})
-                                {result-channel})})))
+                               {result-channel})})))
 |#
 
 ;;; defining and using a new operation
