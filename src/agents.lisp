@@ -3,49 +3,97 @@
 (defclass agent ()
   ())
 
-(defclass process (agent)
+(deftype generic-process ()
+  "This allows us to use various primitives as processes."
+  `(or process string number list symbol))
+
+(deftype generic-abstraction ()
+  "This allows us to use various primitives as processes."
+  `(or abstraction generic-process))
+
+(deftype generic-concretion ()
+  "This allows us to use various primitives as processes."
+  `(or concretion generic-process))
+
+(deftype generic-agent ()
+  "This allows us to use various primitives as processes."
+  `(or generic-abstraction generic-concretion))
+
+(defclass concretion (agent)
+  ((restricted-names)
+   (messages :type multiset :documentation "A multiset without up-mossages")
+   (continuation :type generic-process))
+  (:documentation "C ::= νã.Ω P
+                   Ω ::= ∅ | a<P> | a<P>↓b | a[P] | Ω|Ω"))
+
+#|
+(defmethod free-names ((agent down-message))
+  (union (free-names (name agent))
+         (free-names (process agent))
+         (free-names (parent agent))))
+
+(defmethod free-variables ((agent down-message))
+  (free-variables (process agent)))
+|#
+
+(defmethod free-names ((agent concretion))
+  (union (free-names (messages agent)) (free-names (continuation agent))))
+
+(defmethod free-variables ((agent concretion))
+  (union (free-variables messages) (free-variables continuation)))
+
+(defclass abstraction (agent)
+  ()
+  (:documentation "F"))
+
+(defclass simple-abstraction (abstraction)
+  ()
+  (:documentation "G"))
+
+(defclass kell-abstraction (abstraction)
+  ((name)
+   (abstraction :type simple-abstraction)
+   (continuation :type generic-process))
+  (:documentation "a[G].P"))
+
+(defclass application-abstraction (abstraction)
+  ((abstraction :type generic-abstraction)
+   (concretion :type generic-concretion))
+  (:documentation "F@C"))
+
+(defmethod free-names ((agent application-abstraction))
+  ;; FIXME: only when defined (see 3.3.Pseudo-application)
+  (union (free-names (abstraction agent)) (free-names (concretion agent))))
+
+(defmethod free-variables ((agent application-abstraction))
+  ;; FIXME: only when defined (see 3.3.Pseudo-application)
+  (union (free-variables (abstraction agent))
+         (free-variables (concretion agent))))
+
+(defclass restriction-abstraction (abstraction)
+  ((names)
+   (abstraction :type abstraction))
+  (:documentation "νã.F"))
+
+(defclass pattern-abstraction (simple-abstraction)
+  ((pattern :initarg :pattern :type pattern)
+   (process :initarg :process :type generic-process))
+  (:documentation "(ξ)P"))
+
+(defclass simple-application-abstraction
+    (simple-abstraction application-abstraction)
+  ;; FIXME: not sure if this is the right way to restrict a type
+  ((abstraction :type simple-abstraction))
+  (:documentation "G@C"))
+
+(defclass process (abstraction concretion)
   ;; FIXME: really only a property of _active_ processes …
   ((parent :accessor parent)
    (deadp :initform nil :accessor deadp
           :documentation "After a message has been successfully matched, it may
                           still exist in the event queue. This ensures we don't
-                          waste time trying to match it again.")))
-
-(deftype generic-process ()
-  "This allows us to use various primitives as processes."
-  `(or process string number list symbol))
-
-(defclass concretion (agent)
-  ((restricted-names)
-   (messages :type multiset :documentation "A multiset without up-mossages")
-   (continuation :type generalized-process)))
-
-(defclass abstraction (agent)
-  ())
-
-(defclass simple-abstraction (abstraction)
-  ())
-
-(defclass kell-abstraction (abstraction)
-  ((name)
-   (process :type simple-abstraction)
-   (continuation :type generalized-process)))
-
-(defclass application-abstraction (abstraction)
-  ((abstraction :type abstraction)
-   (concretion :type concretion)))
-
-(defclass restriction-abstraction (abstraction)
-  ((names)
-   (abstraction :type abstraction)))
-
-(defclass pattern-abstraction (simple-abstraction)
-  ((pattern :type pattern)
-   (process :type generalized-process)))
-
-(defclass simple-application-abstraction (simple-abstraction)
-  ((abstraction :type simple-abstraction)
-   (concretion :type concretion)))
+                          waste time trying to match it again."))
+  (:documentation "P"))
 
 (defgeneric compose (agent1 agent2)
   (:method (agent1 agent2)
@@ -108,13 +156,10 @@
 (defmacro new (names process)
   `(make-instance 'restriction-abstraction :names names :abstraction process))
 
-(defmacro named-abstraction (name abstraction)
-  `(defmacro ,name (concretion)
-     `(@ ,,abstraction ,concretion)))
-
-(defmacro def (name parameters process)
-  `(defmacro ,name (,@parameters)
-     `(@ (make-instance 'pattern-abstraction
-                        :pattern (list ,,@parameters) :process ,,process)
-         (make-instance 'concretion :messages ,,@parameters))))
+(defmacro def ((name &rest parameters) process)
+  (let ((concretion (gensym "CONCRETION")))
+    `(defmacro ,name (&rest ,concretion)
+       `(@ (make-instance 'pattern-abstraction
+                          :pattern ,'(list ,@parameters) :process ,',process)
+           (list ,@,concretion)))))
 |#
