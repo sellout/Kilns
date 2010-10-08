@@ -28,5 +28,18 @@
 (def (load-component filename prefix)
      (cl:let ((kellname (cl:gensym (cl:symbol-name prefix))))
        `(new ,kellname
-           [,kellname (par (trigger* {,prefix ?message up} ?message)
-                           [,kellname (load ,filename)])])))
+             [,kellname (par (trigger* {,prefix ?message up} ?message)
+                             (trigger* {component-local ?local down} ?local)
+                             (trigger* {component-out ?out down} {component-out ?out})
+                             [,kellname (load ,filename)])])))
+
+;;; A message sent over `component-out` will be passed out of the component back to the
+;;; parent kell. This is useful for sending responses.
+(trigger* {component-out ?out down} ?out)
+
+;;; You need to use `component-local` if you want to send a message to a trigger that's
+;;; part of your component's public interface (since they are all listening for
+;;; up-messages, you need to get the message out of the kell first).
+;;; NOTE: if you wrap a call in `component-local`, you shouldn't wrap its responses in
+;;;       `component-out`, since the local call you're making will do that itself.
+(trigger* {component-local ?local down} ?local)
