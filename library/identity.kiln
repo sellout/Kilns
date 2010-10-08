@@ -1,0 +1,13 @@
+(load "library/replication")
+(load "library/utilities")
+
+(trigger* {= (list ?proc1 ?proc2 ?true ?false) up}
+          (lisp (cl:handler-case (cl:progn
+                                   (kilns::match #.?proc1 #.?proc2)
+                                   {component-out #.?true})
+                  (unify:unification-failure () {component-out #.?false}))))
+
+(trigger* {/= (list ?proc1 ?proc2 ?true ?false) up}
+          ;; FIXME: unfortunately, this won't react with the above definition, because
+          ;;        it's expecting a message from outside the kell
+          {component-local {= (list ?proc1 ?proc2 ?false ?true)}})
