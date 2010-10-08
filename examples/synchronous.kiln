@@ -7,4 +7,4 @@
                (par {a (list "hello " "world" {r})}
                     (trigger {r ?x} {echo ?x})))
           (trigger {a (list ?x ?y {?r})}
-                   {?r (lisp (cl:concatenate 'cl:string #.?x #.?y))})))
+                   {r (lisp (cl:concatenate 'cl:string #.?x #.?y))})))
