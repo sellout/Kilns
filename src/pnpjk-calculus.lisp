@@ -40,25 +40,29 @@
 ;;; 
 ;;; The matching functions are easily defined by induction:
 
-(defmethod match-local
+;;; FIXME: the matching functions are defined as :AROUND to silence
+;;;        duplicate definition warnings. Once pattern languages are
+;;;        modular, the :AROUND should go away.
+
+(defmethod match-local :around
            ((pattern message) (message message)
             &optional (substitutions (make-empty-environment)))
   (if (equal (name pattern) (name message))
     (recursive-match (process pattern) (process message) substitutions)))
 
-(defmethod match-down
+(defmethod match-down :around
            ((pattern message) (message message)
             &optional (substitutions (make-empty-environment)))
   (if (equal (name pattern) (name message))
     (recursive-match (process pattern) (process message) substitutions)))
 
-(defmethod match-up
+(defmethod match-up :around
            ((pattern message) (message message)
             &optional (substitutions (make-empty-environment)))
   (if (equal (name pattern) (name message))
     (recursive-match (process pattern) (process message) substitutions)))
 
-(defmethod match-kell
+(defmethod match-kell :around
            ((pattern kell) (kell kell)
             &optional (substitutions (make-empty-environment)))
   (if (equal (name pattern) (name kell))
@@ -98,7 +102,7 @@
   (:method ((pattern parallel-composition))
     (mapcan #'collect-bound-names (messages pattern))))
 
-(defmethod bound-names ((pattern pattern))
+(defmethod bound-names :around ((pattern pattern))
   (mapcan #'collect-bound-names
           (append (local-message-pattern pattern)
                   (down-message-pattern pattern)
@@ -117,7 +121,7 @@
   (:method ((pattern parallel-composition))
     (mapcan #'collect-bound-variables (messages pattern))))
 
-(defmethod bound-variables ((pattern pattern))
+(defmethod bound-variables :around ((pattern pattern))
   (mapcan #'collect-bound-variables
           (append (local-message-pattern pattern)
                   (down-message-pattern pattern)

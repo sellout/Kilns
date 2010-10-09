@@ -23,6 +23,7 @@
              (verbose *load-verbose*)
              (print *load-print*)
              (if-does-not-exist :error))
+  (declare (ignore if-does-not-exist verbose))
   (let ((full-name (merge-pathnames file-name (make-pathname :type "kiln"))))
     (with-open-file (stream full-name :external-format :utf-8)
       (reduce #'kilns::compose-processes
@@ -34,3 +35,8 @@
 
 (defmacro lisp (&rest forms)
   `'(cl:progn ,@forms))
+
+(defun dev ()
+  (in-package :kilns)
+  (setf *readtable* kilns::*kilns-readtable*)
+  (values))
