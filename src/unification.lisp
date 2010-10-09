@@ -73,5 +73,5 @@
 ;;; match things that contain the same variable - but we don't care, that's
 ;;; fine in our calculus.
 (defmethod unify::occurs-in-p ((var symbol) pat env)
-  (declare (ignore env))
+  (declare (ignore pat env))
   nil)

@@ -1,7 +1,7 @@
 (in-package #:kilns)
 
 (defclass agent ()
-  ())
+  ((parent :accessor parent)))
 
 (deftype generic-process ()
   "This allows us to use various primitives as processes."
@@ -37,10 +37,12 @@
 |#
 
 (defmethod free-names ((agent concretion))
-  (union (free-names (messages agent)) (free-names (continuation agent))))
+  (union (free-names (messages agent))
+         (free-names (continuation agent))))
 
 (defmethod free-variables ((agent concretion))
-  (union (free-variables messages) (free-variables continuation)))
+  (union (free-variables (messages agent))
+         (free-variables (continuation agent))))
 
 (defclass abstraction (agent)
   ()
@@ -86,10 +88,9 @@
   ((abstraction :type simple-abstraction))
   (:documentation "G@C"))
 
-(defclass process (abstraction concretion)
+(defclass process (abstraction)
   ;; FIXME: really only a property of _active_ processes …
-  ((parent :accessor parent)
-   (deadp :initform nil :accessor deadp
+  ((deadp :initform nil :accessor deadp
           :documentation "After a message has been successfully matched, it may
                           still exist in the event queue. This ensures we don't
                           waste time trying to match it again."))
@@ -124,7 +125,8 @@
   (:method ((agent1 pattern-abstraction) (agent2 concretion))
     (destructuring-bind (processes substitutions)
         (match (pattern agent1) (messages agent2))
-      (trigger-process agent1)
+      (mapc #'remove-process processes)
+      (trigger-process agent1 substitutions)
       (activate-continuation (continuation agent2))))
   (:method ((agent1 kell-abstraction) (agent2 concretion))
     (destructuring-bind (processes substitutions)
@@ -135,16 +137,17 @@
                                  :name (name agent1)
                                  :continuation (continuation agent1))))
         (setf (parent agent1) kell))
-      (trigger-process agent1)
+      (mapc #'remove-process processes)
+      (trigger-process agent1 substitutions)
       (activate-continuation (continuation agent2))))
   ;; The remaining methods eliminate any restrictions that might be hiding valid
   ;; applications.
   (:method ((agent1 restriction-abstraction) (agent2 restriction-abstraction))
-    (@ (apply-restriction agent1) (apply-restriction agent2)))
+    (@ (expand-restriction agent1) (expand-restriction agent2)))
   (:method ((agent1 abstraction) (agent2 restriction-abstraction))
-    (@ agent1 (apply-restriction agent2)))
+    (@ agent1 (expand-restriction agent2)))
   (:method ((agent1 restriction-abstraction) (agent2 concretion))
-    (@ (apply-restriction agent1) agent2)))
+    (@ (expand-restriction agent1) agent2)))
 
 
 ;;; TODO: With abstraction, we should now have a better DEF that doesn't rely on
