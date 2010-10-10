@@ -42,9 +42,12 @@ For more information, see http://github.com/sellout/Kilns")
 ;;
 ;; Below are customizable option list:
 ;;
+;;  `inferior-kilns-binary-path'
+;;    The path to the kilns executable with trailing slash.
+;;    default = "~/projects/kilns-binary/"
 ;;  `inferior-kilns-binary'
-;;    The path to the kilns executable.
-;;    default = "~/projects/kilns-binary/kilns"
+;;    The name of the kilns executable.
+;;    default = "kilns"
 
 ;;; TODO:
 ;; 
@@ -56,9 +59,17 @@ For more information, see http://github.com/sellout/Kilns")
 
 (require 'comint)
 
-(defcustom inferior-kilns-binary "~/projects/kilns-binary/kilns"
-  "The path to the kilns executable."
-  :type 'file
+(defcustom inferior-kilns-binary-path "~/projects/kilns-binary/"
+  "The path to the kilns executable with trailing slash.
+
+This should not include the name of the kilns binary."
+  :type 'path
+  :group 'kilns-minor-mode)
+
+(defcustom inferior-kilns-binary "kilns"
+  "The name of the kilns executable."
+  
+  :type 'string
   :group 'kilns-minor-mode)
 
 (defvar kilns-minor-mode-map ()
@@ -99,12 +110,18 @@ This might get wacked."
 	   (inferior-kilns-process))))
 
 (defun inferior-kilns-start-process ()
-  "Actually start the kilns iterpreter"
-  (setq inferior-kilns-buffer
-		(make-comint "Kilns" inferior-kilns-binary))
-  (with-current-buffer inferior-kilns-buffer
-	(inferior-kilns-mode
-	 (run-hooks 'inferior-kilns-hook))))
+  "Actually start the kilns interpreter.
+
+This sets the current directory to the path of the kilns binary before launching kilns.
+I am not 100% sure this is the proper way to do it, but it does seem the most convenient."
+  (let ((old-dir default-directory))
+	(cd inferior-kilns-binary-path)
+	(setq inferior-kilns-buffer
+		  (make-comint "Kilns" (concat inferior-kilns-binary-path inferior-kilns-binary)))
+	(with-current-buffer inferior-kilns-buffer
+						 (inferior-kilns-mode)
+						 (run-hooks 'inferior-kilns-hook))
+	(cd old-dir)))
 
 (provide 'kilns-minor-mode)
 
