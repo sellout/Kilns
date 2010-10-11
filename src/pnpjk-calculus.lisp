@@ -8,12 +8,12 @@
   (make-instance 'pattern-language
     ;; ξ ::= J | ξk | J|ξk
     ;; J ::= ξm | ξd | ξu | J|J
-    ;; ξm ::= a␣ρ̅␣
-    ;; ξu ::= a␣ρ̅␣↑
-    ;; ξd ::= a␣ρ̅␣↓
+    ;; ξm ::= a⟨ρ̅⟩
+    ;; ξu ::= a⟨ρ̅⟩↑
+    ;; ξd ::= a⟨ρ̅⟩↓
     ;; ξk ::= a[x]
-    ;; ρ ::= a␣ρ̅␣ | ρ|ρ
-    ;; ρ̅ ::= x | ρ | (a)␣ρ̅␣ | _
+    ;; ρ ::= a⟨ρ̅⟩ | ρ|ρ
+    ;; ρ̅ ::= x | ρ | (a)⟨ρ̅⟩ | _
     ))
 
 ;;; In this pattern language, the special pattern _ matches anything.
@@ -32,11 +32,11 @@
 ;;; We also write a␣0␣ for an argument a of a message in processes, and a␣_␣ in
 ;;; patterns. That is the process
 ;;; 
-;;;     (a␣(b)␣ | c␣k␣ ␣ b␣k␣) | a␣d␣ | c␣k␣
+;;;     (a⟨(b)⟩ | c⟨k⟩ ␣ b⟨k⟩) | a⟨d⟩ | c⟨k⟩
 ;;; 
 ;;; corresponds to
 ;;; 
-;;;     (a␣(b)␣_␣␣ | c␣k␣_␣␣ ␣ b␣k␣0␣␣) | a␣d␣0␣␣ | c␣k␣0␣␣
+;;;     (a⟨(b)⟨_⟩⟩ | c⟨k⟨_⟩⟩ ␣ b⟨k⟨0⟩⟩) | a⟨d⟨0⟩⟩ | c⟨k⟨0⟩⟩
 ;;; 
 ;;; The matching functions are easily defined by induction:
 
