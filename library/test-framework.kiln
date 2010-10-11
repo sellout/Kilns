@@ -1,0 +1,37 @@
+(load "library/sandbox")
+(load "library/replication")
+(load "library/association-lists")
+
+(load "library/simple-components")
+(include-component "library/identity")
+(include-component "library/simple-io")
+
+;;; A very simple test framework. All it _should_ do is collect the results and let you do
+;;; what you will with them. However, iterating through the results is currently confusing
+;;; me, so I'm also printing each result as it's determined.
+
+(new (outcomes show-result)
+     (par {new-list {outcomes}}
+          (trigger {outcomes (list {?l} {?get} {?set} {?rem})}
+                   (trigger* {test-result (par {should {?name}}
+                                               {test ?test}
+                                               {expected-result {?channel ?result}})}
+                             (new rc
+                                  (par (sandbox (par ?test
+                                                     (trigger {channel ?result}
+                                                              {rc {channel ?result}}))
+                                                rc)
+                                       (trigger {rc ?test-result}
+                                                {= (list {channel ?result} ?test-result
+                                                         {l (list {set (list {?name} {success}
+                                                                             {show-result {?name {success}}})}
+                                                                  {show-result})}
+                                                         {l (list {set (list {?name}
+                                                                             {failure (par {expected {channel ?result}}
+                                                                                           {got ?test-result})}
+                                                                             {show-result {name {failure (par {expected {channel ?result}}
+                                                                                                              {got ?test-result})}}})}
+                                                                  {show-result})})})))))
+
+          (trigger* {show-result ?result}
+                    {echo ?result})))
