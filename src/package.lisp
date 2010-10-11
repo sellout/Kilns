@@ -20,4 +20,6 @@
            ;; fraKtal pattern language
            #:!=
            ;; abbreviated syntax
-           #:par #:new))
+           #:par #:new
+           ;; interactive commands
+           #:move-up #:move-down))

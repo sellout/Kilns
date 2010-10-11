@@ -238,26 +238,37 @@
   (princ "How many CPUs/cores are in your computer? ")
   (read))
 
-(defun toplevel (&optional cpu-count)
-  (unless cpu-count (setf cpu-count (get-cpu-count)))
-  (let* ((*top-kell* (make-instance 'kell :name (gensym "LOCALHOST")))
-         (kilns (start-kilns cpu-count))
-         (*package* (find-package :kilns-user))
-         (*readtable* *kilns-readtable*))
-    ;; dummy kell for now, to handle locking and other places we refer to
-    ;; parents
-    (setf (parent *top-kell*)
-          (make-instance 'kell :name (gensym "NETWORK") :process *top-kell*))
-    (unwind-protect
-        (loop do
-          (printk "> ")
-          (handler-case (let ((process (eval (read))))
-                          ;; (printk "~a~%" process)
-                          (add-process process *top-kell*))
-            (end-of-file () (return))
-            (error (c) (handle-error c))))
-      (mapc #'destroy-thread kilns)
-      (clear-events))))
+(let ((current-kell))
+  (defun move-up ()
+    (setf current-kell (parent current-kell))
+    (values))
+  (defun move-down (kell-name)
+    (let ((new-kell (car (gethash kell-name (kells current-kell)))))
+      (if new-kell
+        (setf current-kell new-kell)
+        (error "No kell named ~a within ~a" kell-name current-kell)))
+    (values))
+  (defun toplevel (&optional cpu-count)
+    (unless cpu-count (setf cpu-count (get-cpu-count)))
+    (let* ((*top-kell* (make-instance 'kell :name (gensym "LOCALHOST")))
+           
+           (kilns (start-kilns cpu-count))
+           (*package* (find-package :kilns-user))
+           (*readtable* *kilns-readtable*))
+      ;; dummy kell for now, to handle locking and other places we refer to
+      ;; parents
+      (setf current-kell *top-kell*
+            (parent *top-kell*)
+            (make-instance 'kell :name (gensym "NETWORK") :process *top-kell*))
+      (unwind-protect
+          (loop do
+            (printk "~a> " (name current-kell))
+            (handler-case (let ((process (eval (read))))
+                            (add-process process current-kell))
+              (end-of-file () (return))
+              (error (c) (handle-error c))))
+        (mapc #'destroy-thread kilns)
+        (clear-events)))))
 
 (defgeneric duplicate-process (process)
   (:documentation "Does what it says – makes a deep copy of the process.
