@@ -7,6 +7,26 @@
 
 (defvar *top-kell*)
 
+(define-condition kiln-error (error)
+  ()
+  (:documentation "This is used to distinguish errors that happen in kilns from
+                   errors in the implementation."))
+
+(define-condition duplicate-kell-name-error (kiln-error)
+  ((name :initarg :name))
+  (:report (lambda (condition stream)
+             (format stream
+                     "Can't have two kells with the same name (~a) in the same kell."
+                     (slot-value condition 'name)))))
+
+(define-condition no-such-kell-error (kiln-error)
+  ((name :initarg :name)
+   (container :initarg :container))
+  (:report (lambda (condition stream)
+             (format stream "No kell named ~a within ~a"
+                     (slot-value condition 'name)
+                     (slot-value condition 'container)))))
+
 (let ((lock (make-lock "print-lock")))
   (defun printk (&rest arguments)
     "This is our log-to-screen function. Works like format, but makes sure
@@ -74,7 +94,7 @@
                              (with-lock-held (*dummy-wait-lock*)
                                (condition-wait *new-events*
                                                *dummy-wait-lock*))))
-             (error (c) (handle-error c)))))
+             (kiln-error (c) (handle-error c)))))
 
 (defun start-kilns (count)
   (loop for i from 1 to count
@@ -228,8 +248,7 @@
                               process))
   (:method ((process kell) (kell kell))
     (if (gethash (name process) (kells kell))
-        (error "Can't have two kells with the same name (~a) in the same kell."
-               (name process))
+        (error 'duplicate-kell-name-error :name (name process))
         (progn
           (call-next-method)
           (activate-process (process process) process)))))
@@ -246,12 +265,11 @@
     (let ((new-kell (car (gethash kell-name (kells current-kell)))))
       (if new-kell
         (setf current-kell new-kell)
-        (error "No kell named ~a within ~a" kell-name current-kell)))
+        (error 'no-such-kell-error :name kell-name :container current-kell)))
     (values))
   (defun toplevel (&optional cpu-count)
     (unless cpu-count (setf cpu-count (get-cpu-count)))
     (let* ((*top-kell* (make-instance 'kell :name (gensym "LOCALHOST")))
-           
            (kilns (start-kilns cpu-count))
            (*package* (find-package :kilns-user))
            (*readtable* *kilns-readtable*))
@@ -266,7 +284,7 @@
             (handler-case (let ((process (eval (read))))
                             (add-process process current-kell))
               (end-of-file () (return))
-              (error (c) (handle-error c))))
+              (kiln-error (c) (handle-error c))))
         (mapc #'destroy-thread kilns)
         (clear-events)))))
 
@@ -517,7 +535,7 @@
             (when (and trigger matched-processes)
               (trigger-process trigger substitutions)
               (mapc #'activate-continuation matched-processes))))
-      (error (c) (handle-error c)))))
+      (kiln-error (c) (handle-error c)))))
 
 (defun find-triggers-matching-message (name kell)
   "Collect down-patterns from parent kell, up-patterns from subkells, and local-
@@ -674,8 +692,7 @@
 
 (defmethod activate-process ((process kell-abstraction) (kell kell))
   (if (gethash (name process) (kells kell))
-    (error "Can't have two kells with the same name (~a) in the same kell."
-           (name process))
+    (error 'duplicate-kell-name-error :name (name process))
     (progn
       (call-next-method)
       (activate-process (abstraction process) process))))
@@ -699,8 +716,7 @@
 
 (defmethod add-process ((process kell-abstraction) (kell kell))
   (if (gethash (name process) (kells kell))
-    (error "Can't have two kells with the same name (~a) in the same kell."
-           (name process))
+    (error 'duplicate-kell-name-error :name (name process))
     (progn
       (call-next-method)
       (activate-process (abstraction process) process))))
