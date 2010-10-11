@@ -9,6 +9,15 @@
 ;;; triggers at the top level that match on {?x ?y up}. These can be equated to
 ;;; public methods or exported functions.
 
+;;; A message sent over `component-out` will be passed out of the component back to the
+;;; parent kell. This is useful for sending responses.
+
+;;; You need to use `component-local` if you want to send a message to a trigger that's
+;;; part of your component's public interface (since they are all listening for
+;;; up-messages, you need to get the message out of the kell first).
+;;; NOTE: if you wrap a call in `component-local`, you shouldn't wrap its responses in
+;;;       `component-out`, since the local call you're making will do that itself.
+
 ;;; `include-component` will allow you to send messages that match those
 ;;; triggers directly. EG, if there is a trigger in the component that matches
 ;;; "{echo ?string up}", then {echo "test"} will cause a reaction with it. This
@@ -16,7 +25,9 @@
 ;;; triggers don't conflict with your own triggers. This is similar to :USEing
 ;;; the component in a Common Lisp DEFPACKAGE.
 (def (include-component filename)
-     `(new component [component (load ,filename)]))
+     `(new component (par (trigger* {component-out ?out down} ?out)
+                          (trigger* {component-local ?local down} ?local)
+                          [component (load ,filename)])))
 
 ;;; `load-component` gives you better isolation, but requires that you "qualify"
 ;;; the message with the name of the kell you pass in. Using the same example as
@@ -28,18 +39,10 @@
 (def (load-component filename prefix)
      (cl:let ((kellname (cl:gensym (cl:symbol-name prefix))))
        `(new ,kellname
-             [,kellname (par (trigger* {,prefix ?message up} ?message)
-                             (trigger* {component-local ?local down} ?local)
-                             (trigger* {component-out ?out down} {component-out ?out})
-                             [,kellname (load ,filename)])])))
+             (par (trigger* {component-out ?out down} ?out)
+                  [,kellname (par (trigger* {,prefix ?message up} ?message)
+                                  (trigger* {component-local ?local down} ?local)
+                                  (trigger* {component-out ?out down} {component-out ?out})
+                                  [,kellname (load ,filename)])]))))
 
-;;; A message sent over `component-out` will be passed out of the component back to the
-;;; parent kell. This is useful for sending responses.
-(trigger* {component-out ?out down} ?out)
 
-;;; You need to use `component-local` if you want to send a message to a trigger that's
-;;; part of your component's public interface (since they are all listening for
-;;; up-messages, you need to get the message out of the kell first).
-;;; NOTE: if you wrap a call in `component-local`, you shouldn't wrap its responses in
-;;;       `component-out`, since the local call you're making will do that itself.
-(trigger* {component-local ?local down} ?local)
