@@ -4,7 +4,7 @@
 (in-package #:kilns-system)
 
 (defsystem kilns
-  :version "0.0.2"
+  :version "0.0.3"
   :description "An implementation of the Kell calculus in a lisp-like language."
   :license ""
   :author "Greg Pfeil <greg@technomadic.org>"
