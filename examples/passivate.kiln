@@ -1,0 +1,17 @@
+(load "library/utilities")
+(load "library/replication")
+(load "library/simple-components")
+
+(include-component "library/identity")
+(include-component "library/simple-io")
+
+(new (a signal sigup)
+     (par [a (par (include-component "library/math")
+                  (trigger* {signal ?i}
+                            (par {+ (list ?i 1 {signal})}
+                                 {sigup ?i}))
+                  {signal 0})]
+          (trigger* {sigup ?i down}
+                    {= (list ?i 10
+                             (trigger [a ?ignore] null-process)
+                             {echo ?i})})))

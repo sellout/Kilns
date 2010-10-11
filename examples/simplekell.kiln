@@ -1,0 +1,8 @@
+(load "library/simple-components")
+(include-component "library/simple-io")
+
+;;; Communication in this example is not possible
+
+(new (a b)
+     (par {a "Hello World"}
+          [b (trigger {a ?x} {echo ?x})]))
