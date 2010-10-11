@@ -1,0 +1,46 @@
+(load "library/test-framework")
+(load "library/utilities")
+
+;;; NOTE: Normally I would just (load "examples/...") in each test, however most examples
+;;;       want to print a result, and we want to capture the result instead. So these are
+;;;       copied from the examples instead.
+
+;;; helloworld.kiln
+{test-result (par {should {be-hello-world}}
+                  {test {echo "Hello World"}}
+                  {expected-result {echo "Hello World"}})}
+
+;;; higherorder.kiln
+{test-result (par {should {execute-received-message}}
+                  {test (new a
+                             (par {a {echo "Hello World"}}
+                                  (trigger {a ?x} ?x)))}
+                  {expected-result {echo "Hello World"}})}
+
+;;; location.kiln
+{test-result (par {should {pull-signal-out-of-nested-kell}}
+                  {test (new (a signal b)
+                             (par [b (trigger {a _ up} {signal})]
+                                  {a}
+                                  (trigger {signal _ down} {echo "Hello World"})))}
+                  {expected-result {echo "Hello World"}})}
+
+;;; simplemessage.kiln
+;;; FIXME: this test is non-deterministic. It would be nice if we could specify "x OR y"
+;;;        as the expected-result
+{test-result (par {should {trigger-once}}
+                  {test (new a
+                             (par {a "Hello"}
+                                  {a "World"}
+                                  (trigger {a ?x} {echo ?x})))}
+                  {expected-result {echo "Hello"}})}
+
+;;; synchronous.kiln
+{test-result (par {should {concatenate-message}}
+                  {test (new a
+                             (par (new r
+                                       (par {a (list "hello " "world" {r})}
+                                            (trigger {r ?x} {echo ?x})))
+                                  (trigger {a (list ?x ?y {?r})}
+                                           {r (lisp (cl:concatenate 'cl:string #.?x #.?y))})))}
+                   {expected-result {echo "hello world"}})}
