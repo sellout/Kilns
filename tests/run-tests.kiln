@@ -1,6 +1,3 @@
-2
-;;; First line is just to set the number of CPUs
-
 (load "tests/test-examples")
 
 ;;; FIXME: the sleep is here to keep kilns from quitting as soon as it hits EOF
