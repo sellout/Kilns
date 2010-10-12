@@ -16,14 +16,15 @@
   ((name :initarg :name))
   (:report (lambda (condition stream)
              (format stream
-                     "Can't have two kells with the same name (~a) in the same kell."
+                     "Can't have two kells with the same name (~a) in the same ~
+                      kell."
                      (slot-value condition 'name)))))
 
 (define-condition no-such-kell-error (kiln-error)
   ((name :initarg :name)
    (container :initarg :container))
   (:report (lambda (condition stream)
-             (format stream "No kell named ~a within ~a"
+             (format stream "No kell named ~a within ~a."
                      (slot-value condition 'name)
                      (slot-value condition 'container)))))
 
@@ -79,8 +80,8 @@
                      (reverse subkells))))))))
 
 (defparameter *debugp* nil
-  "If T, errors will dump you to the debugger (although you still need to do some work
-   to be in the correct thread to _use_ the debugger).")
+  "If T, errors will dump you to the debugger (although you still need to do
+   some work to be in the correct thread to _use_ the debugger).")
 
 (defun handle-error (c)
   (if *debugp*
@@ -101,8 +102,8 @@
     collecting (make-thread #'run-kiln :name (format nil "kiln ~d" i))))
 
 (defgeneric apply-restriction (local-name global-name process &optional expandp)
-  (:documentation "DESTRUCTIVE. Returns the process with all restrictions expanded to
-                   have unique names.")
+  (:documentation "DESTRUCTIVE. Returns the process with all restrictions
+                   expanded to have unique names.")
   (:method (local-name global-name process &optional (expandp t))
     (declare (ignore local-name global-name expandp))
     process)
@@ -270,23 +271,25 @@
   (defun toplevel (&optional cpu-count top-kell)
     (unless cpu-count (setf cpu-count (get-cpu-count)))
     (let* ((*top-kell* (make-instance 'kell :name (gensym "LOCALHOST")))
-           (kilns (start-kilns cpu-count))
            (*package* (find-package :kilns-user))
            (*readtable* *kilns-readtable*))
-      ;; dummy kell for now, to handle locking and other places we refer to
-      ;; parents
-      (setf current-kell *top-kell*
-            (parent *top-kell*)
-            (make-instance 'kell :name (gensym "NETWORK") :process *top-kell*))
-      (unwind-protect
-          (loop do
-            (printk "~a> " (name current-kell))
-            (handler-case (let ((process (eval (read))))
-                            (add-process process current-kell))
-              (end-of-file () (return))
-              (kiln-error (c) (handle-error c))))
-        (mapc #'destroy-thread kilns)
-        (clear-events)))))
+      (ccl::def-standard-initial-binding *package* (find-package :kilns-user))
+      (ccl::def-standard-initial-binding *readtable* *kilns-readtable*)
+      (let ((kilns (start-kilns cpu-count)))
+        ;; dummy kell for now, to handle locking and other places we refer to
+        ;; parents
+        (setf current-kell *top-kell*
+              (parent *top-kell*)
+              (make-instance 'kell :name (gensym "NETWORK") :process *top-kell*))
+        (unwind-protect
+            (loop do
+              (printk "~a> " (name current-kell))
+              (handler-case (let ((process (eval (read))))
+                              (add-process process current-kell))
+                (end-of-file () (return))
+                (kiln-error (c) (handle-error c))))
+          (mapc #'destroy-thread kilns)
+          (clear-events))))))
 
 (defgeneric duplicate-process (process)
   (:documentation "Does what it says – makes a deep copy of the process.
