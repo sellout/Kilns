@@ -1,0 +1,14 @@
+(load "library/test-framework")
+(load "library/utilities")
+
+{test-result (par {should {match-list-to-par}}
+                  {test (par (trigger {test (par {1 ?x} {2 ?y})}
+                                      {rc (par ?x ?y)})
+                             {test (list {a} {b})})}
+                  {expected-result {rc (par {a} {b})}})}
+
+{test-result (par {should {match-par-to-list}}
+                  {test (par (trigger {test (list ?x ?y)}
+                                      {rc (par ?x ?y)})
+                             {test (par {1 {a}} {2 {b}})})}
+                  {expected-result {rc (par {a} {b})}})}

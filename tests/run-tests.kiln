@@ -1,4 +1,5 @@
 (load "tests/test-examples")
+(load "tests/test-utilities")
 
 ;;; FIXME: the sleep is here to keep kilns from quitting as soon as it hits EOF
 (cl:sleep 10)
