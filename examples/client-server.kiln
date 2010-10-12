@@ -1,0 +1,23 @@
+(defhost client "localhost" 2000)
+(defhost server "otherhost" 2000)
+
+(load "library/simple-components")
+
+[client (par [a (par (include-component "library/simple-io")
+                     (trigger* {signal ?i}
+                               (par {= (list ?i 5
+                                             (par {move}
+                                                  {+ (list ?i 1 {signal})})
+                                             {nope})}
+                                    {= (list ?i 10 null-process {nope})}
+                                    (trigger (par {nope} {nope})
+                                             (par {echo ?i}
+                                                  {+ (list ?i 1 {signal})}))))
+                     {signal 0})]
+             (trigger {move _ down}
+                      (trigger [a ?x] {transfer ?x})))
+
+[server (par (include-component "library/simple-io")
+             (trigger* {move ?proc up} ?proc))]
+
+(trigger* {move ?proc down} {move ?proc})
