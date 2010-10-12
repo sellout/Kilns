@@ -1,5 +1,5 @@
-(defhost client "localhost" 2000)
-(defhost server "otherhost" 2000)
+(defhost client "localhost" 8000)
+(defhost server "otherhost" 8000)
 
 (load "library/simple-components")
 
@@ -15,7 +15,7 @@
                                                   {+ (list ?i 1 {signal})}))))
                      {signal 0})]
              (trigger {move _ down}
-                      (trigger [a ?x] {transfer ?x})))
+                      (trigger [a ?x] {move ?x})))
 
 [server (par (include-component "library/simple-io")
              (trigger* {move ?proc up} ?proc))]
