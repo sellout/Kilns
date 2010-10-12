@@ -267,7 +267,7 @@
         (setf current-kell new-kell)
         (error 'no-such-kell-error :name kell-name :container current-kell)))
     (values))
-  (defun toplevel (&optional cpu-count)
+  (defun toplevel (&optional cpu-count top-kell)
     (unless cpu-count (setf cpu-count (get-cpu-count)))
     (let* ((*top-kell* (make-instance 'kell :name (gensym "LOCALHOST")))
            (kilns (start-kilns cpu-count))
