@@ -1,0 +1,10 @@
+(load "library/test-framework")
+(load "library/simple-components")
+
+;;; FIXME: have to include the component in each test, since the test is run inside a
+;;;        sandbox
+
+{test-result (par {should {add}}
+                  {test (par (include-component "library/math")
+                             {+ (list 2 4 {rc})})}
+                  {expected-result {rc 6}})}
