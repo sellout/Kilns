@@ -379,8 +379,11 @@
     (declare (ignore mapping ignored-vars))
     process)
   (:method (mapping (process cons) &optional ignored-vars)
-    (cons (replace-variables (car process) mapping ignored-vars)
-          (replace-variables (cdr process) mapping ignored-vars)))
+    (let ((new-process (cons (replace-variables (car process) mapping ignored-vars)
+                             (replace-variables (cdr process) mapping ignored-vars))))
+      (if (free-variables new-process)
+        new-process
+        (eval new-process))))
   (:method (mapping (process message) &optional ignored-vars)
     (make-instance 'message
       :name (replace-name (name process) mapping ignored-vars)

@@ -251,7 +251,9 @@
   (:method ((process symbol))
     ;;; FIXME: we don't actually know whether a symbol is a free name or a free
     ;;;        variable without the context that surrounds it.
-    (list process))
+    '())
+  (:method ((process cons))
+    (reduce #'union (mapcar #'free-variables process)))
   (:method ((process name-variable))
     (list process))
   (:method ((process process-variable))
