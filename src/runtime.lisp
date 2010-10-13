@@ -291,47 +291,6 @@
           (mapc #'destroy-thread kilns)
           (clear-events))))))
 
-(defgeneric duplicate-process (process)
-  (:documentation "Does what it says – makes a deep copy of the process.
-                   The goal is to get rid of this once our runtime
-                   behaves in a more functional manner.")
-  (:method (process)
-    process)
-  (:method ((process cons))
-    (mapcar #'duplicate-process process))
-  (:method ((process message))
-    (make-instance 'message
-      :name (duplicate-process (name process))
-      :process (duplicate-process (process process))
-      :continuation (duplicate-process (continuation process))))
-  (:method ((process kell))
-    (make-instance 'kell
-      :name (duplicate-process (name process))
-      :process (duplicate-process (process process))
-      :continuation (duplicate-process (continuation process))))
-  (:method ((process pattern))
-    (let ((pattern (make-instance 'pattern)))
-      (psetf (local-message-pattern pattern)
-             (duplicate-process (local-message-pattern process))
-             (down-message-pattern pattern)
-             (duplicate-process (down-message-pattern process))
-             (up-message-pattern pattern)
-             (duplicate-process (up-message-pattern process))
-             (kell-message-pattern pattern)
-             (duplicate-process (kell-message-pattern process)))
-      pattern))
-  (:method ((process trigger))
-    (make-instance 'trigger
-      :pattern (duplicate-process (pattern process))
-      :process (duplicate-process (process process))))
-  (:method ((process parallel-composition))
-    (apply #'parallel-composition
-           (map-parallel-composition #'duplicate-process process)))
-  (:method ((process restriction))
-    (make-instance 'restriction
-      :name (duplicate-process (name process))
-      :process (duplicate-process (process process)))))
-
 (defgeneric remove-process (process)
   (:method ((process message))
     (let ((kell (parent process)))
@@ -417,82 +376,80 @@
 (defgeneric substitute-variables (mapping process &optional ignored-vars)
   (:documentation "Replaces all the variables in place.")
   (:method (mapping process &optional ignored-vars)
-    (declare (ignore mapping process ignored-vars))
-    (values))
+    (declare (ignore mapping ignored-vars))
+    process)
   (:method (mapping (process cons) &optional ignored-vars)
-    (setf (car process) (replace-variables (car process) mapping ignored-vars)
-          (cdr process) (replace-variables (cdr process) mapping ignored-vars)))
+    (cons (replace-variables (car process) mapping ignored-vars)
+          (replace-variables (cdr process) mapping ignored-vars)))
   (:method (mapping (process message) &optional ignored-vars)
-    (mapc (lambda (proc) (substitute-variables mapping proc ignored-vars))
-          (append (messages-in (process process))
-                  (kells-in (process process))
-                  (triggers-in (process process))
-                  (primitives-in (process process))
-                  (messages-in (continuation process))
-                  (kells-in (continuation process))
-                  (triggers-in (continuation process))
-                  (primitives-in (continuation process))))
-    (psetf (name process) (replace-name (name process) mapping ignored-vars)
-           (process process) (replace-variables (process process) mapping
-                                                ignored-vars)
-           (continuation process) (replace-variables (continuation process)
-                                                     mapping
-                                                     ignored-vars)))
+    (make-instance 'message
+      :name (replace-name (name process) mapping ignored-vars)
+      :process (replace-variables
+                (map-process (lambda (proc)
+                               (substitute-variables mapping proc ignored-vars))
+                             (process process))
+                mapping
+                ignored-vars)
+      :continuation (replace-variables
+                     (map-process (lambda (proc)
+                                    (substitute-variables mapping proc
+                                                          ignored-vars))
+                                  (continuation process))
+                     mapping
+                     ignored-vars)))
   (:method (mapping (process kell) &optional ignored-vars)
-    (mapc (lambda (proc) (substitute-variables mapping proc ignored-vars))
-          (append (messages-in (process process))
-                  (kells-in (process process))
-                  (triggers-in (process process))
-                  (primitives-in (process process))
-                  (messages-in (continuation process))
-                  (kells-in (continuation process))
-                  (triggers-in (continuation process))
-                  (primitives-in (continuation process))))
-    (psetf (name process) (replace-name (name process) mapping ignored-vars)
-           (process process) (replace-variables (process process) mapping
-                                                ignored-vars)
-           (continuation process) (replace-variables (continuation process)
-                                                     mapping
-                                                     ignored-vars)))
+    (make-instance 'kell
+      :name (replace-name (name process) mapping ignored-vars)
+      :process (replace-variables
+                (map-process (lambda (proc)
+                               (substitute-variables mapping proc ignored-vars))
+                             (process process))
+                mapping
+                ignored-vars)
+      :continuation (replace-variables
+                     (map-process (lambda (proc)
+                                    (substitute-variables mapping proc
+                                                          ignored-vars))
+                                  (continuation process))
+                     mapping
+                     ignored-vars)))
   (:method (mapping (process trigger) &optional ignored-vars)
     (let ((ignored-vars (append (bound-names (pattern process))
                                 (bound-variables (pattern process))
                                 ignored-vars)))
-      (mapc (lambda (proc) (substitute-variables mapping proc ignored-vars))
-            (append (local-message-pattern (pattern process))
-                    (down-message-pattern (pattern process))
-                    (up-message-pattern (pattern process))
-                    (kell-message-pattern (pattern process))
-                    (messages-in (process process))
-                    (kells-in (process process))
-                    (triggers-in (process process))
-                    (primitives-in (process process))))
-      (psetf (pattern process) (replace-variables (pattern process) mapping
-                                                  ignored-vars)
-             (process process) (replace-variables (process process) mapping
-                                                  ignored-vars))))
+      (make-instance 'trigger
+        :pattern (replace-variables (make-instance 'pattern
+                                      :local-message-pattern (mapcar (lambda (proc) (substitute-variables mapping proc ignored-vars))
+                                                                     (local-message-pattern (pattern process)))
+                                      :down-message-pattern (mapcar (lambda (proc) (substitute-variables mapping proc ignored-vars))
+                                                                    (down-message-pattern (pattern process)))
+                                      :up-message-pattern (mapcar (lambda (proc) (substitute-variables mapping proc ignored-vars))
+                                                                  (up-message-pattern (pattern process)))
+                                      :kell-message-pattern (mapcar (lambda (proc) (substitute-variables mapping proc ignored-vars))
+                                                                    (kell-message-pattern (pattern process))))
+                                    mapping
+                                    ignored-vars)
+        :process (replace-variables (map-process (lambda (proc) (substitute-variables mapping proc ignored-vars))
+                                                 (process process))
+                                    mapping
+                                    ignored-vars))))
   (:method (mapping (process restriction) &optional ignored-vars)
-    (mapc (lambda (proc) (substitute-variables mapping proc ignored-vars))
-          (append (messages-in (process process))
-                  (kells-in (process process))
-                  (triggers-in (process process))
-                  (primitives-in (process process))))
-    (psetf (process process) (replace-variables (process process) mapping
-                                                ignored-vars))))
+    (make-instance 'restriction
+      :name (name process)
+      :process (replace-variables (map-process (lambda (proc) (substitute-variables mapping proc ignored-vars))
+                                               (process process))
+                                  mapping
+                                  ignored-vars))))
 
 (defmethod trigger-process ((trigger trigger) mapping)
   "Activates process after substituting the process-variables in the trigger."
-  ;; FIXME: basically a copy of substitute-variables (t trigger), except we
-  ;;        don't ignore the vars, because this is the trigger that's actually
-  ;;        triggering.
-  (let ((process (duplicate-process (process trigger))))
-    (remove-process trigger)
-    (mapc (lambda (proc) (substitute-variables mapping proc))
-          (append (messages-in process)
-                  (kells-in process)
-                  (triggers-in process)
-                  (primitives-in process)))
-    (add-process (replace-variables process mapping) (parent trigger))))
+  (remove-process trigger)
+  (add-process (replace-variables (map-process (lambda (proc)
+                                                 (substitute-variables mapping
+                                                                       proc))
+                                               (process trigger))
+                                  mapping)
+               (parent trigger)))
 
 (defmethod activate-continuation (process)
     (remove-process process)

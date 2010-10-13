@@ -29,12 +29,14 @@
 ;;;     to match immediate subkells.
 
 (defclass pattern ()
-  ((local-message-pattern :initform nil :type list
+  ((local-message-pattern :initform nil :initarg :local-message-pattern :type list
                           :accessor local-message-pattern)
-   (down-message-pattern :initform nil :type list
+   (down-message-pattern :initform nil :initarg :down-message-pattern :type list
                          :accessor down-message-pattern)
-   (up-message-pattern :initform nil :type list :accessor up-message-pattern)
-   (kell-message-pattern :initform nil :type list :accessor kell-message-pattern)))
+   (up-message-pattern :initform nil :initarg :up-message-pattern :type list
+                       :accessor up-message-pattern)
+   (kell-message-pattern :initform nil :initarg :kell-message-pattern :type list
+                         :accessor kell-message-pattern)))
 
 (defmethod print-object ((obj pattern) stream)
   (let ((patterns (append (local-message-pattern obj)
@@ -215,12 +217,13 @@
 
 (defgeneric free-names (process)
   (:documentation "Process -> {Name}")
-  (:method ((process null-process))
+  (:method (process)
+    (declare (ignore process))
     '())
-  ;;  (:method ((process name))
-  ;;    (list process))
-  (:method ((process process-variable))
-    '())
+  (:method ((process symbol))
+    ;;; FIXME: we don't actually know whether a symbol is a free name or a free
+    ;;;        variable without the context that surrounds it.
+    (list process))
   (:method ((process restriction))
     (set-difference (free-names (process process)) (list (name process))))
   (:method ((process kell))
@@ -239,6 +242,37 @@
     (union (free-names (pattern process))
            (set-difference (free-names (process process))
                            (bound-names (pattern process))))))
+
+(defgeneric free-variables (process)
+  (:documentation "Process -> {Name}")
+  (:method (process)
+    (declare (ignore process))
+    '())
+  (:method ((process symbol))
+    ;;; FIXME: we don't actually know whether a symbol is a free name or a free
+    ;;;        variable without the context that surrounds it.
+    (list process))
+  (:method ((process name-variable))
+    (list process))
+  (:method ((process process-variable))
+    (list process))
+  (:method ((process restriction))
+    (set-difference (free-variables (process process)) (list (name process))))
+  (:method ((process kell))
+    (reduce #'union
+            (list (free-variables (name process))
+                  (free-variables (process process))
+                  (free-variables (continuation process)))))
+  (:method ((process message))
+    (reduce #'union
+            (list (free-variables (name process))
+                  (free-variables (process process))
+                  (free-variables (continuation process)))))
+  (:method ((process parallel-composition))
+    (reduce #'union (map-parallel-composition #'free-variables process)))
+  (:method ((process trigger))
+    (set-difference (free-variables (process process))
+                    (bound-variables (pattern process)))))
 
 ;;; – Pattern languages are equipped with a function sk, which maps a pattern ξ
 ;;;   to a multiset of names. Intuitively, ξ.sk corresponds to the multiset of
