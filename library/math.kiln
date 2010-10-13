@@ -14,6 +14,10 @@
           {component-out {rc (lisp (cl:* #.?multiplier #.?multiplicand))}})
 (trigger* {/ (list ?dividend ?divisor {?rc}) up}
           {component-out {rc (lisp (cl:/ #.?dividend #.?divisor))}})
+(trigger* {remainder (list ?number ?divisor {?rc}) up}
+          {component-out {rc (lisp (cl:rem #.?number #.?divisor))}})
+
+;; derived
 
 (trigger* {zerop (list ?number ?true ?false) up}
           {= (list ?number 0 {component-out ?true} {component-out ?false})})
@@ -24,25 +28,30 @@
 (trigger* {minusp (list ?number ?true ?false) up}
           {< (list ?number 0 {component-out ?true} {component-out ?false})})
 
-#|
+
+(trigger* {modulus (list ?number ?divisor {?rc}) up}
+          (new rem
+               (par {component-local {remainder (list ?number ?divisor {rem})}}
+                    (trigger {rem ?remain up}
+                             {component-local {zerop (list ?remain
+                                                           {rc ?remain}
+                                                           {minusp (list ?divisor
+                                                                         {plusp (list ?number
+                                                                                      {+ (list ?remain ?divisor {rc})}
+                                                                                      {rc ?remain})}
+                                                                         {minusp (list ?number
+                                                                                       {+ (list ?remain ?divisor {rc})}
+                                                                                       {rc ?remain})})})}}))))
+
 (trigger* {evenp (list ?integer ?true ?false) up}
           (new bin
-               (par {mod (list ?integer 2 {bin})}
-                    (trigger {bin ?binary} {= (list ?binary 2 ?true ?false)})))
+               (par {component-local {modulus (list ?integer 2 {bin})}}
+                    (trigger {bin ?binary up}
+                             {= (list ?binary 2
+                                      {component-out ?true}
+                                      {component-out ?false})}))))
 
-
-(trigger* {remainder (list ?number ?divisor {?rc}) up}
-          (new trc
-               (par {truncate (list ?number ?divisor {trc})}
-                    (trigger {trc (list _ ?remainder)}
-                             {rc ?remainder}))))
-
-(trigger* {mod (list ?number ?divisor {?rc}) up}
-          (new frc
-               (par {floor (list ?number ?divisor {frc})}
-                    (trigger {frc (list _ ?remainder)}
-                             {rc ?remainder}))))
-          
+#|
 (trigger* {abs (list ?number {?rc})}
           {complexp (list ?number
                           (new (part pow sum)
