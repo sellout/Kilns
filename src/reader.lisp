@@ -26,12 +26,11 @@
   (declare (ignore if-does-not-exist verbose))
   (let ((full-name (merge-pathnames file-name (make-pathname :type "kiln"))))
     (with-open-file (stream full-name :external-format :utf-8)
-      (reduce #'kilns::compose-processes
-              (reverse (loop for value = (read stream nil)
-                          while value
-                          do (if print (print value) value)
-                          collecting value))
-              :initial-value null-process))))
+      (apply #'kilns::parallel-composition
+             (reverse (loop for value = (read stream nil)
+                        while value
+                        do (if print (print value) value)
+                        collecting value))))))
 
 (defmacro lisp (&rest forms)
   `'(cl:progn ,@forms))
