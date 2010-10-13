@@ -3,8 +3,8 @@
 
 (trigger* {< (list ?proc1 ?proc2 ?true ?false) up}
           (lisp (cl:if (cl:< #.?proc1 #.?proc2)
-                  #.{component-out ?true}
-                  #.{component-out ?false})))
+                  {component-out #.?true}
+                  {component-out #.?false})))
 
 (trigger* {> (list ?proc1 ?proc2 ?true ?false) up}
           {component-local {< (list ?proc2 ?proc1 ?true ?false)}})
