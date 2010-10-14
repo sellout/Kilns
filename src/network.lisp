@@ -60,41 +60,48 @@
 ;;; If there's a timeout, the host that times out is passivated, and a notice is sent to
 ;;; all hosts to passivate that host.
 
+(defvar *host-definitions* ())
+(defvar *local-host*)
+(defvar *local-port*)
+
 (defclass host-kell (kell)
-  ((hostname :initarg :hostname)
-   (port :initarg port)
-   (socket))
+  ((hostname :initarg :hostname :reader hostname)
+   (port :initarg :port :reader port)
+   (socket :initform nil))
   (:documentation "This is a kell that represents the processes running on a particular
                    host. It is opaque from the current machine."))
-
-(defmethod initialize-instance :after
-    ((obj host-kell) &key hostname port &allow-other-keys)
-  (setf (slot-value obj 'socket)
-        (make-socket :address-family :internet
-                     :type :stream
-                     :connect
-                     :local-host local-host
-                     :local-port local-port
-                     :remote-host hostname
-                     :remote-port port)))
 
 (defmethod print-object ((obj host-kell) stream)
   (format stream "[~a <~a:~d>~:[ ~a~;~]]"
           (name obj) (hostname obj) (port obj)
           (eql (continuation obj) null-process) (continuation obj)))
 
+(defmethod socket ((kell host-kell))
+  (or (slot-value kell 'socket)
+      (setf (slot-value kell 'socket)
+            (make-socket :address-family :internet
+                     :type :stream
+                     :connect
+                     :local-host *local-host*
+                     :local-port *local-port*
+                     :remote-host (hostname kell)
+                     :remote-port (port kell)))))
+
 (defmethod add-process ((process kell) (kell network-kell))
   "When adding a kell to a network kell, it can be either the kell representing the
    current host, a kell representing a different host, or another level of network kell.
    This determines which one it should be and adds an appropriate subkell."
-  (let ((new-kell (cond ((equal process current-kell)
+  (let ((new-kell (cond ((eql (name process)) current-kell)
                          process)
-                        ((assoc (list (name process)) *host-definitions*)
+                        ((assoc (list (name process)) *host-definitions*
+                                :test #'equal)
                          (destructuring-bind ((name) host port)
                                              (assoc (list (name process))
-                                                    *host-definitions*)
-                           (make-instance 'host-kell :name name :hostname host :port port)
-                        (t (change-class process 'network-kell)))))))
+                                                    *host-definitions*
+                                                    :test #'equal)
+                           (make-instance 'host-kell :name name :hostname host :port port)))
+                        (t (change-class process 'network-kell)
+                           process))))
     (setf (process kell)
           (compose-processes new-kell (process kell)))
     (activate-process new-kell kell)))
@@ -102,18 +109,20 @@
 (defmethod activate-process (process (kell host-kell))
   (declare (ignore process))
   (error "No processes can exist inside a host kell."))
-(defmethod activate-process ((process network-kell) (kell kell))
-  (error "A network kell can not exist inside a local kell."))
-(defmethod activate-process ((process host-kell) (kell kell))
-  (error "A host kell can not exist inside a local kell."))
+
+;;; FIXME: need to define a LOCAL-KELL, so that a network kell can't be confused with it
+;;(defmethod activate-process ((process network-kell) (kell kell))
+;;  (error "A network kell can not exist inside a local kell."))
+;;(defmethod activate-process ((process host-kell) (kell kell))
+;;  (error "A host kell can not exist inside a local kell."))
   
 (defmethod add-process (process (kell host-kell))
   (declare (ignore process))
   (error "No processes can exist inside a host kell."))
-(defmethod add-process ((process network-kell) (kell kell))
-  (error "A network kell can not exist inside a local kell."))
-(defmethod add-process ((process host-kell) (kell kell))
-  (error "A host kell can not exist inside a local kell."))
+;;(defmethod add-process ((process network-kell) (kell kell))
+;;  (error "A network kell can not exist inside a local kell."))
+;;(defmethod add-process ((process host-kell) (kell kell))
+;;  (error "A host kell can not exist inside a local kell."))
 
 (defun defhost (kell-path hostname port)
   "A defhost also implies that all containing kells are network kells."
@@ -124,7 +133,8 @@
                         (if (consp kell-path) kell-path (list kell-path)))
                 hostname
                 port)
-          *host-definitions*)))
+          *host-definitions*))
+  null-process)
 
 (defun send-process (process kell)
   (write-binary-record process *standard-output*))
@@ -174,12 +184,10 @@
 ;;; IOLib stuff
 
 (defun send-process (process dest-kell)
-  (send-to (gethash dest-kell *kell-sockets*)
+  (send-to (socket dest-kell)
            (map '(SIMPLE-ARRAY (UNSIGNED-BYTE 8) (*))
                 #'char-code
                 (format nil "~a" process))))
 
 (defun receive-process (source-kell)
-  (read-from-string (map 'string
-                         #'code-char
-                         (receive-from (gethash source-kell *kell-sockets*)))))
+  (read-from-string (map 'string #'code-char (receive-from (socket source-kell)))))

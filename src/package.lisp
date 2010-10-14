@@ -21,5 +21,7 @@
            #:!=
            ;; abbreviated syntax
            #:par #:new
+           ;; networking
+           #:defhost
            ;; interactive commands
            #:move-up #:move-down))
