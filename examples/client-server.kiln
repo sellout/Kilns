@@ -19,9 +19,8 @@
                                                            {+ (list ?i 1 {signal})}))})}))
                      {signal 0})]
              (trigger {move _ down}
-                      (trigger [a ?x] {move ?x})))]
+                      (trigger [a ?x] {transfer ?x})))]
 
-[server (par (include-component "library/simple-io")
-             (trigger* {move ?proc up} ?proc))]
+[server (trigger* {transfer ?proc up} ?proc)]
 
-(trigger* {move ?proc down} {move ?proc})
+(trigger* {transfer ?proc down} {transfer ?proc})
