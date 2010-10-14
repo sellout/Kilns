@@ -8,7 +8,8 @@
   :description "An implementation of the Kell calculus in a lisp-like language."
   :license ""
   :author "Greg Pfeil <greg@technomadic.org>"
-  :depends-on (bordeaux-threads cl-unification)
+  :depends-on (bordeaux-threads cl-unification
+               iolib) ; cl+ssl ironclad
   :components ((:module "src"
                         :components
                         ((:file "package")
@@ -21,8 +22,10 @@
                          (:file "unification"
                                 :depends-on ("package" "processes" "patterns"))
                          ;;(:file "reduction-semantics" :depends-on ("utilities" "syntax"))
+                         (:file "network" :depends-on ("package" "processes" "patterns"))
                          (:file "runtime"
-                                :depends-on ("syntax" "processes" "patterns" "unification"))
+                                :depends-on ("syntax" "network" "processes" "patterns"
+                                             "unification"))
                          (:file "reader" :depends-on ("runtime"))
                          (:file "debug" :depends-on ("reader"))
                          ;; pattern languages

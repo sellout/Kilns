@@ -270,7 +270,8 @@
     (values))
   (defun toplevel (&optional cpu-count top-kell)
     (unless cpu-count (setf cpu-count (get-cpu-count)))
-    (let* ((*top-kell* (make-instance 'kell :name (gensym "LOCALHOST")))
+    (let* ((*top-kell* (make-instance (if top-kell 'network-kell 'kell)
+                         :name (gensym "TOP")))
            (*package* (find-package :kilns-user))
            (*readtable* *kilns-readtable*))
       (ccl::def-standard-initial-binding *package* (find-package :kilns-user))
@@ -280,7 +281,7 @@
         ;; parents
         (setf current-kell *top-kell*
               (parent *top-kell*)
-              (make-instance 'kell :name (gensym "NETWORK") :process *top-kell*))
+              (make-instance 'network-kell :name (gensym "OUTSIDE") :process *top-kell*))
         (unwind-protect
             (loop do
               (printk "~a> " (name current-kell))
