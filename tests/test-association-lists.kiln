@@ -1,7 +1,7 @@
 (load "library/test-framework")
 
 {test-result (par {should {fail-to-get-when-empty}}
-                  {test (new (list k)
+                  {test (new list
                              (par (load "library/association-lists")
                                   {new-list {list}}
                                   (trigger {list (list {?l-op} {?get} {?set} {?rem})}
@@ -12,7 +12,7 @@
                   {expected-result {rc "failed"}})}
 
 {test-result (par {should {get-after-set}}
-                  {test (new (list k)
+                  {test (new list
                              (par (load "library/association-lists")
                                   {new-list {list}}
                                   (trigger {list (list {?l-op} {?get} {?set} {?rem})}
@@ -24,15 +24,17 @@
                   {expected-result {rc "bar"}})}
 
 {test-result (par {should {fail-to-get-after-rem}}
-                  {test (new (list k)
+                  {test (new list
                              (par (load "library/association-lists")
                                   {new-list {list}}
                                   (trigger {list (list {?l-op} {?get} {?set} {?rem})}
-                                           {l-op (list {set (list {foo} "bar"
-                                                                  {rem (list {foo}
-                                                                             {get (list {foo}
-                                                                                        {rc}
-                                                                                        {rc "failed to get"})}
-                                                                             {rc "failed to rem"})})}
+                                           {l-op (list (par {set (list {foo} "bar"
+                                                                       {rem (list {foo}
+                                                                                  {removed}
+                                                                                  {rc "failed to rem"})})}
+                                                             (trigger {removed ?x}
+                                                                      {get (list {foo}
+                                                                                 {rc}
+                                                                                 {rc "failed to get"})}))
                                                        {rc})})))}
                   {expected-result {rc "failed to get"}})}
