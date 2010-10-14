@@ -1,7 +1,7 @@
 (declaim (optimize (debug 3)))
 (require :asdf)
 (load "kilns.asd")
-(asdf:load-system :kilns)
+(asdf:load-system :kilns :verbose nil)
 
 (defun application-toplevel ()
   (destructuring-bind (app &optional cpu-tag cpu-count kell)
