@@ -32,9 +32,9 @@
                                                                        {rem (list {foo}
                                                                                   {removed}
                                                                                   {rc "failed to rem"})})}
-                                                             (trigger {removed ?x}
-                                                                      {get (list {foo}
-                                                                                 {rc}
-                                                                                 {rc "failed to get"})}))
+                                                            (trigger {removed ?x}
+                                                                     {get (list {foo}
+                                                                                {rc}
+                                                                                {rc "failed to get"})}))
                                                        {rc})})))}
                   {expected-result {rc "failed to get"}})}
