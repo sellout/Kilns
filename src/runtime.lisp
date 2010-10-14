@@ -269,6 +269,7 @@
         (error 'no-such-kell-error :name kell-name :container current-kell)))
     (values))
   (defun toplevel (&optional cpu-count top-kell)
+    (declare (ignore top-kell))
     (unless cpu-count (setf cpu-count (get-cpu-count)))
     (let* ((*top-kell* (make-instance 'kell :name (gensym "LOCALHOST")))
            (*package* (find-package :kilns-user))
