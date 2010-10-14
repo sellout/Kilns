@@ -54,7 +54,7 @@
                           {rev (list {,cons (list ,x ?z)} ?z*)})
                 (trigger* {rev (list ?z {,nil})}
                           {,l ?z})
-                {r-i ,x-l})))
+                {r-i (list ,x-l {,nil})})))
 
 (trigger* {new-list {?response-channel}}
           (new (l-op g s r l cons nil)

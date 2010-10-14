@@ -59,7 +59,11 @@
   (defun clear-events ()
     "THIS NEEDS TO BE THREADSAFE"
     (with-lock-held (lock)
-      (setf *event-queue* '()))))
+      (setf *event-queue* '())))
+
+  (defun remove-events-for-kell (kell)
+    (with-lock-held (lock)
+      (setf *event-queue* (delete kell *event-queue* :key #'third)))))
 
 (defmacro lock-neighboring-kells ((kell) &body body)
   "This ensures that we always lock kells from the outermost to the innermost,
@@ -299,9 +303,8 @@
       (setf (gethash (name process) (messages kell))
             (delete process (gethash (name process) (messages kell))))))
   (:method ((process kell))
-    ;; FIXME: also need to remove anything referring to this kell from the
-    ;;        event-queue
     (let ((kell (parent process)))
+      (remove-events-for-kell process)
       (remove-process-from process kell)
       (setf (gethash (name process) (kells kell))
             (delete process (gethash (name process) (kells kell))))))
