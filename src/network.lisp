@@ -91,7 +91,7 @@
   "When adding a kell to a network kell, it can be either the kell representing the
    current host, a kell representing a different host, or another level of network kell.
    This determines which one it should be and adds an appropriate subkell."
-  (let ((new-kell (cond ((eql (name process)) current-kell)
+  (let ((new-kell (cond ((string-equal (name process) *local-kell*)
                          process)
                         ((assoc (list (name process)) *host-definitions*
                                 :test #'equal)
