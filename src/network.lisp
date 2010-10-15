@@ -50,15 +50,16 @@
 ;;; in the queue to be tried again.
 
 
-;;; whenever a process is added to a network kell, we share the process across all hosts
-;;; inside that kell it gets added to each of their event queues. So, the network kells
-;;; should basically be in sync.
+;;; whenever a process is added to a network kell, we share the process across
+;;; all hosts inside that kell it gets added to each of their event queues. So,
+;;; the network kells should basically be in sync.
 ;;; 
-;;; When a process in a network kell is matched, its removal notice is sent to all hosts.
-;;; Each has to reply that it has been removed before the reaction actually occurs.
+;;; When a process in a network kell is matched, its removal notice is sent to
+;;; all hosts. Each has to reply that it has been removed before the reaction
+;;; actually occurs.
 ;;; 
-;;; If there's a timeout, the host that times out is passivated, and a notice is sent to
-;;; all hosts to passivate that host.
+;;; If there's a timeout, the host that times out is passivated, and a notice is
+;;; sent to all hosts to passivate that host.
 
 (defvar *top-kell*)
 (defvar *local-kell*)
@@ -70,8 +71,8 @@
   ((hostname :initarg :hostname :reader hostname)
    (port :initarg :port :reader port)
    (socket :initform nil))
-  (:documentation "This is a kell that represents the processes running on a particular
-                   host. It is opaque from the current machine."))
+  (:documentation "This is a kell that represents the processes running on a
+                   particular host. It is opaque from the current machine."))
 
 (defmethod print-object ((obj host-kell) stream)
   (format stream "[~a <~a:~d>~:[ ~a~;~]]"
@@ -89,9 +90,10 @@
                                  :keepalive t))))
 
 (defmethod add-process ((process kell) (kell network-kell))
-  "When adding a kell to a network kell, it can be either the kell representing the
-   current host, a kell representing a different host, or another level of network kell.
-   This determines which one it should be and adds an appropriate subkell."
+  "When adding a kell to a network kell, it can be either the kell representing
+   the current host, a kell representing a different host, or another level of
+   network kell. This determines which one it should be and adds an appropriate
+   subkell."
   (let ((new-kell (cond ((string-equal (name process) *local-kell*)
                          process)
                         ((assoc (list (name process)) *host-definitions*
@@ -100,7 +102,8 @@
                                              (assoc (list (name process))
                                                     *host-definitions*
                                                     :test #'equal)
-                           (make-instance 'host-kell :name name :hostname host :port port)))
+                           (make-instance 'host-kell
+                             :name name :hostname host :port port)))
                         (t (change-class process 'network-kell)
                            process))))
     (setf (process kell)
@@ -111,7 +114,7 @@
   (declare (ignore process))
   (error "No processes can exist inside a host kell."))
 
-;;; FIXME: need to define a LOCAL-KELL, so that a network kell can't be confused with it
+;;; FIXME: need to define a LOCAL-KELL, so that a network kell is distinct
 ;;(defmethod activate-process ((process network-kell) (kell kell))
 ;;  (error "A network kell can not exist inside a local kell."))
 ;;(defmethod activate-process ((process host-kell) (kell kell))
@@ -129,8 +132,8 @@
   "A defhost also implies that all containing kells are network kells."
   (if (string-equal kell-path *local-kell*)
     (listen-for-processes port)
-    ;; FIXME: surrounding-kell-path should be the path from the outermost kell to the
-    ;;        kell the file is loaded in
+    ;; FIXME: surrounding-kell-path should be the path from the outermost kell
+    ;;        to the kell the file is loaded in
     (let ((surrounding-kell-path))
       (push (list (append surrounding-kell-path
                           (if (consp kell-path) kell-path (list kell-path)))
@@ -192,7 +195,8 @@
                    (loop for client = (sockets:accept-connection socket :wait t)
                      do (loop do
                           (handler-case (let ((process (eval (read client))))
-                                          (add-process process (parent *local-kell*)))
+                                          (add-process process
+                                                       (parent *local-kell*)))
                             (end-of-file () (return))
                             (kiln-error (c) (handle-error c))))
                      (close client))
