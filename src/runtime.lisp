@@ -279,7 +279,7 @@
                          :name (gensym "TOP")))
            (*package* (find-package :kilns-user))
            (*readtable* *kilns-readtable*)
-           (*local-kell* (intern local-kell)))
+           (*local-kell* (when local-kell (intern local-kell))))
       (ccl::def-standard-initial-binding *package* (find-package :kilns-user))
       (ccl::def-standard-initial-binding *readtable* *kilns-readtable*)
       (let ((kilns (start-kilns cpu-count)))
