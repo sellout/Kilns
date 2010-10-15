@@ -155,21 +155,12 @@
 
 (defun broadcast-event (item)
   ;;; FIXME: implement
+  (declare (ignore item))
   (values))
 
 (defun receive-broadcast-event (item)
   ;;; FIXME: I think we need to do something to convert the kellpath to a kell
   (push-event item))
-
-(defun select-matching-pattern (patterns)
-  (catch 'match
-    (mapc (lambda (trigger)
-            (handler-case
-                (destructuring-bind (processes substitutions)
-                    (match (pattern trigger) (parent trigger))
-                  (throw 'match (list trigger processes substitutions)))
-              (unification-failure ())))
-          patterns)))
 
 (defmethod really-match-on ((process message) (kell network-kell))
   "Find all triggers that could match – up, down, or local."
