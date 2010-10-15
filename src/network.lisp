@@ -60,6 +60,8 @@
 ;;; If there's a timeout, the host that times out is passivated, and a notice is sent to
 ;;; all hosts to passivate that host.
 
+(defvar *top-kell*)
+(defvar *local-kell*)
 (defvar *host-definitions* ())
 (defvar *local-host*)
 (defvar *local-port*)
@@ -79,13 +81,12 @@
 (defmethod socket ((kell host-kell))
   (or (slot-value kell 'socket)
       (setf (slot-value kell 'socket)
-            (make-socket :address-family :internet
-                     :type :stream
-                     :connect
-                     :local-host *local-host*
-                     :local-port *local-port*
-                     :remote-host (hostname kell)
-                     :remote-port (port kell)))))
+            (sockets:make-socket :address-family :internet
+                                 :type :stream
+                                 :connect :active
+                                 :remote-host (hostname kell)
+                                 :remote-port (port kell)
+                                 :keepalive t))))
 
 (defmethod add-process ((process kell) (kell network-kell))
   "When adding a kell to a network kell, it can be either the kell representing the
@@ -126,25 +127,31 @@
 
 (defun defhost (kell-path hostname port)
   "A defhost also implies that all containing kells are network kells."
-  ;; FIXME: surrounding-kell-path should be the path from the outermost kell to the
-  ;;        kell the file is loaded in
-  (let ((surrounding-kell-path))
-    (push (list (append surrounding-kell-path
-                        (if (consp kell-path) kell-path (list kell-path)))
-                hostname
-                port)
-          *host-definitions*))
+  (if (string-equal kell-path *local-kell*)
+    (listen-for-processes port)
+    ;; FIXME: surrounding-kell-path should be the path from the outermost kell to the
+    ;;        kell the file is loaded in
+    (let ((surrounding-kell-path))
+      (push (list (append surrounding-kell-path
+                          (if (consp kell-path) kell-path (list kell-path)))
+                  hostname
+                  port)
+            *host-definitions*)))
   null-process)
-
-(defun send-process (process kell)
-  (write-binary-record process *standard-output*))
-
-
 
 ;;; Adding-processes to network kells
 (defmethod activate-process ((process process) (kell network-kell))
-    (setf (parent process) kell)
-    (mapc #'broadcast-event (collect-channel-names process kell)))
+  (setf (parent process) kell)
+  ;;(mapc #'broadcast-event (collect-channel-names process kell))
+  
+  (mapc (lambda (sk)
+          ;; FIXME: should probably allow kells here
+          (when (and (not (typep process 'kell))
+                     (not (typep process 'trigger))
+                     (typep sk 'host-kell))
+            (send-process process sk)))
+        (subkells kell))
+  (call-next-method))
 
 (defun broadcast-event (item)
   ;;; FIXME: implement
@@ -183,11 +190,27 @@
 
 ;;; IOLib stuff
 
-(defun send-process (process dest-kell)
-  (send-to (socket dest-kell)
-           (map '(SIMPLE-ARRAY (UNSIGNED-BYTE 8) (*))
-                #'char-code
-                (format nil "~a" process))))
+(defun listen-for-processes (port)
+  (make-thread (lambda ()
+                 (let ((socket (sockets:make-socket :address-family :internet
+                                                    :type :stream
+                                                    :connect :passive)))
+                   (sockets:bind-address socket sockets:+ipv4-unspecified+
+                                         :port port :reuse-addr t)
+                   (sockets:listen-on socket)
+                   (loop for client = (sockets:accept-connection socket :wait t)
+                     do (loop do
+                          (handler-case (let ((process (eval (read client))))
+                                          (add-process process (parent *local-kell*)))
+                            (end-of-file () (return))
+                            (kiln-error (c) (handle-error c))))
+                     (close client))
+                   (close socket)
+                   (finish-output)))
+               :name "network-kell"))
 
-(defun receive-process (source-kell)
-  (read-from-string (map 'string #'code-char (receive-from (socket source-kell)))))
+(defun send-process (process dest-kell)
+  (sockets:send-to (socket dest-kell)
+                   (map '(SIMPLE-ARRAY (UNSIGNED-BYTE 8) (*))
+                        #'char-code
+                        (format nil "~s" process))))
