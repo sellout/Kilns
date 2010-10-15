@@ -207,7 +207,7 @@
             (push process (gethash (name pattern) (kell-patterns kell))))
           (kell-message-pattern (pattern process)))
     (list (list #'match-on process kell)))
-  (:method ((process (eql null-process)) (kell kell))
+  (:method ((process null-process) (kell kell))
     (declare (ignore kell))
     '()))
 
@@ -356,7 +356,7 @@
                        (list (find-process-variable-value process-variable mapping))))
                    (process-variables-in process))))
       (reduce #'compose-processes (cons process substituted-processes)
-              :initial-value null-process))))
+              :initial-value null))))
 
 (defgeneric replace-name (name mapping &optional ignored-vars)
   (:method (name mapping &optional ignored-vars)

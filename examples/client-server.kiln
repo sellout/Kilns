@@ -14,7 +14,7 @@
                                              (par {move}
                                                   {+ (list ?i 1 {signal})})
                                              {= (list ?i 10
-                                                      null-process
+                                                      null
                                                       (par {echo ?i}
                                                            {+ (list ?i 1 {signal})}))})}))
                      {signal 0})]

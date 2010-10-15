@@ -25,7 +25,7 @@
   "Adds a little indicator to the kell to mark it as a network kell."
   (format stream "[<@>~a ~a~:[ ~a~;~]]"
           (name obj) (process obj)
-          (eql (continuation obj) null-process) (continuation obj)))
+          (eql (continuation obj) null) (continuation obj)))
 
 ;;; A multicast message is sent whenever 'match-on' is triggered on a network
 ;;; kell. Unlike local matches, once the message is sent, the host continues to
@@ -66,6 +66,7 @@
 (defvar *host-definitions* ())
 (defvar *local-host*)
 (defvar *local-port*)
+(defvar *real-kell*)
 
 (defclass host-kell (kell)
   ((hostname :initarg :hostname :reader hostname)
@@ -77,7 +78,7 @@
 (defmethod print-object ((obj host-kell) stream)
   (format stream "[~a <~a:~d>~:[ ~a~;~]]"
           (name obj) (hostname obj) (port obj)
-          (eql (continuation obj) null-process) (continuation obj)))
+          (eql (continuation obj) null) (continuation obj)))
 
 (defmethod socket ((kell host-kell))
   (or (slot-value kell 'socket)
@@ -95,7 +96,8 @@
    network kell. This determines which one it should be and adds an appropriate
    subkell."
   (let ((new-kell (cond ((string-equal (name process) *local-kell*)
-                         process)
+                         (ccl::def-standard-initial-binding *real-kell* process)
+                         (setf *real-kell* process))
                         ((assoc (list (name process)) *host-definitions*
                                 :test #'equal)
                          (destructuring-bind ((name) host port)
@@ -140,13 +142,10 @@
                   hostname
                   port)
             *host-definitions*)))
-  null-process)
+  null)
 
 ;;; Adding-processes to network kells
-(defmethod activate-process ((process process) (kell network-kell))
-  (setf (parent process) kell)
-  ;;(mapc #'broadcast-event (collect-channel-names process kell))
-  
+(defmethod add-process ((process process) (kell network-kell))
   (mapc (lambda (sk)
           ;; FIXME: should probably allow kells here
           (when (and (not (typep process 'kell))
@@ -196,7 +195,7 @@
                      do (loop do
                           (handler-case (let ((process (eval (read client))))
                                           (add-process process
-                                                       (parent *local-kell*)))
+                                                       (the kell (parent *real-kell*))))
                             (end-of-file () (return))
                             (kiln-error (c) (handle-error c))))
                      (close client))

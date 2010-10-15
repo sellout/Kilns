@@ -13,5 +13,5 @@
                   {signal 0})]
           (trigger* {sigup ?i down}
                     {= (list ?i 10
-                             (trigger [a ?ignore] null-process)
+                             (trigger [a ?ignore] null)
                              {echo ?i})})))
