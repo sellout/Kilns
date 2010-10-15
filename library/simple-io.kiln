@@ -9,4 +9,4 @@
 
 (trigger* {read {?rc} up} {?rc (lisp (kilns::read))})
 
-(trigger* {read-string {?rc} up} {?rc (lisp (read-line))})
+(trigger* {read-string {?rc} up} {?rc (lisp (cl:read-line))})
