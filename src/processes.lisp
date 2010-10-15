@@ -19,7 +19,7 @@
     by a more local variable with the same name."))
 
 (defmethod print-object ((obj process-variable) stream)
-  (format stream "?~a" (name obj)))
+  (format stream "?~s" (name obj)))
 
 (defun process-variable (name)
   (make-instance 'process-variable :name name))
@@ -33,7 +33,7 @@
     by a more local variable with the same name."))
 
 (defmethod print-object ((obj name-variable) stream)
-  (format stream "?~a" (name obj)))
+  (format stream "?~s" (name obj)))
 
 (defun name-variable (name)
   (make-instance 'name-variable :name name))
@@ -45,7 +45,7 @@
 (defmethod print-object ((obj trigger) stream)
   (if (and (slot-boundp obj 'pattern)
            (slot-boundp obj 'process))
-    (format stream "(trigger ~a ~a)" (pattern obj) (process obj))
+    (format stream "(trigger ~s ~s)" (pattern obj) (process obj))
     (call-next-method)))
 
 (defun trigger (pattern process)
@@ -64,7 +64,7 @@
     to be managed."))
 
 (defmethod print-object ((obj restriction) stream)
-  (format stream "(new ~a ~a)" (name obj) (process obj)))
+  (format stream "(new ~s ~s)" (name obj) (process obj)))
 
 (defun restriction (name process)
   (make-instance 'restriction :name name :process process))
@@ -86,7 +86,7 @@
   (if (and (slot-boundp obj 'name)
            (slot-boundp obj 'process)
            (slot-boundp obj 'continuation))
-    (format stream "{~a~:[ ~a~:[ ~a~;~]~;~]}"
+    (format stream "{~s~:[ ~s~:[ ~s~;~]~;~]}"
             (name obj)
             (and (eql (process obj) null-process)
                  (eql (continuation obj) null-process))
@@ -131,7 +131,7 @@
       (make-instance 'kell :name name))))
 
 (defmethod print-object ((obj kell) stream)
-  (format stream "[~a ~a~:[ ~a~;~]]"
+  (format stream "[~s ~s~:[ ~s~;~]]"
           (name obj) (process obj)
           (eql (continuation obj) null-process) (continuation obj)))
 
@@ -150,7 +150,7 @@
     access in the way we usually deal with them."))
 
 (defmethod print-object ((obj parallel-composition) stream)
-  (format stream "(par~{ ~a~})"
+  (format stream "(par~{ ~s~})"
           (map-parallel-composition #'identity obj)))
 
 (defun parallel-composition (&rest processes)
