@@ -382,6 +382,11 @@
   (:method (mapping process &optional ignored-vars)
     (declare (ignore mapping ignored-vars))
     process)
+  (:method (mapping (process symbol) &optional ignored-vars)
+    (if (find process ignored-vars :key #'name)
+      process
+      (or (find-symbol-value process mapping)
+          process)))
   (:method (mapping (process cons) &optional ignored-vars)
     (let ((new-process (cons (replace-variables (car process) mapping ignored-vars)
                              (replace-variables (cdr process) mapping ignored-vars))))
