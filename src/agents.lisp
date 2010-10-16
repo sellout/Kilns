@@ -20,9 +20,10 @@
   `(or generic-abstraction generic-concretion))
 
 (defclass concretion (agent)
-  ((restricted-names)
-   (messages :type multiset :documentation "A multiset without up-mossages")
-   (continuation :type generic-process))
+  ((restricted-names :reader restricted-names)
+   (messages :reader messages :type multiset
+             :documentation "A multiset without up-mossages")
+   (continuation :reader continuation :type generic-process))
   (:documentation "C ::= νã.Ω P
                    Ω ::= ∅ | a<P> | a<P>↓b | a[P] | Ω|Ω"))
 
@@ -54,13 +55,13 @@
 
 (defclass kell-abstraction (abstraction)
   ((name)
-   (abstraction :type simple-abstraction)
-   (continuation :type generic-process))
+   (abstraction :reader abstraction :type simple-abstraction)
+   (continuation :reader continuation :type generic-process))
   (:documentation "a[G].P"))
 
 (defclass application-abstraction (abstraction)
-  ((abstraction :type generic-abstraction)
-   (concretion :type generic-concretion))
+  ((abstraction :reader abstraction :type generic-abstraction)
+   (concretion :reader concretion :type generic-concretion))
   (:documentation "F@C"))
 
 (defmethod free-names ((agent application-abstraction))
@@ -73,8 +74,8 @@
          (free-variables (concretion agent))))
 
 (defclass restriction-abstraction (abstraction)
-  ((names)
-   (abstraction :type abstraction))
+  ((names :reader names)
+   (abstraction :reader abstraction :type abstraction))
   (:documentation "νã.F"))
 
 (defclass pattern-abstraction (simple-abstraction)
@@ -85,7 +86,7 @@
 (defclass simple-application-abstraction
     (simple-abstraction application-abstraction)
   ;; FIXME: not sure if this is the right way to restrict a type
-  ((abstraction :type simple-abstraction))
+  ((abstraction :reader abstraction :type simple-abstraction))
   (:documentation "G@C"))
 
 (defclass process (abstraction)

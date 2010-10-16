@@ -6,6 +6,7 @@
 (in-package #:kilns)
 
 (defvar *top-kell*)
+(defvar *local-kell*)
 
 (define-condition kiln-error (error)
   ()
@@ -206,7 +207,7 @@
             (push process (gethash (name pattern) (kell-patterns kell))))
           (kell-message-pattern (pattern process)))
     (list (list #'match-on process kell)))
-  (:method ((process (eql null-process)) (kell kell))
+  (:method ((process null-process) (kell kell))
     (declare (ignore kell))
     '()))
 
@@ -272,12 +273,13 @@
         (setf current-kell new-kell)
         (error 'no-such-kell-error :name kell-name :container current-kell)))
     (values))
-  (defun toplevel (&optional cpu-count top-kell)
-    (declare (ignore top-kell))
+  (defun toplevel (&optional cpu-count local-kell)
     (unless cpu-count (setf cpu-count (get-cpu-count)))
-    (let* ((*top-kell* (make-instance 'kell :name (gensym "LOCALHOST")))
+    (let* ((*top-kell* (make-instance (if local-kell 'network-kell 'kell)
+                         :name (gensym "TOP")))
            (*package* (find-package :kilns-user))
-           (*readtable* *kilns-readtable*))
+           (*readtable* *kilns-readtable*)
+           (*local-kell* (when local-kell (intern local-kell))))
       (ccl::def-standard-initial-binding *package* (find-package :kilns-user))
       (ccl::def-standard-initial-binding *readtable* *kilns-readtable*)
       (let ((kilns (start-kilns cpu-count)))
@@ -285,7 +287,7 @@
         ;; parents
         (setf current-kell *top-kell*
               (parent *top-kell*)
-              (make-instance 'kell :name (gensym "NETWORK") :process *top-kell*))
+              (make-instance 'network-kell :name (gensym "OUTSIDE") :process *top-kell*))
         (unwind-protect
             (loop do
               (printk "~a> " (name current-kell))
@@ -354,7 +356,7 @@
                        (list (find-process-variable-value process-variable mapping))))
                    (process-variables-in process))))
       (reduce #'compose-processes (cons process substituted-processes)
-              :initial-value null-process))))
+              :initial-value null))))
 
 (defgeneric replace-name (name mapping &optional ignored-vars)
   (:method (name mapping &optional ignored-vars)
@@ -382,11 +384,6 @@
   (:method (mapping process &optional ignored-vars)
     (declare (ignore mapping ignored-vars))
     process)
-  (:method (mapping (process symbol) &optional ignored-vars)
-    (if (find process ignored-vars :key #'name)
-      process
-      (or (find-symbol-value process mapping)
-          process)))
   (:method (mapping (process cons) &optional ignored-vars)
     (let ((new-process (cons (replace-variables (car process) mapping ignored-vars)
                              (replace-variables (cdr process) mapping ignored-vars))))
@@ -671,7 +668,7 @@
 (defmethod activate-process
            ((process application-abstraction) (kell kell))
   (remove-process process)
-  (add-process (@ (abstraction process) (concretion-process)) kell))
+  (add-process (@ (abstraction process) (concretion process)) kell))
 (defmethod activate-process
            ((process restriction-abstraction) (kell kell))
   (remove-process process)
