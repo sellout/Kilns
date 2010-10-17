@@ -162,9 +162,17 @@
   `(make-instance 'restriction-abstraction
      :names (if (consp ',names) ',names (list ',names)) :abstraction ,process))
 
+(defmacro def ((name &rest parameters) &body body)
+  "Allows us to define new operations. It's currently just like CL's DEFMACRO, but
+   hopefully I can improve on that."
+  `(defmacro ,name (,@parameters)
+     ,@body))
+
+#|
 (defmacro def ((name &rest parameters) process)
   (let ((concretion (gensym "CONCRETION")))
     `(defmacro ,name (&rest ,concretion)
        `(@ ,(make-instance 'pattern-abstraction
               :pattern '(list ,@parameters) :process ,process)
            (list ,@,concretion)))))
+|#
