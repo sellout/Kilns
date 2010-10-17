@@ -24,7 +24,12 @@
 (defun process-variable (name)
   (make-instance 'process-variable :name name))
 
-(defclass name-variable ()
+(defclass name-type ()
+  ()
+  (:documentation
+   "This gives us a class to hang pattern-language extensions to names off of."))
+
+(defclass name-variable (name-type)
   ((name :initarg :name :type symbol :reader name))
   (:documentation
    "These only exist in “potential” processes. When a trigger is triggered, we
@@ -37,6 +42,12 @@
 
 (defun name-variable (name)
   (make-instance 'name-variable :name name))
+
+(deftype name ()
+  `(or symbol integer name-type))
+
+(deftype identifier ()
+  `(or name process-variable))
 
 (defclass trigger (process)
   ((pattern :initarg :pattern :type pattern :accessor pattern)
@@ -53,7 +64,7 @@
     :pattern (convert-process-to-pattern pattern) :process process))
 
 (defclass restriction (process)
-  ((name :initarg :name :reader name)
+  ((name :initarg :name :reader name :type name)
    (process :initarg :process :type generic-process :accessor process))
   (:documentation
    "We store everything in normal form, which means that restrictions don't
@@ -71,7 +82,7 @@
 
 ;;; FIXME: need  a better name
 (defclass message-structure (process)
-  ((name :initarg :name :accessor name)
+  ((name :initarg :name :accessor name :type name)
    (process :initarg :process :initform null :type generic-process
             :accessor process)
    (continuation :initarg :continuation :initform null
