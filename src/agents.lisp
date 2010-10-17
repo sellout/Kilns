@@ -46,7 +46,10 @@
          (free-variables (continuation agent))))
 
 (defclass abstraction (agent)
-  ()
+  ((deadp :initform nil :accessor deadp
+          :documentation "After a message has been successfully matched, it may
+                          still exist in the event queue. This ensures we don't
+                          waste time trying to match it again."))
   (:documentation "F"))
 
 (defclass simple-abstraction (abstraction)
@@ -74,13 +77,13 @@
          (free-variables (concretion agent))))
 
 (defclass restriction-abstraction (abstraction)
-  ((names :reader names)
-   (abstraction :reader abstraction :type abstraction))
+  ((names :initarg :names :reader names)
+   (abstraction :initarg :abstraction :reader abstraction :type abstraction))
   (:documentation "νã.F"))
 
 (defclass pattern-abstraction (simple-abstraction)
-  ((pattern :initarg :pattern :type pattern)
-   (process :initarg :process :type generic-process))
+  ((pattern :initarg :pattern :reader pattern :type pattern)
+   (process :initarg :process :reader process :type generic-process))
   (:documentation "(ξ)P"))
 
 (defclass simple-application-abstraction
@@ -89,12 +92,8 @@
   ((abstraction :reader abstraction :type simple-abstraction))
   (:documentation "G@C"))
 
-(defclass process (abstraction)
-  ;; FIXME: really only a property of _active_ processes …
-  ((deadp :initform nil :accessor deadp
-          :documentation "After a message has been successfully matched, it may
-                          still exist in the event queue. This ensures we don't
-                          waste time trying to match it again."))
+(defclass process (abstraction) ;; simple-abstraction?
+  ()
   (:documentation "P"))
 
 (defgeneric compose (agent1 agent2)
@@ -150,20 +149,17 @@
   (:method ((agent1 restriction-abstraction) (agent2 concretion))
     (@ (expand-restriction agent1) agent2)))
 
+(defmacro def ((name &rest parameters) &body body)
+  "Allows us to define new operations. It's currently just like CL's DEFMACRO, but
+   hopefully I can improve on that."
+  `(defmacro ,name (,@parameters)
+     ,@body))
 
-;;; TODO: With abstraction, we should now have a better DEF that doesn't rely on
-;;;       the CL macro facility - but the names are still global ...
 #|
-(defmacro trigger (pattern process)
-  `(make-instance 'pattern-abstraction :pattern pattern :process process))
-
-(defmacro new (names process)
-  `(make-instance 'restriction-abstraction :names names :abstraction process))
-
 (defmacro def ((name &rest parameters) process)
   (let ((concretion (gensym "CONCRETION")))
     `(defmacro ,name (&rest ,concretion)
-       `(@ (make-instance 'pattern-abstraction
-                          :pattern ,'(list ,@parameters) :process ,',process)
+       `(@ ,(make-instance 'pattern-abstraction
+              :pattern '(list ,@parameters) :process ,process)
            (list ,@,concretion)))))
 |#

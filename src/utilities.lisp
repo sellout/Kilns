@@ -9,9 +9,3 @@
 
 (defun mappend (fn list)
   (apply #'append (mapcar fn list)))
-
-(defmacro def ((name &rest parameters) &body body)
-  "Allows us to define new operations. It's currently just like CL's DEFMACRO, but
-   hopefully I can improve on that."
-  `(defmacro ,name (,@parameters)
-     ,@body))
