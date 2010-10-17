@@ -5,7 +5,7 @@
         (par (trigger {response ?result down}
                       ;; NOTE: we could replace ?completed-process with _ if we used a
                       ;;       different calculus
-                      (par (trigger [sandbox ?completed-process] null-process)
+                      (par (trigger [sandbox ?completed-process] null)
                            {,final-response-channel ?result}))
              [sandbox (par (trigger {,final-response-channel ?result down}
                                     {response ?result})

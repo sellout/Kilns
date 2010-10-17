@@ -355,7 +355,7 @@
                        (list (find-process-variable-value process-variable mapping))))
                    (process-variables-in process))))
       (reduce #'compose-processes (cons process substituted-processes)
-              :initial-value null-process))))
+              :initial-value null))))
 
 (defgeneric replace-name (name mapping &optional ignored-vars)
   (:method (name mapping &optional ignored-vars)

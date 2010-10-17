@@ -60,8 +60,8 @@
 (new (list result k)
      (par {new-list {list}}
           (trigger {list (list {?l-op} {?get} {?set} {?rem})}
-                   (par {l-op (list (par {set (list {foo} "success" null-process)}
-                                         {set (list {bar} "extra" null-process)}
+                   (par {l-op (list (par {set (list {foo} "success" null)}
+                                         {set (list {bar} "extra" null)}
                                          {get (list {foo}
                                                     {result}
                                                     {result "failed"})})

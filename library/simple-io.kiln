@@ -5,7 +5,7 @@
 ;;; for reading and writing.
 
 (trigger* {echo ?string up}
-          (lisp (kilns::printk "~a~%" #.?string) null-process))
+          (lisp (kilns::printk "~a~%" #.?string) null))
 
 (trigger* {read {?rc} up} {?rc (lisp (kilns::read))})
 

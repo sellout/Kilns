@@ -10,7 +10,7 @@ class DiffLexer(RegexLexer):
         'root': [
             (r';.*?$', Comment),
             (r'".*?"', String),
-            (r'trigger|def|par|new|null-process', Keyword),
+            (r'trigger|def|par|new|null', Keyword),
             (r'?\w+', Variable),
         ]
     }

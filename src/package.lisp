@@ -9,7 +9,7 @@
            #:restriction
            #:message #:up #:down
            #:kell
-           #:null-process
+           #:null
            #:parallel-composition
            #:def
            ;; jK pattern language

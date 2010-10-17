@@ -1,23 +1,26 @@
-(defhost client "localhost" 8000)
-(defhost server "otherhost" 8000)
+;;; FIXME: this works, but it's technically not guaranteed that these `defhost` forms
+;;;         are executed before the kells are loaded.
+(defhost 'client "localhost" 8010)
+(defhost 'server "localhost" 8011)
 
+(load "library/utilities")
 (load "library/simple-components")
 
-[client (par [a (par (include-component "library/simple-io")
+[client (par [a (par (include-component "library/identity")
+                     (include-component "library/math")
+                     (include-component "library/simple-io")
                      (trigger* {signal ?i}
                                (par {= (list ?i 5
                                              (par {move}
                                                   {+ (list ?i 1 {signal})})
-                                             {nope})}
-                                    {= (list ?i 10 null-process {nope})}
-                                    (trigger (par {nope} {nope})
-                                             (par {echo ?i}
-                                                  {+ (list ?i 1 {signal})}))))
+                                             {= (list ?i 10
+                                                      null
+                                                      (par {echo ?i}
+                                                           {+ (list ?i 1 {signal})}))})}))
                      {signal 0})]
              (trigger {move _ down}
-                      (trigger [a ?x] {move ?x})))
+                      (trigger [a ?x] {transfer ?x})))]
 
-[server (par (include-component "library/simple-io")
-             (trigger* {move ?proc up} ?proc))]
+[server (trigger* {transfer ?proc up} ?proc)]
 
-(trigger* {move ?proc down} {move ?proc})
+(trigger* {transfer ?proc down} {transfer ?proc})
