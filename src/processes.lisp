@@ -48,10 +48,6 @@
     (format stream "(trigger ~a ~a)" (pattern obj) (process obj))
     (call-next-method)))
 
-(defun trigger (pattern process)
-  (make-instance 'trigger
-    :pattern (convert-process-to-pattern pattern) :process process))
-
 (defclass restriction (process)
   ((name :initarg :name :reader name)
    (process :initarg :process :type generic-process :accessor process))

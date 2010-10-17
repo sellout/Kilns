@@ -150,20 +150,15 @@
   (:method ((agent1 restriction-abstraction) (agent2 concretion))
     (@ (expand-restriction agent1) agent2)))
 
-
-;;; TODO: With abstraction, we should now have a better DEF that doesn't rely on
-;;;       the CL macro facility - but the names are still global ...
-#|
 (defmacro trigger (pattern process)
-  `(make-instance 'pattern-abstraction :pattern pattern :process process))
+  `(make-instance 'pattern-abstraction :pattern ,pattern :process ,process))
 
 (defmacro new (names process)
-  `(make-instance 'restriction-abstraction :names names :abstraction process))
+  `(make-instance 'restriction-abstraction :names ',names :abstraction ,process))
 
 (defmacro def ((name &rest parameters) process)
   (let ((concretion (gensym "CONCRETION")))
     `(defmacro ,name (&rest ,concretion)
-       `(@ (make-instance 'pattern-abstraction
-                          :pattern ,'(list ,@parameters) :process ,',process)
+       `(@ ,(make-instance 'pattern-abstraction
+              :pattern '(list ,@parameters) :process ,process)
            (list ,@,concretion)))))
-|#
