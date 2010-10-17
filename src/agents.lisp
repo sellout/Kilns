@@ -81,8 +81,6 @@
    (abstraction :initarg :abstraction :reader abstraction :type abstraction))
   (:documentation "νã.F"))
 
-
-
 (defclass pattern-abstraction (simple-abstraction)
   ((pattern :initarg :pattern :reader pattern :type pattern)
    (process :initarg :process :reader process :type generic-process))
@@ -94,7 +92,7 @@
   ((abstraction :reader abstraction :type simple-abstraction))
   (:documentation "G@C"))
 
-(defclass process (abstraction)
+(defclass process (abstraction) ;; simple-abstraction?
   ()
   (:documentation "P"))
 
@@ -150,17 +148,6 @@
     (@ agent1 (expand-restriction agent2)))
   (:method ((agent1 restriction-abstraction) (agent2 concretion))
     (@ (expand-restriction agent1) agent2)))
-
-(defmacro trigger (pattern process)
-  `(make-instance 'pattern-abstraction
-     :pattern (convert-process-to-pattern ,pattern) :process ,process))
-
-(defmethod print-object ((obj pattern-abstraction) stream)
-  (format stream "(trigger ~a ~a)" (pattern obj) (process obj)))
-
-(defmacro new (names process)
-  `(make-instance 'restriction-abstraction
-     :names (if (consp ',names) ',names (list ',names)) :abstraction ,process))
 
 (defmacro def ((name &rest parameters) &body body)
   "Allows us to define new operations. It's currently just like CL's DEFMACRO, but
