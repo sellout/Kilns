@@ -24,7 +24,12 @@
 (defun process-variable (name)
   (make-instance 'process-variable :name name))
 
-(defclass name-variable ()
+(defclass name-type ()
+  ()
+  (:documentation
+   "This gives us a class to hang pattern-language extensions to names off of."))
+
+(defclass name-variable (name-type)
   ((name :initarg :name :type symbol :reader name))
   (:documentation
    "These only exist in “potential” processes. When a trigger is triggered, we
@@ -38,40 +43,35 @@
 (defun name-variable (name)
   (make-instance 'name-variable :name name))
 
-(defclass trigger (process)
-  ((pattern :initarg :pattern :type pattern :accessor pattern)
-   (process :initarg :process :type generic-process :accessor process)))
+(deftype name ()
+  `(or symbol integer name-type))
 
-(defmethod print-object ((obj trigger) stream)
-  (if (and (slot-boundp obj 'pattern)
-           (slot-boundp obj 'process))
-    (format stream "(trigger ~s ~s)" (pattern obj) (process obj))
-    (call-next-method)))
+(deftype identifier ()
+  `(or name process-variable))
 
-(defun trigger (pattern process)
-  (make-instance 'trigger
-    :pattern (convert-process-to-pattern pattern) :process process))
+(defclass trigger (process pattern-abstraction)
+  ())
 
-(defclass restriction (process)
-  ((name :initarg :name :reader name)
-   (process :initarg :process :type generic-process :accessor process))
-  (:documentation
-   "We store everything in normal form, which means that restrictions don't
-    actually exist, per se. They are all brought to the top-level as global
-    channels with uniqified names (and the original name retained as a
-   “nickname”). This also simplifies the communication of restricted channels,
-    as only the unique name needs to be shared, and no handling of scope needs
-    to be managed."))
+(defmacro trigger (pattern process)
+  `(make-instance 'trigger
+     :pattern (convert-process-to-pattern ,pattern) :process ,process))
 
-(defmethod print-object ((obj restriction) stream)
-  (format stream "(new ~s ~s)" (name obj) (process obj)))
+(defmethod print-object ((obj pattern-abstraction) stream)
+  (format stream "(trigger ~a ~a)" (pattern obj) (process obj)))
 
-(defun restriction (name process)
-  (make-instance 'restriction :name name :process process))
+(defclass restriction (process restriction-abstraction)
+  ())
+
+(defmacro new (names process)
+  `(make-instance 'restriction
+     :names (if (consp ',names) ',names (list ',names)) :abstraction ,process))
+
+(defmethod print-object ((obj restriction-abstraction) stream)
+  (format stream "(new ~a ~a)" (names obj) (abstraction obj)))
 
 ;;; FIXME: need  a better name
 (defclass message-structure (process)
-  ((name :initarg :name :accessor name)
+  ((name :initarg :name :accessor name :type name)
    (process :initarg :process :initform null :type generic-process
             :accessor process)
    (continuation :initarg :continuation :initform null

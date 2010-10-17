@@ -35,7 +35,7 @@
     ;; ρ̅ ::= x | ρ | (a)␣ρ̅␣ | a̅␣ρ̅␣ | ((m) ≠ a)␣ρ̅␣ | _
     ))
 
-(defclass mismatch ()
+(defclass mismatch (name-type)
   ((complement :initarg :complement :accessor complement)
    (variable :initarg :variable :reader variable)))
 

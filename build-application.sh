@@ -1,3 +1,3 @@
 #!/bin/sh
 
-dx86cl64 --load "build-application"
+dx86cl64 --load "build/build-application"

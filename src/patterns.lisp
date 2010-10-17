@@ -144,20 +144,23 @@
 (defun match-list (type-function patterns processes substitutions)
   "Finds one match in PROCESSES for each item in PATTERNS. Also ensures that the
    same process doesn’t match multiple patterns."
-  (list (mapcar (lambda (pattern)
-                  (block per-pattern
-                    (mapc (lambda (process)
-                            (let ((subst (funcall type-function
-                                                  pattern
-                                                  process
-                                                  substitutions)))
-                              (when subst
-                                (setf substitutions subst)
-                                (return-from per-pattern process))))
-                          (gethash (name pattern) processes))
-                    (error 'unification-failure)))
-                patterns)
-        substitutions))
+  (let ((matched-processes ()))
+    (list (mapcar (lambda (pattern)
+                    (block per-pattern
+                      (mapc (lambda (process)
+                              (when (not (find process matched-processes))
+                                (let ((subst (funcall type-function
+                                                      pattern
+                                                      process
+                                                      substitutions)))
+                                  (when subst
+                                    (setf substitutions subst)
+                                    (push process matched-processes)
+                                    (return-from per-pattern process)))))
+                            (gethash (name pattern) processes))
+                      (error 'unification-failure)))
+                  patterns)
+          substitutions)))
 
 (defgeneric match-local (pattern process &optional substitutions)
   (:method ((patterns list) (processes list)

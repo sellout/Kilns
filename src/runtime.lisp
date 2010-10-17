@@ -106,6 +106,37 @@
   (loop for i from 1 to count
     collecting (make-thread #'run-kiln :name (format nil "kiln ~d" i))))
 
+(defgeneric expand-restriction (restriction)
+  (:method ((restriction restriction-abstraction))
+    (let ((abstraction (abstraction restriction)))
+      (mapc (lambda (name)
+              (setf abstraction
+                    ;; TODO: apply-restriction should handle all names
+                    ;;       at once, rather than one at a time
+                    (apply-restriction name
+                                       (gensym (format nil "~a-" name))
+                                       abstraction)))
+            (names restriction))
+      abstraction))
+  (:method ((restriction concretion))
+    (if (length (restricted-names restriction))
+      (let ((messages (messages restriction))
+            (continuation (continuation restriction)))
+        (mapc (lambda (name)
+                (psetf messages
+                       (apply-restriction name
+                                          (gensym (format nil "~a-"
+                                                          name))
+                                          messages)
+                       continuation
+                       (apply-restriction name
+                                          (gensym (format nil "~a-" name))
+                                          continuation)))
+              (restricted-names restriction))
+        (make-instance (class-of restriction)
+          :messages messages :continuation continuation))
+      restriction)))
+
 (defgeneric apply-restriction (local-name global-name process &optional expandp)
   (:documentation "DESTRUCTIVE. Returns the process with all restrictions
                    expanded to have unique names.")
@@ -152,27 +183,26 @@
                      (apply-restriction local-name global-name message expandp))
                    (kell-message-pattern process)))
     process)
-  (:method (local-name global-name (process restriction) &optional (expandp t))
+  (:method (local-name global-name (process restriction-abstraction)
+            &optional (expandp t))
     (if expandp
-      (apply-restriction local-name
-                         global-name
-                         (apply-restriction (name process)
-                                            (gensym (format nil "~a-" (name process)))
-                                            (process process)
-                                            expandp)
+      (apply-restriction local-name global-name (expand-restriction process)
                          expandp)
-      (if (eql local-name (name process))
+      (if (find local-name (names process))
         process
-        (progn
-          (setf (process process)
-                (apply-restriction local-name global-name (process process) expandp))
-          process))))
-  (:method (local-name global-name (process trigger) &optional (expandp t))
-    (psetf (pattern process)
-           (apply-restriction local-name global-name (pattern process) expandp)
-           (process process)
-           (apply-restriction local-name global-name (process process) nil))
-    process))
+        (make-instance (class-of process)
+          :names (names process)
+          :abstraction (apply-restriction local-name
+                                          global-name
+                                          (abstraction process)
+                                          expandp)))))
+  (:method (local-name global-name (process pattern-abstraction)
+            &optional (expandp t))
+    (make-instance (class-of process)
+      :pattern (apply-restriction local-name global-name (pattern process)
+                                  expandp)
+      :process (apply-restriction local-name global-name (process process)
+                                  nil))))
 
 (defgeneric collect-channel-names (process kell)
   (:documentation "This returns a list of events to add to the event queue.")
@@ -193,7 +223,7 @@
     (let ((name (name process)))
       (push process (gethash name (kells kell)))
       (list (list #'match-on process kell))))
-  (:method ((process trigger) (kell kell))
+  (:method ((process pattern-abstraction) (kell kell))
     (mapc (lambda (pattern)
             (push process (gethash (name pattern) (local-patterns kell))))
           (local-message-pattern (pattern process)))
@@ -225,13 +255,12 @@
     (map-parallel-composition (lambda (sub-process)
                                 (activate-process sub-process kell))
                               process))
-  (:method ((process restriction) (kell kell))
-    (let ((global-name (gensym (format nil "~a-" (name process)))))
-      (remove-process-from process kell)
-      (add-process (apply-restriction (name process)
-                                      global-name
-                                      (process process))
-                   kell))))
+  (:method ((process pattern-abstraction) (kell kell))
+    (setf (parent process) kell)
+    (mapc #'push-event (collect-channel-names process kell)))
+  (:method ((process restriction-abstraction) (kell kell))
+    (remove-process process)
+    (add-process (expand-restriction process) kell)))
 
 (defgeneric add-process (process kell)
   (:documentation "Pushes PROCESS onto the given KELL.")
@@ -241,10 +270,8 @@
     (values))
   (:method ((process cons) (kell kell))
     (add-process (eval process) kell))
-  (:method ((process restriction) (kell kell))
-    (let ((global-name (gensym (format nil "~a-" (name process)))))
-      (add-process (apply-restriction (name process) global-name (process process))
-                   kell)))
+  (:method ((process restriction-abstraction) (kell kell))
+    (add-process (expand-restriction process) kell))
   (:method ((process agent) (kell kell))
     (setf (process kell) (compose-processes process (process kell)))
     (activate-process process kell))
@@ -310,7 +337,7 @@
       (remove-process-from process kell)
       (setf (gethash (name process) (kells kell))
             (delete process (gethash (name process) (kells kell))))))
-  (:method ((process trigger))
+  (:method ((process pattern-abstraction))
     (let ((kell (parent process)))
       (remove-process-from process kell)
       (mapc (lambda (proc)
@@ -339,7 +366,7 @@
     (declare (ignore mapping ignored-vars))
     process)
   (:method ((name symbol) mapping &optional ignored-vars)
-    (if (find name ignored-vars :key #'name)
+    (if (find name ignored-vars)
       name
       (or (find-symbol-value name mapping)
           name)))
@@ -349,8 +376,7 @@
   (:method ((process process) mapping &optional ignored-vars)
     (let ((substituted-processes
            (mapcan (lambda (process-variable)
-                     (when (not (find (name process-variable) ignored-vars
-                                      :key #'name))
+                     (when (not (find (name process-variable) ignored-vars))
                        (setf process
                              (remove-process-from process-variable process))
                        (list (find-process-variable-value process-variable mapping))))
@@ -363,18 +389,18 @@
     (declare (ignore mapping ignored-vars))
     name)
   (:method ((name symbol) mapping &optional ignored-vars)
-    (if (find name ignored-vars :key #'name)
+    (if (find name ignored-vars)
       name
       (or (find-symbol-value name mapping)
           name)))
   (:method ((name process-variable) mapping &optional ignored-vars)
     ;; FIXME: this method only exists because sometimes '?x' is being read as a
     ;;        process-variable instead of read as a name-variable
-    (if (find (name name) ignored-vars :key #'name)
+    (if (find (name name) ignored-vars)
       name
       (find-process-variable-value name mapping)))
   (:method ((name name-variable) mapping &optional ignored-vars)
-    (if (find (name name) ignored-vars :key #'name)
+    (if (find (name name) ignored-vars)
       name
       (find-name-variable-value name mapping))))
 
@@ -422,11 +448,12 @@
                                   (continuation process))
                      mapping
                      ignored-vars)))
-  (:method (mapping (process trigger) &optional ignored-vars)
-    (let ((ignored-vars (append (bound-names (pattern process))
-                                (bound-variables (pattern process))
+  (:method (mapping (process pattern-abstraction) &optional ignored-vars)
+    (let ((ignored-vars (append (mapcar #'name (bound-names (pattern process)))
+                                (mapcar #'name
+                                        (bound-variables (pattern process)))
                                 ignored-vars)))
-      (make-instance 'trigger
+      (make-instance (class-of process)
         :pattern (replace-variables (make-instance 'pattern
                                       :local-message-pattern (mapcar (lambda (proc) (substitute-variables mapping proc ignored-vars))
                                                                      (local-message-pattern (pattern process)))
@@ -442,15 +469,19 @@
                                                  (process process))
                                     mapping
                                     ignored-vars))))
-  (:method (mapping (process restriction) &optional ignored-vars)
-    (make-instance 'restriction
-      :name (name process)
-      :process (replace-variables (map-process (lambda (proc) (substitute-variables mapping proc ignored-vars))
-                                               (process process))
-                                  mapping
-                                  ignored-vars))))
+  (:method (mapping (process restriction-abstraction) &optional ignored-vars)
+    ;;; FIXME: these names should only be added to ignored NAME vars, but we
+    ;;;        currently don't distinguish
+    (let ((ignored-vars (append (names process) ignored-vars)))
+      (make-instance (class-of process)
+        :names (names process)
+        :abstraction (replace-variables (map-process (lambda (proc)
+                                                       (substitute-variables mapping proc ignored-vars))
+                                                     (abstraction process))
+                                        mapping
+                                        ignored-vars)))))
 
-(defmethod trigger-process ((trigger trigger) mapping)
+(defmethod trigger-process ((trigger pattern-abstraction) mapping)
   "Activates process after substituting the process-variables in the trigger."
   (remove-process trigger)
   (add-process (replace-variables (map-process (lambda (proc)
@@ -491,7 +522,7 @@
   (:method ((process kell) (kell kell))
     "Find all triggers that could match."
     (select-matching-pattern (gethash (name process) (kell-patterns kell))))
-  (:method ((process trigger) (kell kell))
+  (:method ((process pattern-abstraction) (kell kell))
     "Just match on the new trigger."
     (select-matching-pattern (list process))))
 
@@ -525,38 +556,6 @@
 ;;;       abstractions and concretions. They should be integrated with
 ;;;       the ones above once we start actually using them.
 
-(defgeneric expand-restriction (restriction)
-  (:method expand-restriction ((restriction restriction-abstraction))
-    (let ((abstraction (abstraction restriction)))
-      (mapc (lambda (name)
-              (setf abstraction
-                    ;; TODO: apply-restriction should handle all names
-                    ;;       at once, rather than one at a time
-                    (apply-restriction name
-                                       (gensym (format nil "~a-" name))
-                                       abstraction)))
-            (names restriction))
-      abstraction))
-  (:method expand-restriction ((restriction concretion))
-    (if (length (restricted-names restriction))
-      (let ((messages (messages restriction))
-            (continuation (continuation restriction)))
-        (mapc (lambda (name)
-                (psetf messages
-                       (apply-restriction name
-                                          (gensym (format nil "~a-"
-                                                          name))
-                                          messages)
-                       continuation
-                       (apply-restriction name
-                                          (gensym (format nil "~a-"
-                                                          name))
-                                          continuation)))
-              (restricted-names restriction))
-        (make-instance (class-of restriction)
-          :messages messages :continuation continuation))
-      restriction)))
-
 (defmethod apply-restriction
            (local-name global-name (process kell-abstraction)
             &optional (expandp t))
@@ -585,34 +584,6 @@
                                    (concretion process)
                                    expandp)))
 (defmethod apply-restriction
-           (local-name global-name (process restriction-abstraction)
-            &optional (expandp t))
-  (if expandp
-    (apply-restriction local-name
-                       global-name
-                       (expand-restriction process)
-                       expandp)
-    (if (find local-name (names process))
-      process
-      (make-instance (class-of process)
-        :names (names process)
-        :abstraction (apply-restriction local-name
-                                        global-name
-                                        (abstraction process)
-                                        expandp)))))
-(defmethod apply-restriction
-           (local-name global-name (process pattern-abstraction)
-            &optional (expandp t))
-  (make-instance (class-of process)
-    :pattern (apply-restriction local-name
-                                global-name
-                                (pattern process)
-                                expandp)
-    :process (apply-restriction local-name
-                                global-name
-                                (process process)
-                                nil)))
-(defmethod apply-restriction
            (local-name global-name (process concretion)
             &optional (expandp t))
   (if expandp
@@ -638,21 +609,6 @@
   (let ((name (name process)))
     (push process (gethash name (kells kell)))
     (list (list #'match-on process kell))))
-(defmethod collect-channel-names
-           ((process pattern-abstraction) (kell kell))
-  (mapc (lambda (pattern)
-          (push process (gethash (name pattern) (local-patterns kell))))
-        (local-message-pattern (pattern process)))
-  (mapc (lambda (pattern)
-          (push process (gethash (name pattern) (down-patterns kell))))
-        (down-message-pattern (pattern process)))
-  (mapc (lambda (pattern)
-          (push process (gethash (name pattern) (up-patterns kell))))
-        (up-message-pattern (pattern process)))
-  (mapc (lambda (pattern)
-          (push process (gethash (name pattern) (kell-patterns kell))))
-        (kell-message-pattern (pattern process)))
-  (list (list #'match-on process kell)))
 (defmethod collect-channel-names ((process concretion) (kell kell))
   ;;; FIXME: should make sure (names process) is empty, or something
   (append (collect-channel-names (messages process) kell)
@@ -668,14 +624,7 @@
 (defmethod activate-process
            ((process application-abstraction) (kell kell))
   (remove-process process)
-  (add-process (@ (abstraction process) (concretion-process)) kell))
-(defmethod activate-process
-           ((process restriction-abstraction) (kell kell))
-  (remove-process process)
-  (add-process (expand-restriction process) kell))
-(defmethod activate-process ((process pattern-abstraction) (kell kell))
-  (setf (parent process) kell)
-  (mapc #'push-event (collect-channel-names process kell)))
+  (add-process (@ (abstraction process) (concretion process)) kell))
 (defmethod activate-process
            ((process concretion) (kell kell))
   (remove-process process)
@@ -689,7 +638,5 @@
     (progn
       (call-next-method)
       (activate-process (abstraction process) process))))
-(defmethod add-process ((process restriction-abstraction) (kell kell))
-  (add-process (expand-restriction process) kell))
 (defmethod add-process ((process concretion) (kell kell))
   (add-process (expand-restriction process) kell))
