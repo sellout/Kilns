@@ -309,7 +309,7 @@
       (remove-process-from process kell)
       (setf (gethash (name process) (kells kell))
             (delete process (gethash (name process) (kells kell))))))
-  (:method ((process trigger))
+  (:method ((process pattern-abstraction))
     (let ((kell (parent process)))
       (remove-process-from process kell)
       (mapc (lambda (proc)
@@ -449,7 +449,7 @@
                                   mapping
                                   ignored-vars))))
 
-(defmethod trigger-process ((trigger trigger) mapping)
+(defmethod trigger-process ((trigger pattern-abstraction) mapping)
   "Activates process after substituting the process-variables in the trigger."
   (remove-process trigger)
   (add-process (replace-variables (map-process (lambda (proc)
@@ -490,7 +490,7 @@
   (:method ((process kell) (kell kell))
     "Find all triggers that could match."
     (select-matching-pattern (gethash (name process) (kell-patterns kell))))
-  (:method ((process trigger) (kell kell))
+  (:method ((process pattern-abstraction) (kell kell))
     "Just match on the new trigger."
     (select-matching-pattern (list process))))
 

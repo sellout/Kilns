@@ -46,7 +46,10 @@
          (free-variables (continuation agent))))
 
 (defclass abstraction (agent)
-  ()
+  ((deadp :initform nil :accessor deadp
+          :documentation "After a message has been successfully matched, it may
+                          still exist in the event queue. This ensures we don't
+                          waste time trying to match it again."))
   (:documentation "F"))
 
 (defclass simple-abstraction (abstraction)
@@ -79,8 +82,8 @@
   (:documentation "νã.F"))
 
 (defclass pattern-abstraction (simple-abstraction)
-  ((pattern :initarg :pattern :type pattern)
-   (process :initarg :process :type generic-process))
+  ((pattern :initarg :pattern :reader pattern :type pattern)
+   (process :initarg :process :reader process :type generic-process))
   (:documentation "(ξ)P"))
 
 (defclass simple-application-abstraction
@@ -90,11 +93,7 @@
   (:documentation "G@C"))
 
 (defclass process (abstraction)
-  ;; FIXME: really only a property of _active_ processes …
-  ((deadp :initform nil :accessor deadp
-          :documentation "After a message has been successfully matched, it may
-                          still exist in the event queue. This ensures we don't
-                          waste time trying to match it again."))
+  ()
   (:documentation "P"))
 
 (defgeneric compose (agent1 agent2)
@@ -151,7 +150,11 @@
     (@ (expand-restriction agent1) agent2)))
 
 (defmacro trigger (pattern process)
-  `(make-instance 'pattern-abstraction :pattern ,pattern :process ,process))
+  `(make-instance 'pattern-abstraction
+     :pattern (convert-process-to-pattern ,pattern) :process ,process))
+
+(defmethod print-object ((obj pattern-abstraction) stream)
+  (format stream "(trigger ~a ~a)" (pattern obj) (process obj)))
 
 (defmacro new (names process)
   `(make-instance 'restriction-abstraction :names ',names :abstraction ,process))

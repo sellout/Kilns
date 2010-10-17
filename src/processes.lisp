@@ -68,10 +68,10 @@
 ;;; FIXME: need  a better name
 (defclass message-structure (process)
   ((name :initarg :name :accessor name)
-   (process :initarg :process :initform null :type generic-process
+   (process :initarg :process :initform null :type generic-agent
             :accessor process)
    (continuation :initarg :continuation :initform null
-                 :type (or process (member up down))
+                 :type (or agent (member up down))
                  :accessor continuation))
   (:documentation "The commonalities between messages and kells."))
 
