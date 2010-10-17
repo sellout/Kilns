@@ -524,37 +524,36 @@
 ;;;       abstractions and concretions. They should be integrated with
 ;;;       the ones above once we start actually using them.
 
-(defgeneric expand-restriction (restriction)
-  (:method expand-restriction ((restriction restriction-abstraction))
-    (let ((abstraction (abstraction restriction)))
+(defmethod expand-restriction ((restriction restriction-abstraction))
+  (let ((abstraction (abstraction restriction)))
+    (mapc (lambda (name)
+            (setf abstraction
+                  ;; TODO: apply-restriction should handle all names
+                  ;;       at once, rather than one at a time
+                  (apply-restriction name
+                                     (gensym (format nil "~a-" name))
+                                     abstraction)))
+          (names restriction))
+    abstraction))
+(defmethod expand-restriction ((restriction concretion))
+  (if (length (restricted-names restriction))
+    (let ((messages (messages restriction))
+          (continuation (continuation restriction)))
       (mapc (lambda (name)
-              (setf abstraction
-                    ;; TODO: apply-restriction should handle all names
-                    ;;       at once, rather than one at a time
-                    (apply-restriction name
-                                       (gensym (format nil "~a-" name))
-                                       abstraction)))
-            (names restriction))
-      abstraction))
-  (:method expand-restriction ((restriction concretion))
-    (if (length (restricted-names restriction))
-      (let ((messages (messages restriction))
-            (continuation (continuation restriction)))
-        (mapc (lambda (name)
-                (psetf messages
-                       (apply-restriction name
-                                          (gensym (format nil "~a-"
-                                                          name))
-                                          messages)
-                       continuation
-                       (apply-restriction name
-                                          (gensym (format nil "~a-"
-                                                          name))
-                                          continuation)))
-              (restricted-names restriction))
-        (make-instance (class-of restriction)
-          :messages messages :continuation continuation))
-      restriction)))
+              (psetf messages
+                     (apply-restriction name
+                                        (gensym (format nil "~a-"
+                                                        name))
+                                        messages)
+                     continuation
+                     (apply-restriction name
+                                        (gensym (format nil "~a-"
+                                                        name))
+                                        continuation)))
+            (restricted-names restriction))
+      (make-instance (class-of restriction)
+        :messages messages :continuation continuation))
+    restriction))
 
 (defmethod apply-restriction
            (local-name global-name (process kell-abstraction)

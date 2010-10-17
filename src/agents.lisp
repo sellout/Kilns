@@ -77,9 +77,11 @@
          (free-variables (concretion agent))))
 
 (defclass restriction-abstraction (abstraction)
-  ((names :reader names)
-   (abstraction :reader abstraction :type abstraction))
+  ((names :initarg :names :reader names)
+   (abstraction :initarg :abstraction :reader abstraction :type abstraction))
   (:documentation "νã.F"))
+
+
 
 (defclass pattern-abstraction (simple-abstraction)
   ((pattern :initarg :pattern :reader pattern :type pattern)
@@ -157,7 +159,8 @@
   (format stream "(trigger ~a ~a)" (pattern obj) (process obj)))
 
 (defmacro new (names process)
-  `(make-instance 'restriction-abstraction :names ',names :abstraction ,process))
+  `(make-instance 'restriction-abstraction
+     :names (if (consp ',names) ',names (list ',names)) :abstraction ,process))
 
 (defmacro def ((name &rest parameters) process)
   (let ((concretion (gensym "CONCRETION")))
