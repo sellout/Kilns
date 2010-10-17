@@ -275,8 +275,7 @@
     (values))
   (defun toplevel (&optional cpu-count local-kell)
     (unless cpu-count (setf cpu-count (get-cpu-count)))
-    (let* ((*top-kell* (make-instance (if local-kell 'network-kell 'kell)
-                         :name (gensym "TOP")))
+    (let* ((*top-kell* (make-instance 'kell :name (gensym "TOP")))
            (*package* (find-package :kilns-user))
            (*readtable* *kilns-readtable*)
            (*local-kell* (when local-kell (intern local-kell))))
@@ -287,7 +286,7 @@
         ;; parents
         (setf current-kell *top-kell*
               (parent *top-kell*)
-              (make-instance 'network-kell :name (gensym "OUTSIDE") :process *top-kell*))
+              (make-instance 'kell :name (gensym "OUTSIDE") :process *top-kell*))
         (unwind-protect
             (loop do
               (printk "~a> " (name current-kell))
@@ -356,7 +355,7 @@
                        (list (find-process-variable-value process-variable mapping))))
                    (process-variables-in process))))
       (reduce #'compose-processes (cons process substituted-processes)
-              :initial-value null))))
+              :initial-value null-process))))
 
 (defgeneric replace-name (name mapping &optional ignored-vars)
   (:method (name mapping &optional ignored-vars)
