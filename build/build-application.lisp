@@ -1,5 +1,17 @@
 (declaim (optimize (debug 3)))
-(require :asdf)
+
+#-quicklisp
+(let ((quicklisp-init (merge-pathnames "quicklisp/setup.lisp"
+                                       (user-homedir-pathname))))
+  (if (probe-file quicklisp-init)
+    (load quicklisp-init)
+    (progn
+      (load "build/quicklisp")
+      (funcall (intern "INSTALL" :quicklisp-quickstart)))))
+
+(ql:quickload "bordeaux-threads" :verbose nil)
+(ql:quickload "cl-unification" :verbose nil)
+
 (load "kilns.asd")
 (asdf:load-system :kilns :verbose nil)
 
