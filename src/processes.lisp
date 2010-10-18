@@ -54,7 +54,7 @@
 
 (defmacro trigger (pattern process)
   `(make-instance 'trigger
-     :pattern (convert-process-to-pattern ,pattern) :process ,process))
+     :pattern (convert-process-to-pattern ,pattern) :process ',process))
 
 (defmethod print-object ((obj pattern-abstraction) stream)
   (format stream "(trigger ~a ~a)" (pattern obj) (process obj)))

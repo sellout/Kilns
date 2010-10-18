@@ -23,20 +23,20 @@
     (destructuring-bind (&optional process continuation)
         (read-delimited-list (cdr (assoc char *paired-chars*)) stream t)
       (if continuation
-        `(make-instance ',type
-           :name (if (listp ',name) ,name ',name)
-           :process ,process
-           :continuation (if (listp ',continuation) ,continuation ',continuation))
+        (make-instance type
+           :name name
+           :process process
+           :continuation continuation)
         (if process
-          `(make-instance ',type
-             :name (if (listp ',name) ,name ',name) :process ,process)
-          `(make-instance ',type :name (if (listp ',name) ,name ',name)))))))
+          (make-instance type
+             :name name :process process)
+          (make-instance type :name name))))))
 
 (defun variable-reader (stream char)
   (declare (ignore char))
   (if *reading-name-p*
-    `(make-instance 'name-variable :name ',(read stream t))
-    `(make-instance 'process-variable :name ',(read stream t))))
+    (make-instance 'name-variable :name (read stream t))
+    (make-instance 'process-variable :name (read stream t))))
 
 (defun kell-reader (stream char)
   (read-process 'kell stream char))
@@ -50,8 +50,8 @@
 (set-macro-character #\{ #'message-reader nil *kilns-readtable*)
 (set-macro-character #\} (get-macro-character #\) nil) nil *kilns-readtable*)
 
-(defun par (&rest processes)
-  (apply #'parallel-composition processes))
+(defmacro par (&rest processes)
+  `(apply #'parallel-composition ',processes))
 
 ;;; The syntax of the Kell calculus is given in Figure 1. It is parameterized by
 ;;; the pattern language used to define patterns ξ in triggers ξ ␣ P.

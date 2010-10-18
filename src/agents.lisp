@@ -149,11 +149,28 @@
   (:method ((agent1 restriction-abstraction) (agent2 concretion))
     (@ (expand-restriction agent1) agent2)))
 
+#|
 (defmacro def ((name &rest parameters) &body body)
   "Allows us to define new operations. It's currently just like CL's DEFMACRO, but
    hopefully I can improve on that."
   `(defmacro ,name (,@parameters)
      ,@body))
+|#
+
+(defmacro def ((name &rest parameters) process)
+  `(defmacro ,name (&rest messages)
+     `(let* ((substitutions (make-empty-environment)))
+        (mapcar (lambda (pattern proc)
+                  (let ((subst (unify pattern proc substitutions)))
+                    (if subst
+                      (setf substitutions subst)
+                      (error 'unification-failure))))
+                ',(list ,@parameters) (list ,@messages))
+        (replace-variables (map-process (lambda (proc)
+                                          (substitute-variables substitutions
+                                                                proc))
+                                        ,',process)
+                           substitutions))))
 
 #|
 (defmacro def ((name &rest parameters) process)
