@@ -126,7 +126,7 @@
          (make-instance 'dispatch:queue
            :label (format nil "com.kilns.kell.~a" (name obj)))
          (slot-value obj 'lock)
-         (make-instance 'dispatch:semaphore))
+         (make-instance 'dispatch:semaphore :value 1))
   (dispatch:retain (queue obj))
   (dispatch:retain (lock obj)))
 
