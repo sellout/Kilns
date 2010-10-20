@@ -9,7 +9,6 @@
       (load "build/quicklisp")
       (funcall (intern "INSTALL" :quicklisp-quickstart)))))
 
-(ql:quickload "bordeaux-threads" :verbose nil)
 (ql:quickload "cl-unification" :verbose nil)
 
 (load "kilns.asd")
