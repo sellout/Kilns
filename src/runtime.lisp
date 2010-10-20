@@ -45,43 +45,22 @@
 (defvar *event-queue* '())
 (defvar *dummy-wait-lock* (make-lock "dummy-wait-lock"))
 
-(let ((lock (make-lock "event-lock")))
-  (defun pop-event ()
-    "THIS NEEDS TO BE THREADSAFE"
-    (with-lock-held (lock)
-      (pop *event-queue*)))
-
-  (defun push-event (item)
-    "THIS NEEDS TO BE THREADSAFE"
-    (with-lock-held (lock)
-      (setf *event-queue* (append *event-queue* (list item))))
-    (condition-notify *new-events*))
-
-  (defun clear-events ()
-    "THIS NEEDS TO BE THREADSAFE"
-    (with-lock-held (lock)
-      (setf *event-queue* '())))
-
-  (defun remove-events-for-kell (kell)
-    (with-lock-held (lock)
-      (setf *event-queue* (delete kell *event-queue* :key #'third)))))
-
 (defmacro lock-neighboring-kells ((kell) &body body)
   "This ensures that we always lock kells from the outermost to the innermost,
    preventing deadlocks"
   (let ((kellvar (gensym "KELL")))
     `(let ((,kellvar ,kell))
-       (with-lock-held ((lock (parent ,kellvar)))
-         (with-lock-held ((lock ,kellvar))
+       (dispatch:with-semaphore-held ((lock (parent ,kellvar)) dispatch:forever)
+         (dispatch:with-semaphore-held ((lock ,kellvar) dispatch:forever)
            ;; FIXME: this should probably use some fancy WITH-LOCK-HELD macroexpansion
            ;;        in order to UNWIND-PROTECT all of the lock releases 
            (let ((subkells (subkells ,kellvar)))
              (mapcar (lambda (subkell)
-                       (acquire-lock (lock subkell) t))
+                       (dispatch:wait-on-semaphore (lock subkell) dispatch:forever))
                      subkells)
              ,@body
              (mapcar (lambda (subkell)
-                       (release-lock (lock subkell)))
+                       (dispatch:signal-semaphore (lock subkell)))
                      (reverse subkells))))))))
 
 (defparameter *debugp* nil
@@ -93,18 +72,15 @@
     (error c)
     (printk "ERROR: ~a~%" c)))
 
-(defun run-kiln ()
-  (loop do (handler-case (let ((event (pop-event)))
-                           (if event
-                             (apply (car event) (cdr event))
-                             (with-lock-held (*dummy-wait-lock*)
-                               (condition-wait *new-events*
-                                               *dummy-wait-lock*))))
-             (kiln-error (c) (handle-error c)))))
+(defmacro create-event-callback (event)
+  (let ((name (gensym "EVENT")))
+    `(cffi:defcallback ,name :void ((context :pointer))
+       (declare (ignore context))
+       (handler-case (funcall ,event)
+         (kiln-error (c) (handle-error c))))))
 
-(defun start-kilns (count)
-  (loop for i from 1 to count
-    collecting (make-thread #'run-kiln :name (format nil "kiln ~d" i))))
+(defun create-event-pointer (event)
+  (cffi:get-callback (create-event-callback event)))
 
 (defgeneric expand-restriction (restriction)
   (:method ((restriction restriction-abstraction))
@@ -218,11 +194,11 @@
   (:method ((process message) (kell kell))
     (let ((name (name process)))
       (push process (gethash name (messages kell)))
-      (list (list #'match-on process kell))))
+      (list (lambda () (match-on process kell)))))
   (:method ((process kell) (kell kell))
     (let ((name (name process)))
       (push process (gethash name (kells kell)))
-      (list (list #'match-on process kell))))
+      (list (lambda () (match-on process kell)))))
   (:method ((process pattern-abstraction) (kell kell))
     (mapc (lambda (pattern)
             (push process (gethash (name pattern) (local-patterns kell))))
@@ -236,7 +212,7 @@
     (mapc (lambda (pattern)
             (push process (gethash (name pattern) (kell-patterns kell))))
           (kell-message-pattern (pattern process)))
-    (list (list #'match-on process kell)))
+    (list (lambda () (match-on process kell))))
   (:method ((process null-process) (kell kell))
     (declare (ignore kell))
     '()))
@@ -247,7 +223,11 @@
     (add-process (eval process) kell))
   (:method ((process process) (kell kell))
     (setf (parent process) kell)
-    (mapc #'push-event (collect-channel-names process kell)))
+    (mapc (lambda (event)
+            (dispatch:dispatch-async (queue kell)
+                                     (cffi:null-pointer)
+                                     (create-event-pointer event)))
+          (collect-channel-names process kell)))
   (:method ((process kell) (kell kell))
     (call-next-method)
     (activate-process (process process) process))
@@ -257,7 +237,11 @@
                               process))
   (:method ((process pattern-abstraction) (kell kell))
     (setf (parent process) kell)
-    (mapc #'push-event (collect-channel-names process kell)))
+    (mapc (lambda (event)
+            (dispatch:dispatch-async (queue kell)
+                                     (cffi:null-pointer)
+                                     (create-event-pointer event)))
+          (collect-channel-names process kell)))
   (:method ((process restriction-abstraction) (kell kell))
     (remove-process process)
     (add-process (expand-restriction process) kell)))
@@ -308,21 +292,17 @@
            (*local-kell* (when local-kell (intern local-kell))))
       (ccl::def-standard-initial-binding *package* (find-package :kilns-user))
       (ccl::def-standard-initial-binding *readtable* *kilns-readtable*)
-      (let ((kilns (start-kilns cpu-count)))
-        ;; dummy kell for now, to handle locking and other places we refer to
-        ;; parents
-        (setf current-kell *top-kell*
-              (parent *top-kell*)
-              (make-instance 'kell :name (gensym "OUTSIDE") :process *top-kell*))
-        (unwind-protect
-            (loop do
-              (printk "~a> " (name current-kell))
-              (handler-case (let ((process (eval (read))))
-                              (add-process process current-kell))
-                (end-of-file () (return))
-                (kiln-error (c) (handle-error c))))
-          (mapc #'destroy-thread kilns)
-          (clear-events))))))
+      ;; dummy kell for now, to handle locking and other places we refer to
+      ;; parents
+      (setf current-kell *top-kell*
+            (parent *top-kell*)
+            (make-instance 'kell :name (gensym "OUTSIDE") :process *top-kell*))
+      (loop do
+        (printk "~a> " (name current-kell))
+        (handler-case (let ((process (eval (read))))
+                        (add-process process current-kell))
+          (end-of-file () (return))
+          (kiln-error (c) (handle-error c)))))))
 
 (defgeneric remove-process (process)
   (:method ((process message))
@@ -564,7 +544,7 @@
            ((process kell-abstraction) (kell kell))
   (let ((name (name process)))
     (push process (gethash name (kells kell)))
-    (list (list #'match-on process kell))))
+    (list (lambda () (match-on process kell)))))
 (defmethod collect-channel-names ((process concretion) (kell kell))
   ;;; FIXME: should make sure (names process) is empty, or something
   (append (collect-channel-names (messages process) kell)

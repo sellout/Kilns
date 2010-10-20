@@ -8,7 +8,7 @@
   :description "An implementation of the Kell calculus in a lisp-like language."
   :license ""
   :author "Greg Pfeil <greg@technomadic.org>"
-  :depends-on (bordeaux-threads cl-unification)
+  :depends-on (bordeaux-threads cl-unification dispatch)
   :components ((:module "src"
                         :components
                         ((:file "package")

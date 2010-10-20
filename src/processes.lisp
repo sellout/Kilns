@@ -105,6 +105,7 @@
 
 (defclass kell (message-structure)
   (;; implementation details
+   (queue :reader queue)
    (lock :reader lock)
    ;; while each trigger pattern contains a multiset of typed patterns, we keep
    ;; them aggregated here in a hash-table mapping the channel-name to the
@@ -121,7 +122,13 @@
                   :reader kell-patterns)))
 
 (defmethod initialize-instance :after ((obj kell) &key &allow-other-keys)
-  (setf (slot-value obj 'lock) (make-lock (format nil "kell ~a" (name obj)))))
+  (psetf (slot-value obj 'queue)
+         (make-instance 'dispatch:queue
+           :label (format nil "com.kilns.kell.~a" (name obj)))
+         (slot-value obj 'lock)
+         (make-instance 'dispatch:semaphore))
+  (dispatch:retain (queue obj))
+  (dispatch:retain (lock obj)))
 
 (defun kell (name &optional process continuation)
   (if continuation
@@ -245,18 +252,21 @@
              process (process kell))))
   (:method ((process kell) kell)
     (if (find process (kells-in (process kell)))
-      (typecase (process kell)
-        (kell (setf (process kell) null))
-        (parallel-composition (setf (kells (process kell))
-                                    (delete process (kells (process kell))))
-                              (case (length (map-parallel-composition
-                                             #'identity
-                                             (process kell)))
-                                (0 (setf (process kell) null))
-                                (1 (setf (process kell)
-                                         (car (map-parallel-composition
+      (progn
+        (typecase (process kell)
+          (kell (setf (process kell) null))
+          (parallel-composition (setf (kells (process kell))
+                                      (delete process (kells (process kell))))
+                                (case (length (map-parallel-composition
                                                #'identity
-                                               (process kell))))))))
+                                               (process kell)))
+                                  (0 (setf (process kell) null))
+                                  (1 (setf (process kell)
+                                           (car (map-parallel-composition
+                                                 #'identity
+                                                 (process kell))))))))
+        (dispatch:release (queue kell))
+        (dispatch:release (lock kell)))
       (error "The (kell) process ~a is not contained in ~a, and thus can not ~
               be removed."
              process (process kell))))
