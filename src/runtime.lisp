@@ -39,12 +39,6 @@
       (apply #'format t "~&~@?" arguments)
       (finish-output))))
 
-;;; FIXME: make sure these threadsafe functions truly are
-
-(defvar *new-events* (make-condition-variable))
-(defvar *event-queue* '())
-(defvar *dummy-wait-lock* (make-lock "dummy-wait-lock"))
-
 (defmacro lock-neighboring-kells ((kell) &body body)
   "This ensures that we always lock kells from the outermost to the innermost,
    preventing deadlocks"
@@ -76,8 +70,7 @@
   (let ((name (gensym "EVENT")))
     `(cffi:defcallback ,name :void ((context :pointer))
        (declare (ignore context))
-       (handler-case (funcall ,event)
-         (kiln-error (c) (handle-error c))))))
+       (funcall ,event))))
 
 (defun create-event-pointer (event)
   (cffi:get-callback (create-event-callback event)))
