@@ -29,13 +29,16 @@
                      (slot-value condition 'name)
                      (slot-value condition 'container)))))
 
-(let ((lock (make-lock "print-lock")))
+(let ((lock))
   (defun printk (&rest arguments)
     "This is our log-to-screen function. Works like format, but makes sure
      messages are printed atomically. It also starts each new message on its own
      line (since there's no guarantee that the previous message is even from the
      same thread, this is totally reasonable)."
-    (with-lock-held (lock)
+    (when (not lock)
+      (setf lock (make-instance 'dispatch:semaphore :value 1))
+      (dispatch:retain lock))
+    (dispatch:with-semaphore-held (lock dispatch:forever)
       (apply #'format t "~&~@?" arguments)
       (finish-output))))
 
