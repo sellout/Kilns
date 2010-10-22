@@ -1,4 +1,4 @@
-(in-package #:kilns-runner)
+(in-package #:kilns)
 
 (defun state ()
   "Prints the current kell."

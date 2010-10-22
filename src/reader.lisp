@@ -1,18 +1,15 @@
-(defpackage kilns-runner
-  (:use #:cl #:kilns)
-  (:shadow #:load #:read #:eval)
-  (:export #:load #:read #:eval #:state #:lisp))
-
 (defpackage kilns-user
-  (:use #:kilns #:kilns-runner))
+  (:use #:kilns))
 
-(in-package #:kilns-runner)
+(in-package #:kilns)
 
 ;; (defun eval (form)
 ;;   (kilns::add-process form kilns::*top-kell*))
 
+#|
 (defun read (&rest read-args)
   (apply #'cl:read read-args))
+|#
 
 ;;; FIXME: for networking, load needs to be able to take a path to a subkell
 ;;;        that represents what is to be run in the local instance. It should

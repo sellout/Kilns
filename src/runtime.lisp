@@ -8,6 +8,20 @@
 (defvar *top-kell*)
 (defvar *local-kell*)
 
+                ; reasonable forms        and nasty lisp leaks
+(defvar *defs* '(trigger par new def load progn)
+  "Names of definitions that have been created.")
+(defvar *unexpanded-forms* (make-hash-table)
+  "Mapping of names that have not been defined to list of forms that use them.")
+(defun maybe-eval (form containing-process)
+  (if (listp form)
+    (if (find (car form) *defs*)
+      (eval form)
+      (progn
+        (push (cons form containing-process) (gethash (car form) *unexpanded-forms*))
+        null))
+    form))
+
 (define-condition kiln-error (error)
   ()
   (:documentation "This is used to distinguish errors that happen in kilns from
@@ -244,7 +258,7 @@
 (defgeneric activate-process (process kell)
   (:method ((process cons) (kell kell))
     (remove-process-from process kell)
-    (add-process (eval process) kell))
+    (add-process (maybe-eval process kell) kell))
   (:method ((process process) (kell kell))
     (setf (parent process) kell)
     (mapc #'push-event (collect-channel-names process kell)))
@@ -269,7 +283,7 @@
     (declare (ignore process kell))
     (values))
   (:method ((process cons) (kell kell))
-    (add-process (eval process) kell))
+    (add-process (maybe-eval process kell) kell))
   (:method ((process restriction-abstraction) (kell kell))
     (add-process (expand-restriction process) kell))
   (:method ((process agent) (kell kell))
@@ -317,7 +331,7 @@
         (unwind-protect
             (loop do
               (printk "~a> " (name current-kell))
-              (handler-case (let ((process (eval (read))))
+              (handler-case (let ((process (maybe-eval (read) current-kell)))
                               (add-process process current-kell))
                 (end-of-file () (return))
                 (kiln-error (c) (handle-error c))))
@@ -385,7 +399,9 @@
     (declare (ignore mapping ignored-vars))
     (let ((new-process (call-next-method)))
       (map-process (lambda (proc)
-                     (if (and (listp proc) (not (free-variables proc)))
+                     (if (and (listp proc)
+                              (find (car proc) *defs*)
+                              (not (free-variables proc)))
                        (eval proc)
                        proc))
                    new-process)))

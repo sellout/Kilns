@@ -3,7 +3,7 @@
    "A simple and direct implementation of the Kell calculus, suitable for testing
     the behavior of more advanced implementations.")
   (:use #:cl #:bordeaux-threads #:unify)
-  (:shadow #:match #:complement)
+  (:shadow #:match #:complement #:load)
   (:export ;; core calculus
            #:trigger
            #:restriction
@@ -22,4 +22,6 @@
            ;; abbreviated syntax
            #:par #:new
            ;; interactive commands
-           #:move-up #:move-down))
+           #:move-up #:move-down
+           ;; uglier bits
+           #:load #:lisp #:dev #:state))

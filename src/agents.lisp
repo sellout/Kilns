@@ -152,8 +152,16 @@
 (defmacro def ((name &rest parameters) &body body)
   "Allows us to define new operations. It's currently just like CL's DEFMACRO, but
    hopefully I can improve on that."
-  `(defmacro ,name (,@parameters)
-     ,@body))
+  `(progn
+     (defmacro ,name (,@parameters)
+       ,@body)
+     (push ',name *defs*)
+     (mapc (lambda (pair)
+             (destructuring-bind (form . containing-process) pair
+               (add-process (eval form) containing-process)))
+           (gethash ',name *unexpanded-forms*))
+     (remhash ',name *unexpanded-forms*)
+     null))
 
 #|
 (defmacro def ((name &rest parameters) process)
