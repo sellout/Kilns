@@ -27,10 +27,10 @@
   (let ((full-name (merge-pathnames file-name (make-pathname :type "kiln"))))
     (with-open-file (stream full-name :external-format :utf-8)
       (apply #'kilns::parallel-composition
-             (reverse (loop for value = (read stream nil)
-                        while value
-                        do (if print (print value) value)
-                        collecting value))))))
+             (loop for value = (read stream nil)
+               while value
+               do (if print (print value) value)
+               collecting value)))))
 
 (defmacro lisp (&rest forms)
   `'(cl:progn ,@forms))
