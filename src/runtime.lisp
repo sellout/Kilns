@@ -317,8 +317,7 @@
         (unwind-protect
             (loop do
               (printk "~a> " (name current-kell))
-              (handler-case (let ((process (eval (read))))
-                              (add-process process current-kell))
+              (handler-case (add-process (read) current-kell)
                 (end-of-file () (return))
                 (kiln-error (c) (handle-error c))))
           (mapc #'destroy-thread kilns)
