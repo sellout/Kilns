@@ -3,5 +3,7 @@
 (load "tests/test-math")
 (load "tests/test-association-lists")
 
-;;; FIXME: the sleep is here to keep kilns from quitting as soon as it hits EOF
+;;; FIXME: The sleep is here to keep kilns from quitting as soon as it hits EOF.
+;;;        We can get rid of this once we have better command line options that
+;;;        allow us to load files without redirecting stdin.
 (cl:sleep 10)
