@@ -1,0 +1,9 @@
+
+
+(def (seq2 process1 process2)
+     `(new start
+           (@ process1 {start})
+           (trigger {start} ,process2)))
+
+(def (seq cl:&rest processes)
+     `(cl:reduce #'seq2 processes))

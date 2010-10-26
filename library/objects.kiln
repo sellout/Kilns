@@ -1,0 +1,45 @@
+(load "library/replication")
+(load "library/utilities")
+(load "library/sandbox")
+
+;;; uses
+{obj {var-name new-value}}
+{obj {method-name (list param1 param2 {rc})}}
+
+;;; To some extent, we can get this by generalizing the association-lists implementation
+
+(trigger* {new-class (par {name {?name}}
+                          {variables ?vars}
+                          {methods ?methods})
+                     up}
+          (new class-name
+               (par {name {class-name}}
+                    (trigger* {class-name {?rc}}
+                              (new (object-name object-rep)
+                                   (par {object-rep vars}
+                                        (trigger* (par {object-name (list ?operation {?rc})} {object-rep ?rep})
+                                                  (new k*
+                                                       (par (sandbox (par ?operation
+                                                                          {object-rep ?rep}
+                                                                          (create-object-operations ,g ,s ,r ,l ,cons ,nil)
+                                                                          (trigger (par {rc ?response} {object-rep ?new-rep})
+                                                                                   {k* (list ?response ?new-rep)}))
+                                                                     k*)
+                                                            (trigger {k* (list ?response ?new-rep)}
+                                                                     (par {rc ?response} {object-rep ?new-rep})))))))))))
+
+(trigger* {new-variable (list {?name} ?value)}
+          {name ?value})
+
+(trigger* {new-method (list {?name ?parameters} ?body)}
+          {name })
+
+(def (object obj vars methods)
+     `(new ,(cl:mapcar #'name vars)
+           ,@(cl:mapcar (lambda (var) `(trigger {,var {?rc}} {rc null})) vars)
+           (methods obj meths)
+
+(def (methods obj meths)
+     `(new ,(cl:mapcar #'name meths)
+           (trigger* {,obj }
+           ,@(cl:mapcar (lambda (meth) `(trigger* {}
