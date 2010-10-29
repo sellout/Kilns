@@ -7,7 +7,28 @@
                                    {component-out #.?true})
                   (unify:unification-failure () {component-out #.?false}))))
 
+#| FIXME: trying to figure out how to implement `=` without digging into the
+          internals of the compiler. MATCH is used to define triggers, and so it
+          seems we should be able to use the normal triggering mechanism in some
+          way to test for equality
+
+;; This approach attempts to use triggering directly – but how do we show a
+;; failed match?
+(trigger* {= (list ?proc1 ?proc2 ?true ?false) up}
+          (sandbox (par {comparison ?proc1}
+                        (trigger {comparison 'proc2} {component-out ?true})
+                        (trigger {comparison ????} {component-out ?false}))
+                   component-out))
+
+;; This approach does recursive equality, but how do we compare channel names
+;; (and other primitives)?
+(trigger* {= (list null null ?true _) up}
+          {component-out ?true})
+(trigger* {= (list {?chan1 ?proc1} {?chan2 ?proc2} ?true ?false) up}
+          {component-local {= (list {?chan1} {?chan2}
+                                    {= (list ?proc1 ?proc2 ?true ?false)}
+                                    ?false)}})
+|#
+
 (trigger* {/= (list ?proc1 ?proc2 ?true ?false) up}
-          ;; FIXME: unfortunately, this won't react with the above definition, because
-          ;;        it's expecting a message from outside the kell
           {component-local {= (list ?proc1 ?proc2 ?false ?true)}})
