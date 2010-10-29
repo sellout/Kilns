@@ -1,11 +1,3 @@
-(defpackage kilns-runner
-  (:use #:cl #:kilns)
-  (:shadow #:load #:read #:eval)
-  (:export #:load #:read #:eval #:state #:lisp))
-
-(defpackage kilns-user
-  (:use #:kilns #:kilns-runner))
-
 (in-package #:kilns-runner)
 
 ;; (defun eval (form)

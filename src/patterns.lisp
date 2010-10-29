@@ -262,7 +262,7 @@
   (:method ((process process-variable))
     (list process))
   (:method ((process restriction))
-    (set-difference (free-variables (process process)) (list (name process))))
+    (set-difference (free-variables (abstraction process)) (names process)))
   (:method ((process kell))
     (reduce #'union
             (list (free-variables (name process))
