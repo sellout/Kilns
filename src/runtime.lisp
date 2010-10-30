@@ -450,20 +450,31 @@
     (remove-process process)
     (add-process (continuation process) (parent process)))
 
-(defun select-matching-pattern (patterns)
-  (loop for trigger in patterns
-     for (processes substitutions)
-       = (handler-case (match (pattern trigger) (parent trigger))
-           (unification-failure () (list nil nil)))
-     if processes
-     return (progn
-              (setf (deadp trigger) t)
-              (mapc (lambda (process) (setf (deadp process) t)) processes)
-              (list trigger processes substitutions))))
+(defun execute-match (trigger processes substitutions)
+  (trigger-process trigger substitutions)
+  (mapc #'activate-continuation processes)
+  (setf (deadp trigger) t)
+  (mapc (lambda (process) (setf (deadp process) t)) processes))
 
-(defgeneric really-match-on (process kell)
+(defun select-matching-pattern (patterns)
+  (dolist (trigger patterns)
+    (destructuring-bind (processes substitutions)
+        (handler-case
+            (match (pattern trigger) (parent trigger))
+          (unification-failure () (list nil nil)))
+      (when processes
+        (execute-match trigger processes substitutions)
+        (return)))))
+
+(defgeneric match-on (process kell)
   (:documentation "Tries to find a match for all the patterns that could match
                    channel NAME in KELL.")
+  (:method :around (process kell)
+    (when (not (deadp process))
+      (handler-case
+          (lock-neighboring-kells (kell)
+            (call-next-method))
+        (kiln-error (c) (handle-error c)))))
   (:method ((process message) (kell kell))
     "Find all triggers that could match – up, down, or local."
     (let ((name (name process)))
@@ -480,17 +491,6 @@
   (:method ((process pattern-abstraction) (kell kell))
     "Just match on the new trigger."
     (select-matching-pattern (list process))))
-
-(defun match-on (process kell)
-  (when (not (deadp process))
-    (handler-case
-        (lock-neighboring-kells (kell)
-          (destructuring-bind (&optional trigger matched-processes substitutions)
-              (really-match-on process kell)
-            (when (and trigger matched-processes)
-              (trigger-process trigger substitutions)
-              (mapc #'activate-continuation matched-processes))))
-      (kiln-error (c) (handle-error c)))))
 
 (defun find-triggers-matching-message (name kell)
   "Collect down-patterns from parent kell, up-patterns from subkells, and local-
