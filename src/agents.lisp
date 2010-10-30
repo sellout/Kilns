@@ -28,8 +28,7 @@
                    Ω ::= ∅ | a<P> | a<P>↓b | a[P] | Ω|Ω"))
 
 (defmethod print-object ((obj concretion) stream)
-  ;; FIXME: print messages as a parallel-composition
-  (format stream "(new ~s ~s ~s)"
+  (format stream "(new ~s ~[~s~;~s~:;(par~{ ~s~})~] || ~s)"
           (restricted-names obj) (messages obj) (continuation obj)))
 
 #|
@@ -104,8 +103,7 @@
   (:documentation "(ξ)P"))
 
 (defmethod print-object ((obj pattern-abstraction) stream)
-  ;; FIXME: need a better syntax
-  (format stream "(pat ~s ~s)" (pattern obj) (process obj)))
+  (format stream "((~s) ~s)" (pattern obj) (process obj)))
 
 (defclass simple-application-abstraction
     (simple-abstraction application-abstraction)

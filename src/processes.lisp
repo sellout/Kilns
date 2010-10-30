@@ -19,7 +19,7 @@
     by a more local variable with the same name."))
 
 (defmethod print-object ((obj process-variable) stream)
-  (format stream "?~a" (name obj)))
+  (format stream "?~s" (name obj)))
 
 (defun process-variable (name)
   (make-instance 'process-variable :name name))
@@ -38,7 +38,7 @@
     by a more local variable with the same name."))
 
 (defmethod print-object ((obj name-variable) stream)
-  (format stream "?~a" (name obj)))
+  (format stream "?~s" (name obj)))
 
 (defun name-variable (name)
   (make-instance 'name-variable :name name))
@@ -56,8 +56,8 @@
   `(make-instance 'trigger
      :pattern (convert-process-to-pattern ,pattern) :process ,process))
 
-(defmethod print-object ((obj pattern-abstraction) stream)
-  (format stream "(trigger ~a ~a)" (pattern obj) (process obj)))
+(defmethod print-object ((obj trigger) stream)
+  (format stream "(trigger ~s ~s)" (pattern obj) (process obj)))
 
 (defclass restriction (process restriction-abstraction)
   ())
@@ -66,8 +66,8 @@
   `(make-instance 'restriction
      :names (if (consp ',names) ',names (list ',names)) :abstraction ,process))
 
-(defmethod print-object ((obj restriction-abstraction) stream)
-  (format stream "(new ~a ~a)" (names obj) (abstraction obj)))
+(defmethod print-object ((obj restriction) stream)
+  (format stream "(new ~s ~s)" (names obj) (abstraction obj)))
 
 ;;; FIXME: need  a better name
 (defclass message-structure (process)
@@ -86,7 +86,7 @@
   (if (and (slot-boundp obj 'name)
            (slot-boundp obj 'process)
            (slot-boundp obj 'continuation))
-    (format stream "{~a~:[ ~a~:[ ~a~;~]~;~]}"
+    (format stream "{~s~:[ ~s~:[ ~s~;~]~;~]}"
             (name obj)
             (and (eql (process obj) null)
                  (eql (continuation obj) null))
@@ -131,7 +131,7 @@
       (make-instance 'kell :name name))))
 
 (defmethod print-object ((obj kell) stream)
-  (format stream "[~a ~a~:[ ~a~;~]]"
+  (format stream "[~s ~s~:[ ~s~;~]]"
           (name obj) (process obj)
           (eql (continuation obj) null) (continuation obj)))
 
@@ -150,7 +150,7 @@
     access in the way we usually deal with them."))
 
 (defmethod print-object ((obj parallel-composition) stream)
-  (format stream "(par~{ ~a~})"
+  (format stream "(par~{ ~s~})"
           (map-parallel-composition #'identity obj)))
 
 (defun parallel-composition (&rest processes)
