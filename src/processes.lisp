@@ -1,5 +1,5 @@
 #+xcvb (module (:depends-on ("package")))
-(in-package :kilns)
+(in-package :kell-calculus)
 
 (defclass null-process (process)
   ()
@@ -9,45 +9,6 @@
   (princ "null" stream))
 
 (defvar null (make-instance 'null-process))
-
-(defclass process-variable (process)
-  ((name :initarg :name :type symbol :reader name))
-  (:documentation
-   "These only exist in “potential” processes. When a trigger is triggered, we
-    convert each process-variable into its “realized” process and do so
-    recursively through nested processes, except where the variable is shadowed
-    by a more local variable with the same name."))
-
-(defmethod print-object ((obj process-variable) stream)
-  (format stream "?~s" (name obj)))
-
-(defun process-variable (name)
-  (make-instance 'process-variable :name name))
-
-(defclass name-type ()
-  ()
-  (:documentation
-   "This gives us a class to hang pattern-language extensions to names off of."))
-
-(defclass name-variable (name-type)
-  ((name :initarg :name :type symbol :reader name))
-  (:documentation
-   "These only exist in “potential” processes. When a trigger is triggered, we
-    convert each name-variable into its “realized” name and do so
-    recursively through nested processes, except where the variable is shadowed
-    by a more local variable with the same name."))
-
-(defmethod print-object ((obj name-variable) stream)
-  (format stream "?~s" (name obj)))
-
-(defun name-variable (name)
-  (make-instance 'name-variable :name name))
-
-(deftype name ()
-  `(or symbol integer name-type))
-
-(deftype identifier ()
-  `(or name process-variable))
 
 (defclass trigger (process pattern-abstraction)
   ())
@@ -154,7 +115,7 @@
           (map-parallel-composition #'identity obj)))
 
 (defun parallel-composition (&rest processes)
-  (reduce #'compose-processes processes :initial-value null))
+  (reduce #'compose processes :initial-value null))
 
 (defun map-parallel-composition (fn pc)
   (append (mapcar fn (process-variables pc))
@@ -352,14 +313,13 @@
 (defmethod subkells ((kell kell))
   (kells-in (process kell)))
 
-(defgeneric compose-processes (process-a process-b)
+(defgeneric compose (process-a process-b)
   (:documentation
    "Conses up a new parallel composition that contains both process-a and
     process-b.")
   (:method (process-a process-b)
-    (let ((pc (make-instance 'parallel-composition)))
-      (compose-processes (compose-processes pc process-a)
-                         process-b)))
+    (compose (compose (make-instance 'parallel-composition) process-a)
+             process-b))
   (:method ((process-a null-process) process-b)
     process-b)
   (:method (process-a (process-b null-process))
@@ -380,7 +340,7 @@
       pc))
   (:method (process-a (process-b parallel-composition))
     "This method just swaps the args so the function is commutatitve."
-    (compose-processes process-b process-a))
+    (compose process-b process-a))
   (:method ((process-a parallel-composition) process-b)
     (let ((pc (make-instance 'parallel-composition)))
       (psetf (process-variables pc) (process-variables process-a)

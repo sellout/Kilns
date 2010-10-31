@@ -18,6 +18,39 @@
 
 ;;; In this pattern language, the special pattern _ matches anything.
 
+(defclass name-variable (name-type)
+  ((name :initarg :name :type symbol :reader name))
+  (:documentation
+   "These only exist in “potential” processes. When a trigger is triggered, we
+    convert each name-variable into its “realized” name and do so
+    recursively through nested processes, except where the variable is shadowed
+    by a more local variable with the same name."))
+
+(defmethod print-object ((obj name-variable) stream)
+  (format stream "?~s" (name obj)))
+
+(defun name-variable (name)
+  (make-instance 'name-variable :name name))
+
+(defmethod replace-name ((name name-variable) mapping &optional ignored-vars)
+  (if (find (name name) ignored-vars)
+      name
+      (find-name-variable-value name mapping)))
+
+;;; FIXME: currently, name variables and process variables can conflict. Do we
+;;;        want to be able to have a namevar and procvar with the same name –
+;;;        yes, this is important with nested triggers, where a deeper one might
+;;;        use a procvar with the same name as a shallower namevar, and they
+;;;        can't clash because the types would conflict.
+(defmethod unify
+    ((pattern name-variable) agent
+     &optional (substitutions (make-empty-environment)))
+  (unify (intern (format nil "?~a" (name pattern))) agent substitutions))
+
+(defmethod find-name-variable-value
+    ((variable name-variable) &optional env errorp)
+  (find-variable-value (intern (format nil "?~a" (name variable))) env errorp))
+
 (defclass blank (process)
   ())
 

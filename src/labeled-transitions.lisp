@@ -1,4 +1,4 @@
-(in-package #:kilns)
+(in-package #:kell-calculus)
 
 (defclass agent ()
   ((parent :accessor parent)))

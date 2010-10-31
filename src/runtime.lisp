@@ -273,7 +273,7 @@
   (:method ((process restriction-abstraction) (kell kell))
     (add-process (expand-restriction process) kell))
   (:method ((process agent) (kell kell))
-    (setf (process kell) (compose-processes process (process kell)))
+    (setf (process kell) (compose process (process kell)))
     (activate-process process kell))
   (:method ((process parallel-composition) (kell kell))
     (map-parallel-composition (lambda (sub-process)
@@ -358,88 +358,6 @@
                             (gethash (name proc) (kell-patterns kell)))))
             (kell-message-pattern (pattern process))))))
 
-(defgeneric replace-name (name mapping &optional ignored-vars)
-  (:method (name mapping &optional ignored-vars)
-    (declare (ignore mapping ignored-vars))
-    name)
-  (:method ((name symbol) mapping &optional ignored-vars)
-    (if (find name ignored-vars)
-      name
-      (or (find-symbol-value name mapping)
-          name)))
-  (:method ((name process-variable) mapping &optional ignored-vars)
-    ;; FIXME: this method only exists because sometimes '?x' is being read as a
-    ;;        process-variable instead of read as a name-variable
-    (if (find (name name) ignored-vars)
-      name
-      (find-process-variable-value name mapping)))
-  (:method ((name name-variable) mapping &optional ignored-vars)
-    (if (find (name name) ignored-vars)
-      name
-      (find-name-variable-value name mapping))))
-
-(defgeneric replace-variables (process mapping &optional ignored-vars)
-  (:method :around ((process process) mapping &optional ignored-vars)
-    "Make sure conses are evaled as soon as there are no free vars, but no sooner."
-    (declare (ignore mapping ignored-vars))
-    (let ((new-process (call-next-method)))
-      (map-process (lambda (proc)
-                     (if (and (listp proc) (not (free-variables proc)))
-                       (eval proc)
-                       proc))
-                   new-process)))
-  (:method (process mapping &optional ignored-vars)
-    "This just skips over primitives."
-    (declare (ignore mapping ignored-vars))
-    process)
-  (:method ((name symbol) mapping &optional ignored-vars)
-    (if (find name ignored-vars)
-      name
-      (or (find-symbol-value name mapping)
-          name)))
-  (:method ((process cons) mapping &optional ignored-vars)
-    (mapcar (lambda (item) (replace-variables item mapping ignored-vars))
-            process))
-  (:method ((process process-variable) mapping &optional ignored-vars)
-    (if (find (name process) ignored-vars)
-      process
-      (find-process-variable-value process mapping)))
-  (:method ((process message-structure) mapping &optional ignored-vars)
-    (make-instance (class-of process)
-      :name (replace-name (name process) mapping ignored-vars)
-      :process (replace-variables (process process) mapping ignored-vars)
-      :continuation (replace-variables (continuation process) mapping ignored-vars)))
-  (:method ((process parallel-composition) mapping &optional ignored-vars)
-    (map-process (lambda (proc) (replace-variables proc mapping ignored-vars))
-                 process))
-  (:method ((process pattern-abstraction) mapping &optional ignored-vars)
-    (let ((ignored-vars (append (mapcar #'name (bound-names (pattern process)))
-                                (mapcar #'name
-                                        (bound-variables (pattern process)))
-                                ignored-vars)))
-      (make-instance (class-of process)
-        :pattern (make-instance 'pattern
-                   :local-message-pattern
-                   (replace-variables (local-message-pattern (pattern process))
-                                      mapping ignored-vars)
-                   :down-message-pattern
-                   (replace-variables (down-message-pattern (pattern process))
-                                      mapping ignored-vars)
-                   :up-message-pattern
-                   (replace-variables (up-message-pattern (pattern process))
-                                      mapping ignored-vars)
-                   :kell-message-pattern
-                   (replace-variables (kell-message-pattern (pattern process))
-                                      mapping ignored-vars))
-        :process (replace-variables (process process) mapping ignored-vars))))
-  (:method ((process restriction-abstraction) mapping &optional ignored-vars)
-    ;;; FIXME: these names should only be added to ignored NAME vars, but we
-    ;;;        currently don't distinguish
-    (let ((ignored-vars (append (names process) ignored-vars)))
-      (make-instance (class-of process)
-        :names (names process)
-        :abstraction (replace-variables (abstraction process) mapping ignored-vars)))))
-
 (defmethod trigger-process ((trigger pattern-abstraction) mapping)
   "Activates process after substituting the process-variables in the trigger."
   (remove-process trigger)
@@ -466,6 +384,21 @@
         (execute-match trigger processes substitutions)
         (return)))))
 
+(defun find-triggers-matching-message (name kell)
+  "Collect down-patterns from parent kell, up-patterns from subkells, and local-
+   and kell-patterns from the given kell."
+  (append (mapcar (lambda (pattern)
+                    (list pattern (parent kell)))
+                  (gethash name (down-patterns (parent kell))))
+          (mapcan (lambda (subkell)
+                    (mapcar (lambda (pattern)
+                              (list pattern subkell))
+                            (gethash name (up-patterns subkell))))
+                  (subkells kell))
+          (mapcar (lambda (pattern)
+                    (list pattern kell))
+                  (gethash name (local-patterns kell)))))
+
 (defgeneric match-on (process kell)
   (:documentation "Tries to find a match for all the patterns that could match
                    channel NAME in KELL.")
@@ -491,79 +424,6 @@
   (:method ((process pattern-abstraction) (kell kell))
     "Just match on the new trigger."
     (select-matching-pattern (list process))))
-
-(defun find-triggers-matching-message (name kell)
-  "Collect down-patterns from parent kell, up-patterns from subkells, and local-
-   and kell-patterns from the given kell."
-  (append (mapcar (lambda (pattern)
-                    (list pattern (parent kell)))
-                  (gethash name (down-patterns (parent kell))))
-          (mapcan (lambda (subkell)
-                    (mapcar (lambda (pattern)
-                              (list pattern subkell))
-                            (gethash name (up-patterns subkell))))
-                  (subkells kell))
-          (mapcar (lambda (pattern)
-                    (list pattern kell))
-                  (gethash name (local-patterns kell)))))
-
-(defgeneric sub-reduce (process)
-  (:method ((process kell))
-    (kell (name process)
-          (let ((sub-process (sub-reduce (process process))))
-            (if (typep sub-process 'restriction)
-                (expand-restriction sub-process)
-                sub-process))
-          (continuation process)))
-  (:method ((process parallel-composition))
-    (map-process (lambda (proc)
-                   (if (typep proc 'restriction)
-                       (expand-restriction proc)
-                       proc))
-                 process)))
-
-(defgeneric commit (process)
-  (:method ((process message))
-    (make-instance 'concretion
-                   :messages (message (name process) (process process))
-                   :continuation (continuation process)))
-  (:method ((process kell))
-    (let ((reduced-kell (sub-reduce process)))
-      (make-instance 'concretion
-                     :messages (kell (name reduced-kell) (process reduced-kell))
-                     :continuation (continuation reduced-kell))))
-  (:method ((process trigger))
-    (make-instance 'pattern-abstraction
-                   :pattern (pattern process)
-                   :abstraction (process process)))
-  (:method ((process restriction))
-    (make-instance 'restriction-abstraction
-                   :names (name process)
-                   :process (process process)))
-  (:method ((process kell))
-    ;; FIXME: need to merge this with the previous kell definition
-    (let* ((reduced-kell (sub-reduce process))
-           (inner-process (commit (process reduced-kell))))
-      (etypecase inner-process
-        (process (kell (name reduced-kell)
-                       inner-process
-                       (continuation reduced-kell)))
-        (concretion
-         (make-instance 'concretion
-                        :messages (message (name inner-process)
-                                           (process inner-process)
-                                           (name reduced-kell))
-                        :continuation (kell (name reduced-kell)
-                                            (continuation inner-process)
-                                            (continuation reduced-kell))))
-        (simple-abstraction
-         (make-instance 'kell-abstraction
-                        :name (name reduced-kell)
-                        :process inner-process
-                        :continuation (continuation reduced-kell))))))
-  (:method ((process parallel-composition))
-    (reduce #'compose (map-parallel-composition #'commit process))))
-
 
 ;;; TODO: These are definitions for the runtime functions for
 ;;;       abstractions and concretions. They should be integrated with
