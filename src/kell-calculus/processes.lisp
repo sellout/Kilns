@@ -341,6 +341,8 @@
 (defmethod compose (process-a (process-b parallel-composition))
   "This method just swaps the args so the function is commutatitve."
   (compose process-b process-a))
+(defmethod compose ((process-a parallel-composition) (process-b null-process))
+  process-a)
 (defmethod compose ((process-a parallel-composition) process-b)
   (let ((pc (make-instance 'parallel-composition)))
     (psetf (process-variables pc) (process-variables process-a)
