@@ -46,6 +46,4 @@
              (:file "runtime"
                     :depends-on ("syntax" "kell-calculus" "unification"))
              (:file "reader" :depends-on ("runtime"))
-             (:file "debug" :depends-on ("reader"))
-             ;; pattern languages
-             ))))
+             (:file "debug" :depends-on ("reader"))))))

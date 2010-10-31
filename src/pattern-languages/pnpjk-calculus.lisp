@@ -32,7 +32,7 @@
 (defun name-variable (name)
   (make-instance 'name-variable :name name))
 
-(defmethod replace-name ((name name-variable) mapping &optional ignored-vars)
+(defmethod substitute ((name name-variable) mapping &optional ignored-vars)
   (if (find (name name) ignored-vars)
       name
       (find-name-variable-value name mapping)))

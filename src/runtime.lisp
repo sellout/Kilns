@@ -361,8 +361,7 @@
 (defmethod trigger-process ((trigger pattern-abstraction) mapping)
   "Activates process after substituting the process-variables in the trigger."
   (remove-process trigger)
-  (add-process (replace-variables (process trigger) mapping)
-               (parent trigger)))
+  (add-process (substitute (process trigger) mapping) (parent trigger)))
 
 (defmethod activate-continuation (process)
     (remove-process process)

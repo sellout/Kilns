@@ -63,10 +63,10 @@
                                      substitutions)))))
     (otherwise (second (match pattern process substitutions)))))
 
-;; FIXME: This is fraktal-specific, but kind of digs a bit more into the internals than
-;;        I'd like
-(defmethod replace-name ((name mismatch) mapping &optional ignored-vars)
-    (setf (complement name) (replace-name (complement name) mapping ignored-vars))
+;; FIXME: This is fraktal-specific, but kind of digs a bit more into the
+;;        internals than I'd like
+(defmethod substitute ((name mismatch) mapping &optional ignored-vars)
+    (setf (complement name) (substitute (complement name) mapping ignored-vars))
     name)
 
 (defmethod collect-bound-names ((pattern message))
