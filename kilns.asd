@@ -12,7 +12,7 @@
   :components ((:module "src"
                         :components
                         ((:file "package")
-                         (:module "kell-calculus" :pathname ""
+                         (:module "kell-calculus"
                                   :depends-on ("package")
                                   :components (;; syntax
                                                (:file "identifiers"
@@ -29,7 +29,6 @@
                                                (:file "commitment-relation" :depends-on ("processes"))
                                                (:file "congruences"
                                                       :depends-on ("restrictions"))))
-                         
                          (:file "utilities" :depends-on ("package"))
                          (:file "syntax" :depends-on ("package"))
                          (:file "unification"

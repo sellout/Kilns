@@ -29,7 +29,9 @@
 
 (defmethod print-object ((obj concretion) stream)
   (format stream "(new ~s ~[~s~;~s~:;(par~{ ~s~})~] || ~s)"
-          (restricted-names obj) (messages obj) (continuation obj)))
+          (restricted-names obj)
+          (length (messages obj)) (messages obj)
+          (continuation obj)))
 
 #|
 (defmethod free-names ((agent down-message))
