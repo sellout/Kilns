@@ -6,6 +6,7 @@
   (:export #:name #:process-variable #:identifier #:name-type
            #:null #:trigger #:new #:par #:def
            #:process #:message #:kell #:subkells
+           #:argument #:state
            #:parallel-composition #:compose
            #:null-process
            #:pattern-language #:pattern #:up #:down

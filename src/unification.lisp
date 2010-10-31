@@ -10,14 +10,14 @@
 
 (defmethod unify
     ((pattern kell) (agent kell) &optional (substitutions (make-empty-environment)))
-  (unify (process pattern) (process agent)
+  (unify (state pattern) (state agent)
          (unify (name pattern) (name agent) substitutions)))
 
 ;;; We should only get here if we know that both messages are relative to the same kell
 (defmethod unify
     ((pattern message) (agent message)
      &optional (substitutions (make-empty-environment)))
-  (unify (process pattern) (process agent)
+  (unify (argument pattern) (argument agent)
          (unify (name pattern) (name agent) substitutions)))
 
 (defmethod match-messages (first second)

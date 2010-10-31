@@ -27,10 +27,15 @@
     (if (find (name process) ignored-vars)
       process
       (find-process-variable-value process mapping)))
-  (:method ((process message-structure) mapping &optional ignored-vars)
-    (make-instance (class-of process)
+  (:method ((process message) mapping &optional ignored-vars)
+    (make-instance 'message
       :name (substitute (name process) mapping ignored-vars)
-      :process (substitute (process process) mapping ignored-vars)
+      :argument (substitute (argument process) mapping ignored-vars)
+      :continuation (substitute (continuation process) mapping ignored-vars)))
+  (:method ((process kell) mapping &optional ignored-vars)
+    (make-instance 'kell
+      :name (substitute (name process) mapping ignored-vars)
+      :state (substitute (state process) mapping ignored-vars)
       :continuation (substitute (continuation process) mapping ignored-vars)))
   (:method ((process parallel-composition) mapping &optional ignored-vars)
     (map-process (lambda (proc) (substitute proc mapping ignored-vars))

@@ -10,7 +10,7 @@
 (defgeneric sub-reduce (process)
   (:method ((process kell))
     (kell (name process)
-          (let ((sub-process (sub-reduce (process process))))
+          (let ((sub-process (sub-reduce (state process))))
             (if (typep sub-process 'restriction)
                 (expand-restriction sub-process)
                 sub-process))

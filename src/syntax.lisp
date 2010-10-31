@@ -23,14 +23,12 @@
     (destructuring-bind (&optional process continuation)
         (read-delimited-list (cdr (assoc char *paired-chars*)) stream t)
       (if continuation
-        `(make-instance ',type
-           :name (if (listp ',name) ,name ',name)
-           :process ,process
-           :continuation (if (listp ',continuation) ,continuation ',continuation))
+        `(,type (if (listp ',name) ,name ',name)
+                ,process
+                (if (listp ',continuation) ,continuation ',continuation))
         (if process
-          `(make-instance ',type
-             :name (if (listp ',name) ,name ',name) :process ,process)
-          `(make-instance ',type :name (if (listp ',name) ,name ',name)))))))
+          `(,type (if (listp ',name) ,name ',name) ,process)
+          `(,type (if (listp ',name) ,name ',name)))))))
 
 (defun variable-reader (stream char)
   (declare (ignore char))

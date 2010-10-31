@@ -146,16 +146,16 @@
   (:method (local-name global-name (process message) &optional (expandp t))
     (if (eql (name process) local-name)
       (setf (name process) global-name))
-    (psetf (process process)
-           (apply-restriction local-name global-name (process process) expandp)
+    (psetf (argument process)
+           (apply-restriction local-name global-name (argument process) expandp)
            (continuation process)
            (apply-restriction local-name global-name (continuation process) expandp))
     process)
   (:method (local-name global-name (process kell) &optional (expandp t))
     (if (eql (name process) local-name)
       (setf (name process) global-name))
-    (psetf (process process)
-           (apply-restriction local-name global-name (process process) expandp)
+    (psetf (state process)
+           (apply-restriction local-name global-name (state process) expandp)
            (continuation process)
            (apply-restriction local-name global-name (continuation process) expandp))
     process)
@@ -250,7 +250,7 @@
     (mapc #'push-event (collect-channel-names process kell)))
   (:method ((process kell) (kell kell))
     (call-next-method)
-    (activate-process (process process) process))
+    (activate-process (state process) process))
   (:method ((process parallel-composition) (kell kell))
     (map-parallel-composition (lambda (sub-process)
                                 (activate-process sub-process kell))
@@ -273,7 +273,7 @@
   (:method ((process restriction-abstraction) (kell kell))
     (add-process (expand-restriction process) kell))
   (:method ((process agent) (kell kell))
-    (setf (process kell) (compose process (process kell)))
+    (setf (state kell) (compose process (state kell)))
     (activate-process process kell))
   (:method ((process parallel-composition) (kell kell))
     (map-parallel-composition (lambda (sub-process)
@@ -284,7 +284,7 @@
         (error 'duplicate-kell-name-error :name (name process))
         (progn
           (call-next-method)
-          (activate-process (process process) process)))))
+          (activate-process (state process) process)))))
 
 (defun get-cpu-count ()
   (princ "How many CPUs/cores are in your computer? ")
@@ -313,7 +313,7 @@
         ;; parents
         (setf current-kell *top-kell*
               (parent *top-kell*)
-              (make-instance 'kell :name (gensym "OUTSIDE") :process *top-kell*))
+              (kell (gensym "OUTSIDE") *top-kell*))
         (unwind-protect
             (loop do
               (printk "~a> " (name current-kell))

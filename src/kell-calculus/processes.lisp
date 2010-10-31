@@ -30,42 +30,36 @@
 (defmethod print-object ((obj restriction) stream)
   (format stream "(new ~s ~s)" (names obj) (abstraction obj)))
 
-;;; FIXME: need  a better name
-(defclass message-structure (process)
+(defclass message (process)
   ((name :initarg :name :accessor name :type name)
-   (process :initarg :process :initform null :type generic-process
-            :accessor process)
-   (continuation :initarg :continuation :initform null
-                 :type (or process (member up down))
-                 :accessor continuation))
-  (:documentation "The commonalities between messages and kells."))
-
-(defclass message (message-structure)
-  ())
+   (argument :initarg :argument :initform null :type generic-process
+             :accessor argument)
+   (continuation :initarg :continuation :initform null :type (or process symbol)
+                 :accessor continuation)))
 
 (defmethod print-object ((obj message) stream)
-  (if (and (slot-boundp obj 'name)
-           (slot-boundp obj 'process)
-           (slot-boundp obj 'continuation))
-    (format stream "{~s~:[ ~s~:[ ~s~;~]~;~]}"
-            (name obj)
-            (and (eql (process obj) null)
-                 (eql (continuation obj) null))
-            (process obj)
-            (eql (continuation obj) null)
-            (continuation obj))
-    (call-next-method)))
+  (format stream "{~s~:[ ~s~:[ ~s~;~]~;~]}"
+          (name obj)
+          (and (eql (argument obj) null)
+               (eql (continuation obj) null))
+          (argument obj)
+          (eql (continuation obj) null)
+          (continuation obj)))
 
-(defun message (name &optional process continuation)
+(defun message (name &optional argument continuation)
   (if continuation
     (make-instance 'message
-      :name name :process process :continuation continuation)
-    (if process
-      (make-instance 'message :name name :process process)
+      :name name :argument argument :continuation continuation)
+    (if argument
+      (make-instance 'message :name name :argument argument)
       (make-instance 'message :name name))))
 
-(defclass kell (message-structure)
-  (;; implementation details
+(defclass kell (process)
+  ((name :initarg :name :accessor name :type name)
+   (state :initarg :state :initform null :type process :accessor state)
+   (continuation :initarg :continuation :initform null :type process
+                 :accessor continuation)
+   ;; implementation details
    (lock :reader lock)
    ;; while each trigger pattern contains a multiset of typed patterns, we keep
    ;; them aggregated here in a hash-table mapping the channel-name to the
@@ -84,16 +78,16 @@
 (defmethod initialize-instance :after ((obj kell) &key &allow-other-keys)
   (setf (slot-value obj 'lock) (make-lock (format nil "kell ~a" (name obj)))))
 
-(defun kell (name &optional process continuation)
+(defun kell (name &optional state continuation)
   (if continuation
-    (make-instance 'kell :name name :process process :continuation continuation)
-    (if process
-      (make-instance 'kell :name name :process process)
+    (make-instance 'kell :name name :state state :continuation continuation)
+    (if state
+      (make-instance 'kell :name name :state state)
       (make-instance 'kell :name name))))
 
 (defmethod print-object ((obj kell) stream)
   (format stream "[~s ~s~:[ ~s~;~]]"
-          (name obj) (process obj)
+          (name obj) (state obj)
           (eql (continuation obj) null) (continuation obj)))
 
 (defclass parallel-composition (process)
@@ -188,74 +182,74 @@
               not be removed."
              process (process trigger))))
   (:method ((process message) kell)
-    (if (find process (messages-in (process kell)))
-      (typecase (process kell)
-        (message (setf (process kell) null))
-        (parallel-composition (setf (messages (process kell))
-                                    (delete process (messages (process kell))))
+    (if (find process (messages-in (state kell)))
+      (typecase (state kell)
+        (message (setf (state kell) null))
+        (parallel-composition (setf (messages (state kell))
+                                    (delete process (messages (state kell))))
                               (case (length (map-parallel-composition
                                              #'identity
-                                             (process kell)))
-                                (0 (setf (process kell) null))
-                                (1 (setf (process kell)
+                                             (state kell)))
+                                (0 (setf (state kell) null))
+                                (1 (setf (state kell)
                                          (car (map-parallel-composition
                                                #'identity
-                                               (process kell))))))))
+                                               (state kell))))))))
       (error "The (message) process ~a is not contained in ~a, and thus can ~
               not be removed."
-             process (process kell))))
+             process (state kell))))
   (:method ((process kell) kell)
-    (if (find process (kells-in (process kell)))
-      (typecase (process kell)
-        (kell (setf (process kell) null))
-        (parallel-composition (setf (kells (process kell))
-                                    (delete process (kells (process kell))))
+    (if (find process (kells-in (state kell)))
+      (typecase (state kell)
+        (kell (setf (state kell) null))
+        (parallel-composition (setf (kells (state kell))
+                                    (delete process (kells (state kell))))
                               (case (length (map-parallel-composition
                                              #'identity
-                                             (process kell)))
-                                (0 (setf (process kell) null))
-                                (1 (setf (process kell)
+                                             (state kell)))
+                                (0 (setf (state kell) null))
+                                (1 (setf (state kell)
                                          (car (map-parallel-composition
                                                #'identity
-                                               (process kell))))))))
+                                               (state kell))))))))
       (error "The (kell) process ~a is not contained in ~a, and thus can not ~
               be removed."
-             process (process kell))))
+             process (state kell))))
   (:method ((process trigger) kell)
-    (if (find process (triggers-in (process kell)))
-      (typecase (process kell)
-        (trigger (setf (process kell) null))
-        (parallel-composition (setf (triggers (process kell))
-                                    (delete process (triggers (process kell))))
+    (if (find process (triggers-in (state kell)))
+      (typecase (state kell)
+        (trigger (setf (state kell) null))
+        (parallel-composition (setf (triggers (state kell))
+                                    (delete process (triggers (state kell))))
                               (case (length (map-parallel-composition
                                              #'identity
-                                             (process kell)))
-                                (0 (setf (process kell) null))
-                                (1 (setf (process kell)
+                                             (state kell)))
+                                (0 (setf (state kell) null))
+                                (1 (setf (state kell)
                                          (car (map-parallel-composition
                                                #'identity
-                                               (process kell))))))))
+                                               (state kell))))))))
       (error "The (trigger) process ~a is not contained in ~a, and thus can ~
               not be removed."
-             process (process kell))))
+             process (state kell))))
   (:method (process kell)
-    (if (find process (primitives-in (process kell)))
-      (typecase (process kell)
-        (parallel-composition (setf (primitives (process kell))
+    (if (find process (primitives-in (state kell)))
+      (typecase (state kell)
+        (parallel-composition (setf (primitives (state kell))
                                     (delete process
-                                            (primitives (process kell))))
+                                            (primitives (state kell))))
                               (case (length (map-parallel-composition
                                              #'identity
-                                             (process kell)))
-                                (0 (setf (process kell) null))
-                                (1 (setf (process kell)
+                                             (state kell)))
+                                (0 (setf (state kell) null))
+                                (1 (setf (state kell)
                                          (car (map-parallel-composition
                                                #'identity
-                                               (process kell)))))))
-        (t (setf (process kell) null)))
+                                               (state kell)))))))
+        (t (setf (state kell) null)))
       (error "The (restriction) process ~a is not contained in ~a, and thus ~
               can not be removed."
-             process (process kell)))))
+             process (state kell)))))
 
 (defgeneric process-variables-in (process)
   (:documentation
@@ -311,7 +305,7 @@
     (primitives process)))
 
 (defmethod subkells ((kell kell))
-  (kells-in (process kell)))
+  (kells-in (state kell)))
 
 (defmethod compose (process-a process-b)
   (compose (compose (make-instance 'parallel-composition) process-a)

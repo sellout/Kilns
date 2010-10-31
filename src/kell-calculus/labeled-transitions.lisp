@@ -36,11 +36,11 @@
 #|
 (defmethod free-names ((agent down-message))
   (union (free-names (name agent))
-         (free-names (process agent))
+         (free-names (argument agent))
          (free-names (parent agent))))
 
 (defmethod free-variables ((agent down-message))
-  (free-variables (process agent)))
+  (free-variables (argument agent)))
 |#
 
 (defmethod free-names ((agent concretion))

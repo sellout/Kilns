@@ -81,25 +81,25 @@
            ((pattern message) (message message)
             &optional (substitutions (make-empty-environment)))
   (if (equal (name pattern) (name message))
-    (recursive-match (process pattern) (process message) substitutions)))
+    (recursive-match (argument pattern) (argument message) substitutions)))
 
 (defmethod match-down :around
            ((pattern message) (message message)
             &optional (substitutions (make-empty-environment)))
   (if (equal (name pattern) (name message))
-    (recursive-match (process pattern) (process message) substitutions)))
+    (recursive-match (argument pattern) (argument message) substitutions)))
 
 (defmethod match-up :around
            ((pattern message) (message message)
             &optional (substitutions (make-empty-environment)))
   (if (equal (name pattern) (name message))
-    (recursive-match (process pattern) (process message) substitutions)))
+    (recursive-match (argument pattern) (argument message) substitutions)))
 
 (defmethod match-kell :around
            ((pattern kell) (kell kell)
             &optional (substitutions (make-empty-environment)))
   (if (equal (name pattern) (name kell))
-    (unify (process pattern) (process kell) substitutions)))
+    (unify (state pattern) (state kell) substitutions)))
 
 (defgeneric recursive-match (pattern process &optional substitutions)
   (:method (pattern process &optional (substitutions (make-empty-environment)))
@@ -120,7 +120,7 @@
   (:method ((pattern message) (process message)
             &optional (substitutions (make-empty-environment)))
     (if (typep (name pattern) 'name-variable)
-      (recursive-match (process pattern) (process process)
+      (recursive-match (argument pattern) (argument process)
                        (unify (name pattern) (name process) substitutions))
       (second (match pattern process substitutions)))))
 
@@ -130,8 +130,8 @@
     '())
   (:method ((pattern message))
     (if (typep (name pattern) 'name-variable)
-      (cons (name pattern) (collect-bound-names (process pattern)))
-      (collect-bound-names (process pattern))))
+      (cons (name pattern) (collect-bound-names (argument pattern)))
+      (collect-bound-names (argument pattern))))
   (:method ((pattern parallel-composition))
     (mapcan #'collect-bound-names (messages pattern))))
 
@@ -148,9 +148,9 @@
   (:method ((pattern process-variable))
     (list pattern))
   (:method ((pattern message))
-    (collect-bound-variables (process pattern)))
+    (collect-bound-variables (argument pattern)))
   (:method ((pattern kell))
-    (list (process pattern)))
+    (list (state pattern)))
   (:method ((pattern parallel-composition))
     (mapcan #'collect-bound-variables (messages pattern))))
 
