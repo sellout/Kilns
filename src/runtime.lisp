@@ -73,8 +73,9 @@
     `(let ((,kellvar ,kell))
        (with-lock-held ((lock (parent ,kellvar)))
          (with-lock-held ((lock ,kellvar))
-           ;; FIXME: this should probably use some fancy WITH-LOCK-HELD macroexpansion
-           ;;        in order to UNWIND-PROTECT all of the lock releases 
+           ;; FIXME: this should probably use some fancy WITH-LOCK-HELD
+           ;;        macroexpansion in order to UNWIND-PROTECT all of the lock
+           ;;        releases 
            (let ((subkells (subkells ,kellvar)))
              (mapcar (lambda (subkell)
                        (acquire-lock (lock subkell) t))
@@ -149,7 +150,8 @@
     (psetf (argument process)
            (apply-restriction local-name global-name (argument process) expandp)
            (continuation process)
-           (apply-restriction local-name global-name (continuation process) expandp))
+           (apply-restriction local-name global-name (continuation process)
+                              expandp))
     process)
   (:method (local-name global-name (process kell) &optional (expandp t))
     (if (eql (name process) local-name)
@@ -157,12 +159,16 @@
     (psetf (state process)
            (apply-restriction local-name global-name (state process) expandp)
            (continuation process)
-           (apply-restriction local-name global-name (continuation process) expandp))
+           (apply-restriction local-name global-name (continuation process)
+                              expandp))
     process)
-  (:method (local-name global-name (process parallel-composition) &optional (expandp t))
+  (:method (local-name global-name (process parallel-composition)
+            &optional (expandp t))
     (apply #'parallel-composition
            (map-parallel-composition (lambda (proc)
-                                       (apply-restriction local-name global-name proc
+                                       (apply-restriction local-name
+                                                          global-name
+                                                          proc
                                                           expandp))
                                      process)))
   (:method (local-name global-name (process pattern) &optional (expandp t))
@@ -208,7 +214,8 @@
   (:documentation "This returns a list of events to add to the event queue.")
   (:method ((process process-variable) (kell kell))
     ;; FIXME: not good enough. Need to prevent it from getting into the kell.
-    (break "Can't have a free variable (~a) in an active kell (~a)." process kell))
+    (break "Can't have a free variable (~a) in an active kell (~a)."
+           process kell))
   (:method ((process parallel-composition) (kell kell))
     ;; FIXME: I don't think this ever gets called
     (apply #'append
