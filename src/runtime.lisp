@@ -386,17 +386,11 @@
 (defun find-triggers-matching-message (name kell)
   "Collect down-patterns from parent kell, up-patterns from subkells, and local-
    and kell-patterns from the given kell."
-  (append (mapcar (lambda (pattern)
-                    (list pattern (parent kell)))
-                  (gethash name (down-patterns (parent kell))))
-          (mapcan (lambda (subkell)
-                    (mapcar (lambda (pattern)
-                              (list pattern subkell))
-                            (gethash name (up-patterns subkell))))
-                  (subkells kell))
-          (mapcar (lambda (pattern)
-                    (list pattern kell))
-                  (gethash name (local-patterns kell)))))
+  (remove-duplicates (append (gethash name (local-patterns kell))
+                             (gethash name (down-patterns (parent kell)))
+                             (mappend (lambda (subkell)
+                                        (gethash name (up-patterns subkell)))
+                                      (subkells kell)))))
 
 (defgeneric match-on (process kell)
   (:documentation "Tries to find a match for all the patterns that could match
@@ -409,14 +403,8 @@
         (kiln-error (c) (handle-error c)))))
   (:method ((process message) (kell kell))
     "Find all triggers that could match – up, down, or local."
-    (let ((name (name process)))
-      (select-matching-pattern
-       (remove-duplicates (append (gethash name (local-patterns kell))
-                                  (gethash name (down-patterns (parent kell)))
-                                  (mappend (lambda (subkell)
-                                             (gethash name
-                                                      (up-patterns subkell)))
-                                           (subkells kell)))))))
+    (select-matching-pattern (find-triggers-matching-message (name process)
+                                                             kell)))
   (:method ((process kell) (kell kell))
     "Find all triggers that could match."
     (select-matching-pattern (gethash (name process) (kell-patterns kell))))
