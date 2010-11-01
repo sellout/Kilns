@@ -317,9 +317,9 @@
         (unwind-protect
             (loop do
               (printk "~a> " (name current-kell))
-              (handler-case (add-process (read) current-kell)
-                (end-of-file () (return))
-                (kiln-error (c) (handle-error c))))
+                 (handler-case (add-process (read) current-kell)
+                   (end-of-file () (return))
+                   (kiln-error (c) (handle-error c))))
           (mapc #'destroy-thread kilns)
           (clear-events))))))
 
@@ -397,9 +397,9 @@
                    channel NAME in KELL.")
   (:method :around (process kell)
     (when (not (deadp process))
-      (handler-case
-          (lock-neighboring-kells (kell)
-            (call-next-method))
+      (handler-case (lock-neighboring-kells (kell)
+                      (when (not (deadp process))
+                        (call-next-method)))
         (kiln-error (c) (handle-error c)))))
   (:method ((process message) (kell kell))
     "Find all triggers that could match – up, down, or local."
