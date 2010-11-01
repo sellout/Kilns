@@ -1,0 +1,76 @@
+(load "library/replication")
+(load "library/utilities")
+(load "library/simple-components")
+(include-component "library/identity")
+(include-component "library/math")
+
+;;; Here are a couple fun things to try when you load this file:
+;;; 
+;;; (include-component "library/simple-io")
+;;; 
+;;; {natural-numbers {echo}}
+;;; {fibonacci-numbers {echo}}
+;;; {primes {echo}}
+
+;; This is a simple sequence generator. Given an initial value, it will send
+;; that over `rc`, perform the given operation on the value, send the new value
+;; to `rc`, etc.
+(trigger* {generate-sequence (list ?initial-value {?operation} {?rc})}
+          (new next
+               (par {rc ?initial-value
+                        (trigger {next ?value}
+                                 {generate-sequence (list ?value
+                                                          {operation}
+                                                          {rc})})}
+                    {operation (list ?initial-value {next})})))
+
+;; Should probably put this in the math library
+(trigger* {increment (list ?value {?rc})}
+          {+ (list ?value 1 {?rc})})
+
+;; sends all integers starting from `start` over `rc`.
+(trigger* {generate-integers (list ?start {?rc})}
+          {generate-sequence (list ?start {increment} {rc})})
+
+;; sends all the natural numbers over `rc`.
+(trigger* {natural-numbers {?rc}}
+          {generate-integers (list 1 {rc})})
+
+;; This sequence is too complex to use the pre-defined generate-sequence for, so
+;; it's written out in full.
+(trigger* {generate-fibonacci (list ?a ?b {?rc})}
+          (new next
+               (par {+ (list ?a ?b {next})}
+                    (trigger {next ?value}
+                             {rc ?a
+                                 {generate-fibonacci (list ?b ?value {rc})}}))))
+
+;; Sends all the fibonacci numbers over `rc`.
+(trigger* {fibonacci-numbers {?rc}}
+          {generate-fibonacci (list 0 1 {rc})})
+
+;; A simple filter that will check all values sent over `in`, and if they are
+;; _not_ divisible by `factor`, it will send them over `rc`.
+(trigger* {filter-multiples (list {?in} ?factor {?rc})}
+          (trigger {in ?value}
+                   (new mod
+                        (par {modulus (list ?value ?factor {mod})}
+                             (trigger {mod ?rem}
+                                      {/= (list ?rem 0
+                                                {rc ?value
+                                                    {filter-multiples (list {in} ?factor {rc})}}
+                                                {filter-multiples (list {in} ?factor {rc})})})))))
+
+;; The sieve of Erastothenes
+(trigger* {sieve (list {?in} {?rc})}
+          (trigger {in ?value}
+                   {rc ?value
+                       (new next-in
+                            (par {filter-multiples (list {in} ?value {next-in})}
+                                 {sieve (list {next-in} {rc})}))}))
+
+;; Sends all prime numbers over `rc`.
+(trigger* {primes {?rc}}
+          (new connection
+               (par {generate-integers (list 2 {connection})}
+                    {sieve (list {connection} {rc})})))
