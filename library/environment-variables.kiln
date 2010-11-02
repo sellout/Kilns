@@ -1,0 +1,55 @@
+(load "library/replication")
+(load "library/utilities")
+
+;;; This should give the illusion that these variables work the same as "normal"
+;;; variables, IE
+;;; 
+;;; (trigger {environment {PATH ?value}} ...) should work as getenv("PATH")
+
+;; FIXME: This doesn't work inside a normal component, really. Should create a
+;;        custom one for env vars
+(trigger* {environment {?variable-name ?value} up}
+          {= (list ?value null
+                   {unset-environment-variable {variable-name}
+                                               (trigger {variable-name _}
+                                                        null)}
+                   {update-environment-variable {variable-name ?value}
+                                                (trigger {variable-name _}
+                                                         null)})})
+
+;; A simple lisp-boolean tester
+(trigger* {if (list ?test ?true ?false)}
+          {= (list cl:nil ?test ?false ?true)})
+
+(trigger* {items-from-list (list ?list {?cons} {?nil})}
+          {if (list ?list
+                    {cons (lisp (cl:car #.?list))
+                          {items-from-list (list (lisp (cl:cdr #.?list))
+                                                 {cons} {nil})}}
+                    {nil})})
+
+;; initialize-environment
+(new (env done)
+     (par {items-from-list (list #|some lisp form to get all env vars|#
+                                 {env} {done})}
+          (trigger* {env ?name} {get-environment-variable {name}})))
+
+;;; private API that directly accesses the environment
+
+(trigger* {get-environment-variable {?name}}
+          (new env
+               (par {env (lisp (iolib.os:environment-variable
+                                (string #.?name)))}
+                    (trigger {env ?value}
+                             {if (list ?value
+                                       {name ?value
+                                             {get-environment-variable {name}}}
+                                       null)}))))
+
+(trigger* {set-environment-variable {?name ?value}}
+          (lisp (setf (iolib.os:environment-variable (string #.?name)) #.?value)
+                null))
+
+(trigger* {unset-environment-variable {?name}}
+          (lisp (iolib.os:makunbound-environment-variable (string #.?name))
+                null))
