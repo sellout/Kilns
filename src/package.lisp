@@ -59,7 +59,7 @@
   (:use #:cl #:kell-calculus #:kilns)
   (:shadowing-import-from #:kell-calculus #:substitute #:match)
   (:shadow #:load #:read #:eval)
-  (:export #:load #:read #:eval #:state #:lisp))
+  (:export #:load #:read #:eval #:system-state #:lisp))
 
 (defpackage kilns-user
   (:use #:kell-calculus #:kilns #:kilns-runner)
