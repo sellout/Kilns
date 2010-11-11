@@ -1,9 +1,30 @@
 ;;; This is an ugly little thing that uses way too much CL to give us a list
 ;;; shorthand. You can write (list ?x ?y) and it will expand into
 ;;; (par {1 ?x} {2 ?y}).
+
 (def (list cl:&rest processes)
   `(cl:let ((index 0))
      (cl:apply #'parallel-composition
                (cl:mapcar (cl:lambda (process)
                             (message (cl:incf index) (cl:eval process)))
                           ',processes))))
+
+#| FIXME: here is the start of an attempt to do this with less CL. The problems
+          I see are: 1. we can't actually use ?index as a channel name and 2. it
+          needs to be evaluated in place, with some special output channel.
+
+          Maybe `def` could look like (def (name pattern) response-chan body)
+
+(load "library/simple-components")
+(include-component "library/lisp-ffi")
+
+(def (list cl:&rest processes)
+     (new (item nil index result)
+          (par {items-from-list (list `,processes {item} {nil})}
+               {natural-numbers {index}}
+               {result null}
+               (trigger* (par {item ?item} {index ?index} {result ?current})
+                         {result (par ?current {index ?item})})
+               (trigger (par {nil} {result ?final})
+                        {here-is-what-we-want-to-expand-to ?final}))))
+|#
