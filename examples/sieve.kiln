@@ -25,12 +25,12 @@
                     {operation (list ?initial-value {next})})))
 
 ;; Should probably put this in the math library
-(trigger* {increment (list ?value {?rc})}
+(trigger* {successor (list ?value {?rc})}
           {+ (list ?value 1 {?rc})})
 
 ;; sends all integers starting from `start` over `rc`.
 (trigger* {generate-integers (list ?start {?rc})}
-          {generate-sequence (list ?start {increment} {rc})})
+          {generate-sequence (list ?start {successor} {rc})})
 
 ;; sends all the natural numbers over `rc`.
 (trigger* {natural-numbers {?rc}}
@@ -74,3 +74,25 @@
           (new connection
                (par {generate-integers (list 2 {connection})}
                     {sieve (list {connection} {rc})})))
+
+;; Send the `index`th value in a stream over `rc`.
+(trigger* {stream-ref (list {?in} ?index {?rc})}
+          (trigger {in ?value}
+                   {= (list ?index 0
+                            {rc ?value}
+                            (new next
+                                 (par {- (list ?index 1 {next})}
+                                      (trigger {next ?next}
+                                               {stream-ref (list {in}
+                                                                 ?next
+                                                                 {rc})}))))}))
+
+
+;; `stream-ref` allows us to redefine the example from fibonacci.kiln as
+(trigger* {fibonacci (list ?index {?rc})}
+          (new f
+               (par {fibonacci-numbers {f}}
+                    {stream-ref {f} ?index {rc}})))
+
+;;; You can see how sharing a channel makes the producer/consumer pattern very
+;;; simple.
