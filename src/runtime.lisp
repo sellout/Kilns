@@ -253,6 +253,7 @@
   (:method :before ((process agent) kell &optional watchp)
     "Sometimes a process that was matched gets re-added (as in `trigger*`), so
      we need to make sure that it is not seen as dead when re-added."
+    (declare (ignore kell watchp))
     (setf (deadp process) nil))
   (:method (process kell &optional watchp)
     "Handles any other “primitive” processes (strings, numbers, etc.)"
@@ -270,6 +271,7 @@
     (map-process (lambda (sub-process) (add-process sub-process kell watchp))
                  process))
   (:method ((process kell) (kell kell) &optional watchp)
+    (declare (ignorable watchp)) ; FIXME: not really, but CCL complains
     (if (gethash (name process) (kells kell))
         (error 'duplicate-kell-name-error :name (name process))
         (progn
