@@ -357,14 +357,15 @@
   (dolist (trigger patterns)
     (let ((locked-kells (find-kells-to-lock trigger)))
       (mapc (lambda (kell)
-              (dispatch:wait-on-semaphore (lock kell) 'dispatch:forever))
+              (dispatch:wait-on-semaphore (lock kell) dispatch:forever))
             locked-kells)
       (unwind-protect
           (if (deadp live-process)
             (return nil)
             (when (not (deadp trigger))
               (destructuring-bind (processes substitutions)
-                                  (handler-case (match (pattern trigger) (parent trigger))
+                                  (handler-case
+                                      (match (pattern trigger) (parent trigger))
                                     (unification-failure () (list nil nil)))
                 (when processes
                   (execute-match trigger processes substitutions)
