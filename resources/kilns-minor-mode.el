@@ -63,7 +63,7 @@ For more information, see http://github.com/sellout/Kilns")
   "The path to the kilns executable with trailing slash.
 
 This should not include the name of the kilns binary."
-  :type 'path
+  :type 'directory
   :group 'kilns-minor-mode)
 
 (defcustom inferior-kilns-binary "kilns"

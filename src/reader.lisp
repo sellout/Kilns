@@ -1,15 +1,7 @@
-(defpackage kilns-runner
-  (:use #:cl #:kilns)
-  (:shadow #:load #:read #:eval)
-  (:export #:load #:read #:eval #:state #:lisp))
-
-(defpackage kilns-user
-  (:use #:kilns #:kilns-runner))
-
-(in-package #:kilns-runner)
+(in-package #:kilns)
 
 ;; (defun eval (form)
-;;   (kilns::add-process form kilns::*top-kell*))
+;;   (add-process form *top-kell*))
 
 (defun read (&rest read-args)
   (apply #'cl:read read-args))
@@ -26,7 +18,7 @@
   (declare (ignore if-does-not-exist verbose))
   (let ((full-name (merge-pathnames file-name (make-pathname :type "kiln"))))
     (with-open-file (stream full-name :external-format :utf-8)
-      (apply #'kilns::parallel-composition
+      (apply #'parallel-composition
              (reverse (loop for value = (read stream nil)
                         while value
                         do (if print (print value) value)
@@ -37,5 +29,5 @@
 
 (defun dev ()
   (in-package :kilns)
-  (setf *readtable* kilns::*kilns-readtable*)
+  (setf *readtable* *kilns-readtable*)
   (values))

@@ -1,4 +1,4 @@
-(in-package #:kilns)
+(in-package #:kell-calculus)
 
 (defclass pattern-language ()
   (grammar :initarg :grammar))
@@ -85,9 +85,6 @@
     combined-hash-table))
 
 (defgeneric match (pattern process &optional substitutions)
-  ;; NOTE: In theory I might have to worry about the same variable occuring
-  ;;       multiple times in a pattern, but I have to read more to find out one
-  ;;       way or the other. In any case, I'm currently disallowing it.
   (:method ((pattern pattern) (kell kell)
             &optional (substitutions (make-empty-environment)))
     (list (append (destructuring-bind (procs subst)
@@ -217,67 +214,6 @@
   (:documentation
    "This returns a list of all process-variables that are bound by the given
     pattern."))
-
-(defgeneric free-names (process)
-  (:documentation "Process -> {Name}")
-  (:method (process)
-    (declare (ignore process))
-    '())
-  (:method ((process symbol))
-    ;;; FIXME: we don't actually know whether a symbol is a free name or a free
-    ;;;        variable without the context that surrounds it.
-    (list process))
-  (:method ((process restriction))
-    (set-difference (free-names (process process)) (list (name process))))
-  (:method ((process kell))
-    (reduce #'union
-            (list (free-names (name process))
-                  (free-names (process process))
-                  (free-names (continuation process)))))
-  (:method ((process message))
-    (reduce #'union
-            (list (free-names (name process))
-                  (free-names (process process))
-                  (free-names (continuation process)))))
-  (:method ((process parallel-composition))
-    (reduce #'union (map-parallel-composition #'free-names process)))
-  (:method ((process trigger))
-    (union (free-names (pattern process))
-           (set-difference (free-names (process process))
-                           (bound-names (pattern process))))))
-
-(defgeneric free-variables (process)
-  (:documentation "Process -> {Name}")
-  (:method (process)
-    (declare (ignore process))
-    '())
-  (:method ((process symbol))
-    ;;; FIXME: we don't actually know whether a symbol is a free name or a free
-    ;;;        variable without the context that surrounds it.
-    '())
-  (:method ((process cons))
-    (reduce #'union (mapcar #'free-variables process)))
-  (:method ((process name-variable))
-    (list process))
-  (:method ((process process-variable))
-    (list process))
-  (:method ((process restriction))
-    (set-difference (free-variables (process process)) (list (name process))))
-  (:method ((process kell))
-    (reduce #'union
-            (list (free-variables (name process))
-                  (free-variables (process process))
-                  (free-variables (continuation process)))))
-  (:method ((process message))
-    (reduce #'union
-            (list (free-variables (name process))
-                  (free-variables (process process))
-                  (free-variables (continuation process)))))
-  (:method ((process parallel-composition))
-    (reduce #'union (map-parallel-composition #'free-variables process)))
-  (:method ((process trigger))
-    (set-difference (free-variables (process process))
-                    (bound-variables (pattern process)))))
 
 ;;; – Pattern languages are equipped with a function sk, which maps a pattern ξ
 ;;;   to a multiset of names. Intuitively, ξ.sk corresponds to the multiset of

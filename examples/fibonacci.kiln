@@ -1,0 +1,28 @@
+(load "library/utilities")
+(load "library/replication")
+(load "library/simple-components")
+(include-component "library/ordering")
+(include-component "library/math")
+
+;; Sends the given process `count` times.
+(trigger* {repeat (list ?process ?count)}
+          {<= (list ?index 0
+                    null
+                    (new next
+                         (par ?process
+                              {- (list ?count 1 {next})}
+                              (trigger {next ?next}
+                                       {repeat (list ?process ?next)}))))})
+
+(trigger* {fibonacci (list ?index {?rc})}
+          {<= (list ?index 1
+                    {rc ?index}
+                    (new (previous f)
+                         (par {- (list ?index 1 {previous})}
+                              {- (list ?index 2 {previous})}
+                              {repeat (list (trigger {previous ?new-index}
+                                                     {fibonacci (list ?new-index
+                                                                      {f})})
+                                            2)}
+                              (trigger (par {f ?fib1} {f ?fib2})
+                                       {+ (list ?fib1 ?fib2 {rc})}))))})
