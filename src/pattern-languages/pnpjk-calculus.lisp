@@ -47,8 +47,7 @@
      &optional (substitutions (make-empty-environment)))
   (unify (intern (format nil "?~a" (name pattern))) agent substitutions))
 
-(defmethod find-name-variable-value
-    ((variable name-variable) &optional env errorp)
+(defun find-name-variable-value (variable &optional env errorp)
   (find-variable-value (intern (format nil "?~a" (name variable))) env errorp))
 
 (defclass blank (process)

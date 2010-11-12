@@ -20,10 +20,6 @@
   (unify (argument pattern) (argument agent)
          (unify (name pattern) (name agent) substitutions)))
 
-(defmethod match-messages (first second)
-  (handler-case (unify first second)
-    (unification-failure () nil)))
-
 ;;; this is probably not necessary, but I don't understand these environments well
 (defun duplicate-environment (env)
   (unify::make-environment
@@ -50,10 +46,9 @@
   (unify (car (kell-message-pattern pattern)) agent substitutions))
 
 ;; NOTE: FIND-VARIABLE-VALUE isn't generic, so we use a different name
-(defmethod find-symbol-value ((variable symbol) &optional env errorp)
+(defun find-symbol-value (variable &optional env errorp)
   (find-variable-value (intern (format nil "?~a" variable)) env errorp))
-(defmethod find-process-variable-value
-    ((variable process-variable) &optional env errorp)
+(defun find-process-variable-value (variable &optional env errorp)
   (find-variable-value (intern (format nil "?~a" (name variable))) env errorp))
 
 ;;; It turns out that occurs-in-p is used to make sure that variables don't
