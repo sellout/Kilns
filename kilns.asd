@@ -8,7 +8,7 @@
   :description "An implementation of the Kell calculus in a lisp-like language."
   :license ""
   :author "Greg Pfeil <greg@technomadic.org>"
-  :depends-on (bordeaux-threads cl-unification iolib.os)
+  :depends-on (bordeaux-threads cl-unification iolib.os closer-mop)
   :pathname "src/"
   :components ((:file "package")
                (:module "kell-calculus"

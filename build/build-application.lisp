@@ -12,6 +12,7 @@
 (ql:quickload "bordeaux-threads" :verbose nil)
 (ql:quickload "cl-unification" :verbose nil)
 (ql:quickload "iolib" :verbose nil)
+(ql:quickload "closer-mop" :verbose nil)
 
 (load "kilns.asd")
 (asdf:load-system :kilns :verbose nil)

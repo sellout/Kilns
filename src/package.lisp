@@ -8,6 +8,7 @@
            #:process #:message #:kell #:subkells
            #:argument #:state
            #:parallel-composition #:compose
+           #:restriction
            #:null-process
            #:pattern-language #:pattern #:up #:down
            #:substitute
@@ -31,10 +32,10 @@
   (:documentation
    "A simple and direct implementation of the Kell calculus, suitable for
     testing the behavior of more advanced implementations.")
-  (:use #:cl #:bordeaux-threads #:unify
+  (:use #:closer-common-lisp #:bordeaux-threads #:unify
         #:kell-calculus)
   (:shadowing-import-from #:kell-calculus #:substitute #:match)
-  (:shadow #:complement)
+  (:shadow #:complement #:load #:read)
   (:export ;; core calculus
            #:trigger
            #:restriction
@@ -51,16 +52,11 @@
            ;; fraKtal pattern language
            #:!=
            ;; abbreviated syntax
-           #:par #:new
+           #:par #:new 
            ;; interactive commands
-           #:move-up #:move-down))
-
-(defpackage kilns-runner
-  (:use #:cl #:kell-calculus #:kilns)
-  (:shadowing-import-from #:kell-calculus #:substitute #:match)
-  (:shadow #:load #:read #:eval)
-  (:export #:load #:read #:eval #:system-state #:dump-system-state #:lisp))
+           #:load #:move-up #:move-down
+           #:system-state #:dump-system-state #:lisp #:watch))
 
 (defpackage kilns-user
-  (:use #:kell-calculus #:kilns #:kilns-runner)
+  (:use #:kell-calculus #:kilns)
   (:shadowing-import-from #:kell-calculus #:substitute #:match))
