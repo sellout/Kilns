@@ -1,7 +1,13 @@
-(load "tests/test-examples")
-(load "tests/test-utilities")
-(load "tests/test-math")
-(load "tests/test-association-lists")
+(load "library/sandbox")
+
+;;; FIXME: this sandbox never gets cleaned up, but it at least allows us to
+;;;        isolate test runs from other things we might do, as well as each
+;;;        other
+(sandbox (par (load "tests/test-examples")
+              (load "tests/test-utilities")
+              (load "tests/test-math")
+              (load "tests/test-association-lists"))
+         rc)
 
 ;;; FIXME: The sleep is here to keep kilns from quitting as soon as it hits EOF.
 ;;;        We can get rid of this once we have better command line options that

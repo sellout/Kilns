@@ -128,23 +128,28 @@
   (:method (local-name global-name (process message) &optional (expandp t))
     (if (eql (name process) local-name)
       (setf (name process) global-name))
-    (psetf (process process)
-           (apply-restriction local-name global-name (process process) expandp)
+    (psetf (argument process)
+           (apply-restriction local-name global-name (argument process) expandp)
            (continuation process)
-           (apply-restriction local-name global-name (continuation process) expandp))
+           (apply-restriction local-name global-name (continuation process)
+                              expandp))
     process)
   (:method (local-name global-name (process kell) &optional (expandp t))
     (if (eql (name process) local-name)
       (setf (name process) global-name))
-    (psetf (process process)
-           (apply-restriction local-name global-name (process process) expandp)
+    (psetf (state process)
+           (apply-restriction local-name global-name (state process) expandp)
            (continuation process)
-           (apply-restriction local-name global-name (continuation process) expandp))
+           (apply-restriction local-name global-name (continuation process)
+                              expandp))
     process)
-  (:method (local-name global-name (process parallel-composition) &optional (expandp t))
+  (:method (local-name global-name (process parallel-composition)
+            &optional (expandp t))
     (apply #'parallel-composition
            (map-parallel-composition (lambda (proc)
-                                       (apply-restriction local-name global-name proc
+                                       (apply-restriction local-name
+                                                          global-name
+                                                          proc
                                                           expandp))
                                      process)))
   (:method (local-name global-name (process pattern) &optional (expandp t))
@@ -190,7 +195,8 @@
   (:documentation "This returns a list of events to add to the event queue.")
   (:method ((process process-variable) (kell kell))
     ;; FIXME: not good enough. Need to prevent it from getting into the kell.
-    (break "Can't have a free variable (~a) in an active kell (~a)." process kell))
+    (break "Can't have a free variable (~a) in an active kell (~a)."
+           process kell))
   (:method ((process parallel-composition) (kell kell))
     ;; FIXME: I don't think this ever gets called
     (apply #'append
@@ -232,7 +238,7 @@
     (mapc #'push-event (collect-channel-names process kell)))
   (:method ((process kell) (kell kell))
     (call-next-method)
-    (activate-process (process process) process))
+    (activate-process (state process) process))
   (:method ((process parallel-composition) (kell kell))
     (map-process (lambda (sub-process) (activate-process sub-process kell)) process))
   (:method ((process pattern-abstraction) (kell kell))
@@ -242,27 +248,29 @@
     (remove-process process)
     (add-process (expand-restriction process) kell)))
 
-(defgeneric add-process (process kell)
+(defgeneric add-process (process kell &optional watchp)
   (:documentation "Pushes PROCESS onto the given KELL.")
-  (:method (process kell)
+  (:method (process kell &optional watchp)
     "Handles any other “primitive” processes (strings, numbers, etc.)"
-    (declare (ignore process kell))
+    (declare (ignore process kell watchp))
     (values))
-  (:method ((process cons) (kell kell))
-    (add-process (eval process) kell))
-  (:method ((process restriction-abstraction) (kell kell))
-    (add-process (expand-restriction process) kell))
-  (:method ((process agent) (kell kell))
-    (setf (process kell) (compose-processes process (process kell)))
+  (:method ((process cons) (kell kell) &optional watchp)
+    (add-process (eval process) kell watchp))
+  (:method ((process restriction-abstraction) (kell kell) &optional watchp)
+    (add-process (expand-restriction process) kell watchp))
+  (:method ((process agent) (kell kell) &optional watchp)
+    (setf (state kell) (compose process (state kell)))
+    (when watchp (watch process))
     (activate-process process kell))
-  (:method ((process parallel-composition) (kell kell))
-    (map-process (lambda (sub-process) (add-process sub-process kell)) process))
-  (:method ((process kell) (kell kell))
+  (:method ((process parallel-composition) (kell kell) &optional watchp)
+    (map-process (lambda (sub-process) (add-process sub-process kell watchp))
+                 process))
+  (:method ((process kell) (kell kell) &optional watchp)
     (if (gethash (name process) (kells kell))
         (error 'duplicate-kell-name-error :name (name process))
         (progn
           (call-next-method)
-          (activate-process (process process) process)))))
+          (activate-process (state process) process)))))
 
 (defun get-cpu-count ()
   (princ "How many CPUs/cores are in your computer? ")
@@ -291,14 +299,13 @@
         ;; parents
         (setf current-kell *top-kell*
               (parent *top-kell*)
-              (make-instance 'kell :name (gensym "OUTSIDE") :process *top-kell*))
+              (kell (gensym "OUTSIDE") *top-kell*))
         (unwind-protect
             (loop do
               (printk "~a> " (name current-kell))
-              (handler-case (let ((process (eval (read))))
-                              (add-process process current-kell))
-                (end-of-file () (return))
-                (kiln-error (c) (handle-error c))))
+                 (handler-case (add-process (read) current-kell)
+                   (end-of-file () (return))
+                   (kiln-error (c) (handle-error c))))
           (mapc #'destroy-thread kilns)
           (clear-events))))))
 
@@ -337,96 +344,23 @@
                             (gethash (name proc) (kell-patterns kell)))))
             (kell-message-pattern (pattern process))))))
 
-(defgeneric replace-name (name mapping &optional ignored-vars)
-  (:method (name mapping &optional ignored-vars)
-    (declare (ignore mapping ignored-vars))
-    name)
-  (:method ((name symbol) mapping &optional ignored-vars)
-    (if (find name ignored-vars)
-      name
-      (or (find-symbol-value name mapping)
-          name)))
-  (:method ((name process-variable) mapping &optional ignored-vars)
-    ;; FIXME: this method only exists because sometimes '?x' is being read as a
-    ;;        process-variable instead of read as a name-variable
-    (if (find (name name) ignored-vars)
-      name
-      (find-process-variable-value name mapping)))
-  (:method ((name name-variable) mapping &optional ignored-vars)
-    (if (find (name name) ignored-vars)
-      name
-      (find-name-variable-value name mapping))))
-
-(defgeneric replace-variables (process mapping &optional ignored-vars)
-  (:method :around ((process process) mapping &optional ignored-vars)
-    "Make sure conses are evaled as soon as there are no free vars, but no sooner."
-    (declare (ignore mapping ignored-vars))
-    (let ((new-process (call-next-method)))
-      (map-process (lambda (proc)
-                     (if (and (listp proc) (not (free-variables proc)))
-                       (eval proc)
-                       proc))
-                   new-process)))
-  (:method (process mapping &optional ignored-vars)
-    "This just skips over primitives."
-    (declare (ignore mapping ignored-vars))
-    process)
-  (:method ((name symbol) mapping &optional ignored-vars)
-    (if (find name ignored-vars)
-      name
-      (or (find-symbol-value name mapping)
-          name)))
-  (:method ((process cons) mapping &optional ignored-vars)
-    (mapcar (lambda (item) (replace-variables item mapping ignored-vars))
-            process))
-  (:method ((process process-variable) mapping &optional ignored-vars)
-    (if (find (name process) ignored-vars)
-      process
-      (find-process-variable-value process mapping)))
-  (:method ((process message-structure) mapping &optional ignored-vars)
-    (make-instance (class-of process)
-      :name (replace-name (name process) mapping ignored-vars)
-      :process (replace-variables (process process) mapping ignored-vars)
-      :continuation (replace-variables (continuation process) mapping ignored-vars)))
-  (:method ((process parallel-composition) mapping &optional ignored-vars)
-    (map-process (lambda (proc) (replace-variables proc mapping ignored-vars))
-                 process))
-  (:method ((process pattern-abstraction) mapping &optional ignored-vars)
-    (let ((ignored-vars (append (mapcar #'name (bound-names (pattern process)))
-                                (mapcar #'name
-                                        (bound-variables (pattern process)))
-                                ignored-vars)))
-      (make-instance (class-of process)
-        :pattern (make-instance 'pattern
-                   :local-message-pattern
-                   (replace-variables (local-message-pattern (pattern process))
-                                      mapping ignored-vars)
-                   :down-message-pattern
-                   (replace-variables (down-message-pattern (pattern process))
-                                      mapping ignored-vars)
-                   :up-message-pattern
-                   (replace-variables (up-message-pattern (pattern process))
-                                      mapping ignored-vars)
-                   :kell-message-pattern
-                   (replace-variables (kell-message-pattern (pattern process))
-                                      mapping ignored-vars))
-        :process (replace-variables (process process) mapping ignored-vars))))
-  (:method ((process restriction-abstraction) mapping &optional ignored-vars)
-    ;;; FIXME: these names should only be added to ignored NAME vars, but we
-    ;;;        currently don't distinguish
-    (let ((ignored-vars (append (names process) ignored-vars)))
-      (make-instance (class-of process)
-        :names (names process)
-        :abstraction (replace-variables (abstraction process) mapping ignored-vars)))))
-
-(defmethod trigger-process ((trigger pattern-abstraction) mapping)
+(defun trigger-process (trigger mapping watchp)
   "Activates process after substituting the process-variables in the trigger."
   (remove-process trigger)
-  (add-process (replace-variables (process trigger) mapping) (parent trigger)))
+  (add-process (substitute (process trigger) mapping) (parent trigger) watchp))
 
-(defmethod activate-continuation (process)
-    (remove-process process)
-    (add-process (continuation process) (parent process)))
+(defun activate-continuation (process)
+  (remove-process process)
+  (add-process (continuation process) (parent process) (watchp process)))
+
+(defun execute-match (trigger processes substitutions)
+  (when (some #'watchp (cons trigger processes))
+    (log-watched-reaction trigger processes))
+  (trigger-process trigger substitutions
+                   (some #'watchp (cons trigger processes)))
+  (mapc #'activate-continuation processes)
+  (setf (deadp trigger) t)
+  (mapc (lambda (process) (setf (deadp process) t)) processes))
 
 (defun find-kells-to-lock (trigger)
   (append (when (up-message-pattern (pattern trigger))
@@ -435,12 +369,6 @@
           ;; pattern, any result process would affect this kell
           (list (parent trigger))
           (when (down-message-pattern (pattern trigger)) (subkells (parent trigger)))))
-
-(defun execute-match (trigger processes substitutions)
-  (trigger-process trigger substitutions)
-  (mapc #'activate-continuation processes)
-  (setf (deadp trigger) t)
-  (mapc (lambda (process) (setf (deadp process) t)) processes))
 
 (defun select-matching-pattern (patterns live-process)
   (dolist (trigger patterns)
@@ -458,6 +386,15 @@
                   (return)))))
         (mapc (lambda (kell) (release-lock (lock kell))) locked-kells)))))
 
+(defun find-triggers-matching-message (name kell)
+  "Collect down-patterns from parent kell, up-patterns from subkells, and local-
+   and kell-patterns from the given kell."
+  (remove-duplicates (append (gethash name (local-patterns kell))
+                             (gethash name (down-patterns (parent kell)))
+                             (mappend (lambda (subkell)
+                                        (gethash name (up-patterns subkell)))
+                                      (subkells kell)))))
+
 (defgeneric match-on (process kell)
   (:documentation "Tries to find a match for all the patterns that could match
                    channel NAME in KELL.")
@@ -469,34 +406,16 @@
   (:method ((process message) (kell kell))
     "Find all triggers that could match – up, down, or local."
     (let ((name (name process)))
-      (select-matching-pattern
-       (remove-duplicates (append (gethash name (local-patterns kell))
-                                  (gethash name (down-patterns (parent kell)))
-                                  (mappend (lambda (subkell)
-                                             (gethash name (up-patterns subkell)))
-                                           (subkells kell))))
-       process)))
+      (select-matching-pattern (find-triggers-matching-message (name process)
+                                                               kell)
+                               process)))
   (:method ((process kell) (kell kell))
     "Find all triggers that could match."
-    (select-matching-pattern (gethash (name process) (kell-patterns kell)) process))
+    (select-matching-pattern (gethash (name process) (kell-patterns kell))
+                             process))
   (:method ((process pattern-abstraction) (kell kell))
     "Just match on the new trigger."
     (select-matching-pattern (list process) process)))
-
-(defun find-triggers-matching-message (name kell)
-  "Collect down-patterns from parent kell, up-patterns from subkells, and local-
-   and kell-patterns from the given kell."
-  (append (mapcar (lambda (pattern)
-                    (list pattern (parent kell)))
-                  (gethash name (down-patterns (parent kell))))
-          (mapcan (lambda (subkell)
-                    (mapcar (lambda (pattern)
-                              (list pattern subkell))
-                            (gethash name (up-patterns subkell))))
-                  (subkells kell))
-          (mapcar (lambda (pattern)
-                    (list pattern kell))
-                  (gethash name (local-patterns kell)))))
 
 ;;; TODO: These are definitions for the runtime functions for
 ;;;       abstractions and concretions. They should be integrated with
@@ -578,11 +497,12 @@
                         (expand-restriction (continuation process)))
                kell))
 
-(defmethod add-process ((process kell-abstraction) (kell kell))
+(defmethod add-process ((process kell-abstraction) (kell kell) &optional watchp)
+  (declare (ignore watchp))
   (if (gethash (name process) (kells kell))
     (error 'duplicate-kell-name-error :name (name process))
     (progn
       (call-next-method)
       (activate-process (abstraction process) process))))
-(defmethod add-process ((process concretion) (kell kell))
-  (add-process (expand-restriction process) kell))
+(defmethod add-process ((process concretion) (kell kell) &optional watchp)
+  (add-process (expand-restriction process) kell watchp))

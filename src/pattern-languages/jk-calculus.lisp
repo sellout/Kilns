@@ -21,25 +21,25 @@
            ((pattern message) (message message)
             &optional (substitutions (make-empty-environment)))
   (if (equal (name pattern) (name message))
-    (unify (process pattern) (process message) substitutions)))
+    (unify (argument pattern) (argument message) substitutions)))
 
 (defmethod match-down
            ((pattern message) (message message)
             &optional (substitutions (make-empty-environment)))
   (if (equal (name pattern) (name message))
-    (unify (process pattern) (process message) substitutions)))
+    (unify (argument pattern) (argument message) substitutions)))
 
 (defmethod match-up
            ((pattern message) (message message)
             &optional (substitutions (make-empty-environment)))
   (if (equal (name pattern) (name message))
-    (unify (process pattern) (process message) substitutions)))
+    (unify (argument pattern) (argument message) substitutions)))
 
 (defmethod match-kell
            ((pattern kell) (kell kell)
             &optional (substitutions (make-empty-environment)))
   (if (equal (name pattern) (name kell))
-    (unify (process pattern) (process kell) substitutions)))
+    (unify (state pattern) (state kell) substitutions)))
 
 ;;; Note that, apart from the use of join patterns (i.e. the possibility to
 ;;; receive multiple messages at once), the pattern language of jK is extremely
@@ -76,8 +76,8 @@
   '())
 
 (defmethod bound-variables ((pattern pattern))
-  (mapcar (lambda (pat) (process pat))
-          (append (local-message-pattern pattern)
-                  (down-message-pattern pattern)
-                  (up-message-pattern pattern)
-                  (kell-message-pattern pattern))))
+  (append (mapcar #'argument
+                  (append (local-message-pattern pattern)
+                          (down-message-pattern pattern)
+                          (up-message-pattern pattern)))
+          (mapcar #'state (kell-message-pattern pattern))))

@@ -1,5 +1,5 @@
 #+xcvb (module (:depends-on ("package")))
-(in-package :kilns)
+(in-package :kell-calculus)
 
 (defclass null-process (process)
   ()
@@ -10,45 +10,6 @@
 
 (defvar null (make-instance 'null-process))
 
-(defclass process-variable (process)
-  ((name :initarg :name :type symbol :reader name))
-  (:documentation
-   "These only exist in “potential” processes. When a trigger is triggered, we
-    convert each process-variable into its “realized” process and do so
-    recursively through nested processes, except where the variable is shadowed
-    by a more local variable with the same name."))
-
-(defmethod print-object ((obj process-variable) stream)
-  (format stream "?~a" (name obj)))
-
-(defun process-variable (name)
-  (make-instance 'process-variable :name name))
-
-(defclass name-type ()
-  ()
-  (:documentation
-   "This gives us a class to hang pattern-language extensions to names off of."))
-
-(defclass name-variable (name-type)
-  ((name :initarg :name :type symbol :reader name))
-  (:documentation
-   "These only exist in “potential” processes. When a trigger is triggered, we
-    convert each name-variable into its “realized” name and do so
-    recursively through nested processes, except where the variable is shadowed
-    by a more local variable with the same name."))
-
-(defmethod print-object ((obj name-variable) stream)
-  (format stream "?~a" (name obj)))
-
-(defun name-variable (name)
-  (make-instance 'name-variable :name name))
-
-(deftype name ()
-  `(or symbol integer name-type))
-
-(deftype identifier ()
-  `(or name process-variable))
-
 (defclass trigger (process pattern-abstraction)
   ())
 
@@ -56,8 +17,8 @@
   `(make-instance 'trigger
      :pattern (convert-process-to-pattern ,pattern) :process ,process))
 
-(defmethod print-object ((obj pattern-abstraction) stream)
-  (format stream "(trigger ~a ~a)" (pattern obj) (process obj)))
+(defmethod print-object ((obj trigger) stream)
+  (format stream "(trigger ~s ~s)" (pattern obj) (process obj)))
 
 (defclass restriction (process restriction-abstraction)
   ())
@@ -66,45 +27,39 @@
   `(make-instance 'restriction
      :names (if (consp ',names) ',names (list ',names)) :abstraction ,process))
 
-(defmethod print-object ((obj restriction-abstraction) stream)
-  (format stream "(new ~a ~a)" (names obj) (abstraction obj)))
+(defmethod print-object ((obj restriction) stream)
+  (format stream "(new ~s ~s)" (names obj) (abstraction obj)))
 
-;;; FIXME: need  a better name
-(defclass message-structure (process)
+(defclass message (process)
   ((name :initarg :name :accessor name :type name)
-   (process :initarg :process :initform null :type generic-process
-            :accessor process)
-   (continuation :initarg :continuation :initform null
-                 :type (or process (member up down))
-                 :accessor continuation))
-  (:documentation "The commonalities between messages and kells."))
-
-(defclass message (message-structure)
-  ())
+   (argument :initarg :argument :initform null :type generic-process
+             :accessor argument)
+   (continuation :initarg :continuation :initform null :type (or process symbol)
+                 :accessor continuation)))
 
 (defmethod print-object ((obj message) stream)
-  (if (and (slot-boundp obj 'name)
-           (slot-boundp obj 'process)
-           (slot-boundp obj 'continuation))
-    (format stream "{~a~:[ ~a~:[ ~a~;~]~;~]}"
-            (name obj)
-            (and (eql (process obj) null)
-                 (eql (continuation obj) null))
-            (process obj)
-            (eql (continuation obj) null)
-            (continuation obj))
-    (call-next-method)))
+  (format stream "{~s~:[ ~s~:[ ~s~;~]~;~]}"
+          (name obj)
+          (and (eql (argument obj) null)
+               (eql (continuation obj) null))
+          (argument obj)
+          (eql (continuation obj) null)
+          (continuation obj)))
 
-(defun message (name &optional process continuation)
+(defun message (name &optional argument continuation)
   (if continuation
     (make-instance 'message
-      :name name :process process :continuation continuation)
-    (if process
-      (make-instance 'message :name name :process process)
+      :name name :argument argument :continuation continuation)
+    (if argument
+      (make-instance 'message :name name :argument argument)
       (make-instance 'message :name name))))
 
-(defclass kell (message-structure)
-  (;; implementation details
+(defclass kell (process)
+  ((name :initarg :name :accessor name :type name)
+   (state :initarg :state :initform null :type process :accessor state)
+   (continuation :initarg :continuation :initform null :type process
+                 :accessor continuation)
+   ;; implementation details
    (lock :reader lock)
    ;; while each trigger pattern contains a multiset of typed patterns, we keep
    ;; them aggregated here in a hash-table mapping the channel-name to the
@@ -123,16 +78,16 @@
 (defmethod initialize-instance :after ((obj kell) &key &allow-other-keys)
   (setf (slot-value obj 'lock) (make-lock (format nil "kell ~a" (name obj)))))
 
-(defun kell (name &optional process continuation)
+(defun kell (name &optional state continuation)
   (if continuation
-    (make-instance 'kell :name name :process process :continuation continuation)
-    (if process
-      (make-instance 'kell :name name :process process)
+    (make-instance 'kell :name name :state state :continuation continuation)
+    (if state
+      (make-instance 'kell :name name :state state)
       (make-instance 'kell :name name))))
 
 (defmethod print-object ((obj kell) stream)
-  (format stream "[~a ~a~:[ ~a~;~]]"
-          (name obj) (process obj)
+  (format stream "[~s ~s~:[ ~s~;~]]"
+          (name obj) (state obj)
           (eql (continuation obj) null) (continuation obj)))
 
 (defclass parallel-composition (process)
@@ -150,11 +105,11 @@
     access in the way we usually deal with them."))
 
 (defmethod print-object ((obj parallel-composition) stream)
-  (format stream "(par~{ ~a~})"
+  (format stream "(par~{ ~s~})"
           (map-parallel-composition #'identity obj)))
 
 (defun parallel-composition (&rest processes)
-  (reduce #'compose-processes processes :initial-value null))
+  (reduce #'compose processes :initial-value null))
 
 (defun map-parallel-composition (fn pc)
   (append (mapcar fn (process-variables pc))
@@ -227,74 +182,74 @@
               not be removed."
              process (process trigger))))
   (:method ((process message) kell)
-    (if (find process (messages-in (process kell)))
-      (typecase (process kell)
-        (message (setf (process kell) null))
-        (parallel-composition (setf (messages (process kell))
-                                    (delete process (messages (process kell))))
+    (if (find process (messages-in (state kell)))
+      (typecase (state kell)
+        (message (setf (state kell) null))
+        (parallel-composition (setf (messages (state kell))
+                                    (delete process (messages (state kell))))
                               (case (length (map-parallel-composition
                                              #'identity
-                                             (process kell)))
-                                (0 (setf (process kell) null))
-                                (1 (setf (process kell)
+                                             (state kell)))
+                                (0 (setf (state kell) null))
+                                (1 (setf (state kell)
                                          (car (map-parallel-composition
                                                #'identity
-                                               (process kell))))))))
+                                               (state kell))))))))
       (error "The (message) process ~a is not contained in ~a, and thus can ~
               not be removed."
-             process (process kell))))
+             process (state kell))))
   (:method ((process kell) kell)
-    (if (find process (kells-in (process kell)))
-      (typecase (process kell)
-        (kell (setf (process kell) null))
-        (parallel-composition (setf (kells (process kell))
-                                    (delete process (kells (process kell))))
+    (if (find process (kells-in (state kell)))
+      (typecase (state kell)
+        (kell (setf (state kell) null))
+        (parallel-composition (setf (kells (state kell))
+                                    (delete process (kells (state kell))))
                               (case (length (map-parallel-composition
                                              #'identity
-                                             (process kell)))
-                                (0 (setf (process kell) null))
-                                (1 (setf (process kell)
+                                             (state kell)))
+                                (0 (setf (state kell) null))
+                                (1 (setf (state kell)
                                          (car (map-parallel-composition
                                                #'identity
-                                               (process kell))))))))
+                                               (state kell))))))))
       (error "The (kell) process ~a is not contained in ~a, and thus can not ~
               be removed."
-             process (process kell))))
+             process (state kell))))
   (:method ((process trigger) kell)
-    (if (find process (triggers-in (process kell)))
-      (typecase (process kell)
-        (trigger (setf (process kell) null))
-        (parallel-composition (setf (triggers (process kell))
-                                    (delete process (triggers (process kell))))
+    (if (find process (triggers-in (state kell)))
+      (typecase (state kell)
+        (trigger (setf (state kell) null))
+        (parallel-composition (setf (triggers (state kell))
+                                    (delete process (triggers (state kell))))
                               (case (length (map-parallel-composition
                                              #'identity
-                                             (process kell)))
-                                (0 (setf (process kell) null))
-                                (1 (setf (process kell)
+                                             (state kell)))
+                                (0 (setf (state kell) null))
+                                (1 (setf (state kell)
                                          (car (map-parallel-composition
                                                #'identity
-                                               (process kell))))))))
+                                               (state kell))))))))
       (error "The (trigger) process ~a is not contained in ~a, and thus can ~
               not be removed."
-             process (process kell))))
+             process (state kell))))
   (:method (process kell)
-    (if (find process (primitives-in (process kell)))
-      (typecase (process kell)
-        (parallel-composition (setf (primitives (process kell))
+    (if (find process (primitives-in (state kell)))
+      (typecase (state kell)
+        (parallel-composition (setf (primitives (state kell))
                                     (delete process
-                                            (primitives (process kell))))
+                                            (primitives (state kell))))
                               (case (length (map-parallel-composition
                                              #'identity
-                                             (process kell)))
-                                (0 (setf (process kell) null))
-                                (1 (setf (process kell)
+                                             (state kell)))
+                                (0 (setf (state kell) null))
+                                (1 (setf (state kell)
                                          (car (map-parallel-composition
                                                #'identity
-                                               (process kell)))))))
-        (t (setf (process kell) null)))
+                                               (state kell)))))))
+        (t (setf (state kell) null)))
       (error "The (restriction) process ~a is not contained in ~a, and thus ~
               can not be removed."
-             process (process kell)))))
+             process (state kell)))))
 
 (defgeneric process-variables-in (process)
   (:documentation
@@ -350,75 +305,77 @@
     (primitives process)))
 
 (defmethod subkells ((kell kell))
-  (kells-in (process kell)))
+  (kells-in (state kell)))
 
-(defgeneric compose-processes (process-a process-b)
-  (:documentation
-   "Conses up a new parallel composition that contains both process-a and
-    process-b.")
-  (:method (process-a process-b)
-    (let ((pc (make-instance 'parallel-composition)))
-      (compose-processes (compose-processes pc process-a)
-                         process-b)))
-  (:method ((process-a null-process) process-b)
-    process-b)
-  (:method (process-a (process-b null-process))
-    process-a)
-  (:method ((process-a parallel-composition) (process-b parallel-composition))
-    (let ((pc (make-instance 'parallel-composition)))
-      (psetf (process-variables pc)
-             (append (process-variables process-a)
-                     (process-variables process-b))
-             (messages pc)
-             (append (messages process-a) (messages process-b))
-             (kells pc)
-             (append (kells process-a) (kells process-b))
-             (triggers pc)
-             (append (triggers process-a) (triggers process-b))
-             (primitives pc)
-             (append (primitives process-a) (primitives process-b)))
-      pc))
-  (:method (process-a (process-b parallel-composition))
-    "This method just swaps the args so the function is commutatitve."
-    (compose-processes process-b process-a))
-  (:method ((process-a parallel-composition) process-b)
-    (let ((pc (make-instance 'parallel-composition)))
-      (psetf (process-variables pc) (process-variables process-a)
-             (messages pc) (messages process-a)
-             (kells pc) (kells process-a)
-             (triggers pc) (triggers process-a)
-             (primitives pc) (cons process-b (primitives process-a)))
-      pc))
-  (:method ((process-a parallel-composition) (process-b message))
-    (let ((pc (make-instance 'parallel-composition)))
-      (psetf (process-variables pc) (process-variables process-a)
-             (messages pc) (cons process-b (messages process-a))
-             (kells pc) (kells process-a)
-             (triggers pc) (triggers process-a)
-             (primitives pc) (primitives process-a))
-      pc))
-  (:method ((process-a parallel-composition) (process-b kell))
-    (let ((pc (make-instance 'parallel-composition)))
-      (psetf (process-variables pc) (process-variables process-a)
-             (messages pc) (messages process-a)
-             (kells pc) (cons process-b (kells process-a))
-             (triggers pc) (triggers process-a)
-             (primitives pc) (primitives process-a))
-      pc))
-  (:method ((process-a parallel-composition) (process-b process-variable))
-    (let ((pc (make-instance 'parallel-composition)))
-      (psetf (process-variables pc) (cons process-b
-                                          (process-variables process-a))
-             (messages pc) (messages process-a)
-             (kells pc) (kells process-a)
-             (triggers pc) (triggers process-a)
-             (primitives pc) (primitives process-a))
-      pc))
-  (:method ((process-a parallel-composition) (process-b trigger))
-    (let ((pc (make-instance 'parallel-composition)))
-      (psetf (process-variables pc) (process-variables process-a)
-             (messages pc) (messages process-a)
-             (kells pc) (kells process-a)
-             (triggers pc) (cons process-b (triggers process-a))
-             (primitives pc) (primitives process-a))
-      pc)))
+(defmethod compose (process-a process-b)
+  (compose (compose (make-instance 'parallel-composition) process-a)
+           process-b))
+(defmethod compose ((process-a process) (process-b process))
+  (compose (compose (make-instance 'parallel-composition) process-a)
+           process-b))
+(defmethod compose ((process-a null-process) process-b)
+  process-b)
+(defmethod compose (process-a (process-b null-process))
+  process-a)
+(defmethod compose
+    ((process-a parallel-composition) (process-b parallel-composition))
+  (let ((pc (make-instance 'parallel-composition)))
+    (psetf (process-variables pc)
+           (append (process-variables process-a)
+                   (process-variables process-b))
+           (messages pc)
+           (append (messages process-a) (messages process-b))
+           (kells pc)
+           (append (kells process-a) (kells process-b))
+           (triggers pc)
+           (append (triggers process-a) (triggers process-b))
+           (primitives pc)
+           (append (primitives process-a) (primitives process-b)))
+    pc))
+(defmethod compose (process-a (process-b parallel-composition))
+  "This method just swaps the args so the function is commutatitve."
+  (compose process-b process-a))
+(defmethod compose ((process-a parallel-composition) (process-b null-process))
+  process-a)
+(defmethod compose ((process-a parallel-composition) process-b)
+  (let ((pc (make-instance 'parallel-composition)))
+    (psetf (process-variables pc) (process-variables process-a)
+           (messages pc) (messages process-a)
+           (kells pc) (kells process-a)
+           (triggers pc) (triggers process-a)
+           (primitives pc) (cons process-b (primitives process-a)))
+    pc))
+(defmethod compose ((process-a parallel-composition) (process-b message))
+  (let ((pc (make-instance 'parallel-composition)))
+    (psetf (process-variables pc) (process-variables process-a)
+           (messages pc) (cons process-b (messages process-a))
+           (kells pc) (kells process-a)
+           (triggers pc) (triggers process-a)
+           (primitives pc) (primitives process-a))
+    pc))
+(defmethod compose ((process-a parallel-composition) (process-b kell))
+  (let ((pc (make-instance 'parallel-composition)))
+    (psetf (process-variables pc) (process-variables process-a)
+           (messages pc) (messages process-a)
+           (kells pc) (cons process-b (kells process-a))
+           (triggers pc) (triggers process-a)
+           (primitives pc) (primitives process-a))
+    pc))
+(defmethod compose
+    ((process-a parallel-composition) (process-b process-variable))
+  (let ((pc (make-instance 'parallel-composition)))
+    (psetf (process-variables pc) (cons process-b
+                                        (process-variables process-a))
+           (messages pc) (messages process-a)
+           (kells pc) (kells process-a)
+           (triggers pc) (triggers process-a)
+           (primitives pc) (primitives process-a))
+    pc))
+(defmethod compose ((process-a parallel-composition) (process-b trigger))
+  (let ((pc (make-instance 'parallel-composition)))
+    (psetf (process-variables pc) (process-variables process-a)
+           (messages pc) (messages process-a)
+           (kells pc) (kells process-a)
+           (triggers pc) (cons process-b (triggers process-a))
+           (primitives pc) (primitives process-a))
+    pc))

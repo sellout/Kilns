@@ -11,18 +11,14 @@
 (add-to-list 'auto-mode-alist '("\\.kiln\\'" . kilns-mode))
 
 (setq kilns-font-lock-keywords
-  `((,(regexp-opt '("trigger*" "list" "load" "sandbox") 'words) .
+  `((";+" . font-lock-comment-delimiter)
+    (,(regexp-opt '("trigger*" "list" "load" "sandbox") 'words) .
      font-lock-builtin-face)
-    (,(regexp-opt '("message" "kell" "new" "trigger" "up" "down" "par" "def")
-                  'words) .
+    (,(regexp-opt '("new" "trigger" "up" "down" "par" "def") 'words) .
      font-lock-keyword-face)
-    ;; ("\\(?<=(\\)\\w+" . font-lock-function-name-face)
-    ;; NOTE: might get rid of this, but for now it reminds me that I need to
-    ;;       make them less pervasive
+    ;; FIXME: shouldn't be highlighting the "(", but can't do lookbehind
+    ("(\\w+" . font-lock-function-name-face)
     ("?\\w+" . font-lock-variable-name-face)
-    ;; ("\\w+" . font-lock-variable-name-face)
-    ))
-
-;;(setq font-lock-defaults '((kilns-font-lock-keywords)))
+    ("\\w+" . font-lock-constant-face)))
 
 (provide 'kilns-mode)
