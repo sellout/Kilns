@@ -250,6 +250,10 @@
 
 (defgeneric add-process (process kell &optional watchp)
   (:documentation "Pushes PROCESS onto the given KELL.")
+  (:method :before ((process agent) kell &optional watchp)
+    "Sometimes a process that was matched gets re-added (as in `trigger*`), so
+     we need to make sure that it is not seen as dead when re-added."
+    (setf (deadp process) nil))
   (:method (process kell &optional watchp)
     "Handles any other “primitive” processes (strings, numbers, etc.)"
     (declare (ignore process kell watchp))
@@ -356,19 +360,20 @@
 (defun execute-match (trigger processes substitutions)
   (when (some #'watchp (cons trigger processes))
     (log-watched-reaction trigger processes))
+  (setf (deadp trigger) t)
+  (mapc (lambda (process) (setf (deadp process) t)) processes)
   (trigger-process trigger substitutions
                    (some #'watchp (cons trigger processes)))
-  (mapc #'activate-continuation processes)
-  (setf (deadp trigger) t)
-  (mapc (lambda (process) (setf (deadp process) t)) processes))
+  (mapc #'activate-continuation processes))
 
 (defun find-kells-to-lock (trigger)
   (append (when (up-message-pattern (pattern trigger))
             (list (parent (parent trigger))))
-          ;; always lock the current, because even if there isn't a local or kell
-          ;; pattern, any result process would affect this kell
+          ;; always lock the current, because even if there isn't a local or
+          ;; kell pattern, any result process would affect this kell
           (list (parent trigger))
-          (when (down-message-pattern (pattern trigger)) (subkells (parent trigger)))))
+          (when (down-message-pattern (pattern trigger))
+            (subkells (parent trigger)))))
 
 (defun select-matching-pattern (patterns live-process)
   (dolist (trigger patterns)
@@ -376,14 +381,14 @@
       (mapc (lambda (kell) (acquire-lock (lock kell) t)) locked-kells)
       (unwind-protect
           (if (deadp live-process)
-            (return)
+            (return nil)
             (when (not (deadp trigger))
               (destructuring-bind (processes substitutions)
                                   (handler-case (match (pattern trigger) (parent trigger))
                                     (unification-failure () (list nil nil)))
                 (when processes
                   (execute-match trigger processes substitutions)
-                  (return)))))
+                  (return t)))))
         (mapc (lambda (kell) (release-lock (lock kell))) locked-kells)))))
 
 (defun find-triggers-matching-message (name kell)
@@ -405,10 +410,9 @@
         (kiln-error (c) (handle-error c)))))
   (:method ((process message) (kell kell))
     "Find all triggers that could match – up, down, or local."
-    (let ((name (name process)))
-      (select-matching-pattern (find-triggers-matching-message (name process)
-                                                               kell)
-                               process)))
+    (select-matching-pattern (find-triggers-matching-message (name process)
+                                                             kell)
+                             process))
   (:method ((process kell) (kell kell))
     "Find all triggers that could match."
     (select-matching-pattern (gethash (name process) (kell-patterns kell))
