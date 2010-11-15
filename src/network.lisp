@@ -1,5 +1,33 @@
 (in-package :kilns)
 
+(defvar *base-port* 20360)
+;;
+;; ijklmnopqrs mapped to 0–10, then kilns converted to it (k -> 2) * 10^4,
+;; (i -> 0) * 10^3, (l -> 3) * 10^2, (n -> 5) * 10^1, (s -> 10) * 10^0.
+
+(defun handle-request (socket)
+  (let ((client (sockets:accept-connection socket :wait t)))
+    (when client
+      (multiple-value-bind (who remote-port) (sockets:remote-name client))
+      (format client response)
+      (finish-output client)
+      (close client))))
+
+(defun kilns-listener ()
+  (let ((socket (sockets:make-socket :connect :passive
+                                     :address-family :internet
+                                     :type :stream
+                                     :external-format '(:utf-8 :eol-style :lf)
+                                     :ipv6 nil)))
+    (sockets:bind-address socket sockets:+ipv4-unspecified+
+                          :port *base-port* :reuse-addr t)
+    (sockets:listen-on socket :backlog 5)
+    (make-thread (lambda ()
+                   (loop while (sockets:socket-open-p socket)
+                      do (handle-request socket)))
+                 :name "kilns network listener")
+    socket))
+
 ;;; This file implements the behavior of distributed kells. They need to be
 ;;; modeled on each instance, and behavior that crosses boundaries needs to be
 ;;; initiated by the host that most causes the reaction – depending on the level
@@ -109,8 +137,7 @@
                              :name name :hostname host :port port)))
                         (t (change-class process 'network-kell)
                            process))))
-    (setf (process kell)
-          (compose-processes new-kell (process kell)))
+    (setf (state kell) (compose new-kell (state kell)))
     (activate-process new-kell kell)))
 
 (defmethod activate-process (process (kell host-kell))

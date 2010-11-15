@@ -46,4 +46,14 @@
                (:file "runtime"
                       :depends-on ("syntax" "kell-calculus" "unification"))
                (:file "reader" :depends-on ("runtime"))
-               (:file "debug" :depends-on ("reader"))))
+               (:file "debug" :depends-on ("reader")))
+  :in-order-to ((test-op (load-op kilns-tests)))
+  :perform (test-op :after (op c)
+                    (funcall (intern "RUN!" :kilns-tests)
+                             (intern "KILNS" :kilns-tests))))
+
+(defsystem kilns-tests
+    :depends-on (kilns fiveam)
+    :pathname "tests/"
+    :components ((:file "package")
+                 (:file "protocol-tests" :depends-on ("package"))))
