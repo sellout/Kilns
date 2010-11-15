@@ -1,0 +1,22 @@
+(load "library/replication")
+(load "library/utilities")
+(load "library/simple-components")
+(include-component "library/strings")
+(include-component "library/identity")
+
+;;; files are represented as messages: {usr {local {share {test}}}}
+(trigger* {convert-file-to-string (list {?head ?path} {?rc}) up}
+          {= (list ?path null
+                   {rc "/"}
+                   (new string
+                        (par {component-local {convert-file-to-string (list ?path
+                                                                            {string})}}
+                             (trigger {string ?string}
+                                      ;; FIXME: concatenate only takes 2 args
+                                      {concatenate (list ?head "/" ?string {rc})}))))})
+
+(trigger* {open-file (list ?path {?stream}) up}
+          (new string-path
+               (par {component-local {convert-file-to-string (list ?path {string-path})}}
+                    (trigger {string-path ?sp}
+                             {?stream (lisp (cl:open ?sp))}))))

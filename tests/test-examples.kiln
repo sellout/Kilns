@@ -1,9 +1,9 @@
 (load "library/test-framework")
 (load "library/utilities")
 
-;;; NOTE: Normally I would just (load "examples/...") in each test, however most examples
-;;;       want to print a result, and we want to capture the result instead. So these are
-;;;       copied from the examples instead.
+;;; NOTE: Normally I would just (load "examples/...") in each test, however most
+;;;       examples want to print a result, and we want to capture the result
+;;;       instead. So these are copied from the examples instead.
 
 ;;; helloworld.kiln
 {test-result (par {should {be-hello-world}}
@@ -22,12 +22,13 @@
                   {test (new (a signal b)
                              (par [b (trigger {a _ up} {signal})]
                                   {a}
-                                  (trigger {signal _ down} {echo "Hello World"})))}
+                                  (trigger {signal _ down}
+                                           {echo "Hello World"})))}
                   {expected-result {echo "Hello World"}})}
 
 ;;; simplemessage.kiln
-;;; FIXME: this test is non-deterministic. It would be nice if we could specify "x OR y"
-;;;        as the expected-result
+;;; FIXME: this test is non-deterministic. It would be nice if we could specify
+;;;       “x OR y” as the expected-result
 {test-result (par {should {trigger-once}}
                   {test (new a
                              (par {a "Hello"}

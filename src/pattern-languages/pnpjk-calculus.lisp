@@ -18,6 +18,38 @@
 
 ;;; In this pattern language, the special pattern _ matches anything.
 
+(defclass name-variable (name-type)
+  ((name :initarg :name :type symbol :reader name))
+  (:documentation
+   "These only exist in “potential” processes. When a trigger is triggered, we
+    convert each name-variable into its “realized” name and do so
+    recursively through nested processes, except where the variable is shadowed
+    by a more local variable with the same name."))
+
+(defmethod print-object ((obj name-variable) stream)
+  (format stream "?~s" (name obj)))
+
+(defun name-variable (name)
+  (make-instance 'name-variable :name name))
+
+(defmethod substitute ((name name-variable) mapping &optional ignored-vars)
+  (if (find (name name) ignored-vars)
+      name
+      (find-name-variable-value name mapping)))
+
+;;; FIXME: currently, name variables and process variables can conflict. Do we
+;;;        want to be able to have a namevar and procvar with the same name –
+;;;        yes, this is important with nested triggers, where a deeper one might
+;;;        use a procvar with the same name as a shallower namevar, and they
+;;;        can't clash because the types would conflict.
+(defmethod unify
+    ((pattern name-variable) agent
+     &optional (substitutions (make-empty-environment)))
+  (unify (intern (format nil "?~a" (name pattern))) agent substitutions))
+
+(defun find-name-variable-value (variable &optional env errorp)
+  (find-variable-value (intern (format nil "?~a" (name variable))) env errorp))
+
 (defclass blank (process)
   ())
 
@@ -48,25 +80,25 @@
            ((pattern message) (message message)
             &optional (substitutions (make-empty-environment)))
   (if (equal (name pattern) (name message))
-    (recursive-match (process pattern) (process message) substitutions)))
+    (recursive-match (argument pattern) (argument message) substitutions)))
 
 (defmethod match-down :around
            ((pattern message) (message message)
             &optional (substitutions (make-empty-environment)))
   (if (equal (name pattern) (name message))
-    (recursive-match (process pattern) (process message) substitutions)))
+    (recursive-match (argument pattern) (argument message) substitutions)))
 
 (defmethod match-up :around
            ((pattern message) (message message)
             &optional (substitutions (make-empty-environment)))
   (if (equal (name pattern) (name message))
-    (recursive-match (process pattern) (process message) substitutions)))
+    (recursive-match (argument pattern) (argument message) substitutions)))
 
 (defmethod match-kell :around
            ((pattern kell) (kell kell)
             &optional (substitutions (make-empty-environment)))
   (if (equal (name pattern) (name kell))
-    (unify (process pattern) (process kell) substitutions)))
+    (unify (state pattern) (state kell) substitutions)))
 
 (defgeneric recursive-match (pattern process &optional substitutions)
   (:method (pattern process &optional (substitutions (make-empty-environment)))
@@ -87,7 +119,7 @@
   (:method ((pattern message) (process message)
             &optional (substitutions (make-empty-environment)))
     (if (typep (name pattern) 'name-variable)
-      (recursive-match (process pattern) (process process)
+      (recursive-match (argument pattern) (argument process)
                        (unify (name pattern) (name process) substitutions))
       (second (match pattern process substitutions)))))
 
@@ -97,8 +129,8 @@
     '())
   (:method ((pattern message))
     (if (typep (name pattern) 'name-variable)
-      (cons (name pattern) (collect-bound-names (process pattern)))
-      (collect-bound-names (process pattern))))
+      (cons (name pattern) (collect-bound-names (argument pattern)))
+      (collect-bound-names (argument pattern))))
   (:method ((pattern parallel-composition))
     (mapcan #'collect-bound-names (messages pattern))))
 
@@ -115,9 +147,9 @@
   (:method ((pattern process-variable))
     (list pattern))
   (:method ((pattern message))
-    (collect-bound-variables (process pattern)))
+    (collect-bound-variables (argument pattern)))
   (:method ((pattern kell))
-    (list (process pattern)))
+    (list (state pattern)))
   (:method ((pattern parallel-composition))
     (mapcan #'collect-bound-variables (messages pattern))))
 
