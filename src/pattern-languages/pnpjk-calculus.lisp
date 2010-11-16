@@ -97,7 +97,7 @@
 (defmethod match-kell :around
            ((pattern kell) (kell kell)
             &optional (substitutions (make-empty-environment)))
-  (if (equal (symbol-name (name pattern)) (symbol-name (name message)))
+  (if (equal (symbol-name (name pattern)) (symbol-name (name kell)))
     (unify (state pattern) (state kell) substitutions)))
 
 (defgeneric recursive-match (pattern process &optional substitutions)
