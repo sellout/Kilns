@@ -20,25 +20,25 @@
 (defmethod match-local
            ((pattern message) (message message)
             &optional (substitutions (make-empty-environment)))
-  (if (equal (name pattern) (name message))
+  (if (equal (symbol-name (name pattern)) (symbol-name (name message)))
     (unify (argument pattern) (argument message) substitutions)))
 
 (defmethod match-down
            ((pattern message) (message message)
             &optional (substitutions (make-empty-environment)))
-  (if (equal (name pattern) (name message))
+  (if (equal (symbol-name (name pattern)) (symbol-name (name message)))
     (unify (argument pattern) (argument message) substitutions)))
 
 (defmethod match-up
            ((pattern message) (message message)
             &optional (substitutions (make-empty-environment)))
-  (if (equal (name pattern) (name message))
+  (if (equal (symbol-name (name pattern)) (symbol-name (name message)))
     (unify (argument pattern) (argument message) substitutions)))
 
 (defmethod match-kell
            ((pattern kell) (kell kell)
             &optional (substitutions (make-empty-environment)))
-  (if (equal (name pattern) (name kell))
+  (if (equal (symbol-name (name pattern)) (symbol-name (name message)))
     (unify (state pattern) (state kell) substitutions)))
 
 ;;; Note that, apart from the use of join patterns (i.e. the possibility to
