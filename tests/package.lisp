@@ -1,5 +1,5 @@
 (defpackage kilns-tests
-  (:use #:cl #:kilns-user #:fiveam)
+  (:use #:cl #:kell-calculus #:kilns #:fiveam)
   (:shadowing-import-from #:kell-calculus #:substitute #:match)
   (:shadowing-import-from #:kilns #:load))
 

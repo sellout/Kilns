@@ -1,32 +1,69 @@
 (in-package :kilns)
 
 (defvar *base-port* 20360)
+
 ;;
 ;; ijklmnopqrs mapped to 0–10, then kilns converted to it (k -> 2) * 10^4,
 ;; (i -> 0) * 10^3, (l -> 3) * 10^2, (n -> 5) * 10^1, (s -> 10) * 10^0.
 
-(defun handle-request (socket)
+;;; Protocol format – use kilns reader
+;;; {keep-alive}
+;;; {handshake (par {path {from {top {kell}}}}
+;;;                 {version "0.0.1"})}
+
+(defun handle-request (client)
+  (unwind-protect
+       (multiple-value-bind (who remote-port) (sockets:remote-name client)
+         (handler-case
+           (let* ((*readtable* *kilns-readtable*)
+                  (*package* (find-package :kilns-user))
+                  (request (eval (read client))))
+             (case (name request)
+               (kilns-user::keep-alive
+                (write (eval (read-from-string "{keep-alive}"))
+                       :stream client))
+               (kilns-user::handshake
+                (let* ((subst (match-local (eval (read-from-string "{handshake (par {path ?path} {version ?version})}"))
+                                           request))
+                       (version (find-variable-value (intern "?version")
+                                                     subst nil)))
+                  (if (equal version "0.0.1")
+                      (write (eval (read-from-string "{handshake (par {path {path {to {local {kell}}}}} {version \"0.0.1\"})}"))
+                             :stream client)
+                      (write (eval (read-from-string "{handshake {error \"incompatible protocol\"}}"))
+                             :stream client)))))
+             
+             (finish-output client))
+           (sockets:socket-connection-reset-error ()
+             (format t "Client reset connection!~%"))
+           (iolib.streams:hangup () (format t "Client closed conection!~%"))))
+    (close client)))
+
+(defun dispatch-request (socket)
   (let ((client (sockets:accept-connection socket :wait t)))
     (when client
-      (multiple-value-bind (who remote-port) (sockets:remote-name client))
-      (format client response)
-      (finish-output client)
-      (close client))))
+      (make-thread (lambda () (handle-request client))
+                   :name "request-handler"))))
 
-(defun kilns-listener ()
-  (let ((socket (sockets:make-socket :connect :passive
-                                     :address-family :internet
-                                     :type :stream
-                                     :external-format '(:utf-8 :eol-style :lf)
-                                     :ipv6 nil)))
-    (sockets:bind-address socket sockets:+ipv4-unspecified+
-                          :port *base-port* :reuse-addr t)
-    (sockets:listen-on socket :backlog 5)
-    (make-thread (lambda ()
-                   (loop while (sockets:socket-open-p socket)
-                      do (handle-request socket)))
-                 :name "kilns network listener")
-    socket))
+(defun start-kilns-listener ()
+  (make-thread (lambda ()
+                 (handler-case
+                     (sockets:with-open-socket
+                         (socket :connect :passive
+                                 :address-family :internet
+                                 :type :stream
+                                 :external-format '(:utf-8 :eol-style :lf)
+                                 :ipv6 nil
+                                 :local-host sockets:+ipv4-unspecified+
+                                 :local-port *base-port*
+                                 :reuse-address t)
+                       (sockets:listen-on socket :backlog 5)
+                       (loop while socket
+                          do (dispatch-request socket)))
+                   (sockets:socket-address-in-use-error ()
+                     ;; FIXME: we should try another port
+                     (format t "Bind: Address already in use, forgot :reuse-addr t?"))))
+               :name "kilns network listener"))
 
 ;;; This file implements the behavior of distributed kells. They need to be
 ;;; modeled on each instance, and behavior that crosses boundaries needs to be
@@ -202,13 +239,15 @@
                                 (mapcan (lambda (subkell)
                                           (gethash name
                                                    (up-patterns subkell)))
-                                        (subkells kell)))))))
+                                        (subkells kell))))
+     process)))
 (defmethod really-match-on ((process kell) (kell network-kell))
   "Find all triggers that could match."
-  (select-matching-pattern (gethash (name process) (kell-patterns kell))))
+  (select-matching-pattern (gethash (name process) (kell-patterns kell))
+                           process))
 (defmethod really-match-on ((process trigger) (kell network-kell))
   "Just match on the new trigger."
-  (select-matching-pattern (list process)))
+  (select-matching-pattern (list process) process))
 
 ;;; IOLib stuff
 
