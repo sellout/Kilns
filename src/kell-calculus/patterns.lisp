@@ -155,7 +155,9 @@
                                     (push process matched-processes)
                                     (return-from per-pattern process)))))
                             (gethash (name pattern) processes))
-                      (error 'unification-failure)))
+                      (error 'unification-failure
+                             :format-control "Could not unify ~s with any process in ~s"
+                             :format-arguments (list pattern processes))))
                   patterns)
           substitutions)))
 
@@ -175,10 +177,14 @@
                                       (setf processes (remove process processes))
                                       (return-from per-pattern process))))
                                 processes)
-                          (error 'unification-failure)))
+                          (error 'unification-failure
+                                 :format-control "Could not unify ~s with any process in ~s"
+                                 :format-arguments (list pattern processes))))
                       patterns)
               substitutions)
-        (error 'unification-failure))))
+        (error 'unification-failure
+               :format-control "Can not unify two different length lists: ~s ~s"
+               :format-arguments (list patterns processes)))))
 (defgeneric match-down (pattern process &optional substitutions))
 (defgeneric match-up (pattern process &optional substitutions))
 (defgeneric match-kell (pattern process &optional substitutions)
@@ -196,7 +202,9 @@
                                   (setf processes (remove process processes))
                                   (return-from per-pattern process))))
                             processes)
-                      (error 'unification-failure)))
+                      (error 'unification-failure
+                             :format-control "Could not unify ~s with any process in ~s"
+                             :format-arguments (list pattern processes))))
                   patterns)
           substitutions)))
 
