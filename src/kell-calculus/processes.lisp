@@ -28,7 +28,7 @@
      :names (if (consp ',names) ',names (list ',names)) :abstraction ,process))
 
 (defmethod print-object ((obj restriction) stream)
-  (format stream "(new ~s ~s)" (names obj) (abstraction obj)))
+  (format stream "(new ~a ~s)" (names obj) (abstraction obj)))
 
 (defclass message (process)
   ((name :initarg :name :accessor name :type name)
@@ -38,7 +38,7 @@
                  :accessor continuation)))
 
 (defmethod print-object ((obj message) stream)
-  (format stream "{~s~:[ ~s~:[ ~s~;~]~;~]}"
+  (format stream "{~a~:[ ~s~:[ ~s~;~]~;~]}"
           (name obj)
           (and (eql (argument obj) null)
                (eql (continuation obj) null))
@@ -86,7 +86,7 @@
       (make-instance 'kell :name name))))
 
 (defmethod print-object ((obj kell) stream)
-  (format stream "[~s ~s~:[ ~s~;~]]"
+  (format stream "[~a ~s~:[ ~s~;~]]"
           (name obj) (state obj)
           (eql (continuation obj) null) (continuation obj)))
 
