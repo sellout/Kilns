@@ -25,7 +25,7 @@
                         collecting value))))))
 
 (defmacro lisp (&rest forms)
-  `''(cl:progn ,@forms))
+  `'(cl:progn ,@forms))
 
 (defun dev ()
   (in-package :kilns)
