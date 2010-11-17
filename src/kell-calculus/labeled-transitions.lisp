@@ -77,8 +77,10 @@
           (continuation obj)))
 
 (defclass application-abstraction (abstraction)
-  ((abstraction :reader abstraction :type generic-abstraction)
-   (concretion :reader concretion :type generic-concretion))
+  ((abstraction :initarg :abstraction :reader abstraction
+                :type generic-abstraction)
+   (concretion :initarg :concretion :reader concretion
+               :type generic-concretion))
   (:documentation "F@C"))
 
 (defmethod print-object ((obj application-abstraction) stream)

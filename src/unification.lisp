@@ -61,3 +61,38 @@
 (defmethod unify::occurs-in-p ((var symbol) pat env)
   (declare (ignore pat env))
   nil)
+
+;;; Unification for abstractions and concretions
+
+(defmethod unify
+    ((pattern concretion) (agent concretion)
+     &optional (substitutions (make-empty-environment)))
+  (unify (continuation pattern) (continuation agent)
+         (unify (messages pattern) (messages agent)
+                (unify (restricted-names pattern) (restricted-names agent)
+                       substitutions))))
+
+(defmethod unify
+    ((pattern kell-abstraction) (agent kell-abstraction)
+     &optional (substitutions (make-empty-environment)))
+  (unify (abstraction pattern) (abstraction agent)
+         (unify (continuation pattern) (continuation agent)
+                (unify (name pattern) (name agent) substitutions))))
+
+(defmethod unify
+    ((pattern application-abstraction) (agent application-abstraction)
+     &optional (substitutions (make-empty-environment)))
+  (unify (abstraction pattern) (abstraction agent)
+         (unify (concretion pattern) (concretion agent) substitutions)))
+
+(defmethod unify
+    ((pattern restriction-abstraction) (agent restriction-abstraction)
+     &optional (substitutions (make-empty-environment)))
+  (unify (abstraction pattern) (abstraction agent)
+         (unify (names pattern) (names agent) substitutions)))
+
+(defmethod unify
+    ((pattern pattern-abstraction) (agent pattern-abstraction)
+     &optional (substitutions (make-empty-environment)))
+  (unify (process pattern) (process agent)
+         (unify (pattern pattern) (pattern agent) substitutions)))
