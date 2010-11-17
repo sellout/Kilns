@@ -79,25 +79,25 @@
 (defmethod match-local :around
            ((pattern message) (message message)
             &optional (substitutions (make-empty-environment)))
-  (if (equal (symbol-name (name pattern)) (symbol-name (name message)))
+  (if (name-equal (name pattern) (name message))
     (recursive-match (argument pattern) (argument message) substitutions)))
 
 (defmethod match-down :around
            ((pattern message) (message message)
             &optional (substitutions (make-empty-environment)))
-  (if (equal (symbol-name (name pattern)) (symbol-name (name message)))
+  (if (name-equal (name pattern) (name message))
     (recursive-match (argument pattern) (argument message) substitutions)))
 
 (defmethod match-up :around
            ((pattern message) (message message)
             &optional (substitutions (make-empty-environment)))
-  (if (equal (symbol-name (name pattern)) (symbol-name (name message)))
+  (if (name-equal (name pattern) (name message))
     (recursive-match (argument pattern) (argument message) substitutions)))
 
 (defmethod match-kell :around
            ((pattern kell) (kell kell)
             &optional (substitutions (make-empty-environment)))
-  (if (equal (symbol-name (name pattern)) (symbol-name (name kell)))
+  (if (name-equal (name pattern) (name kell))
     (unify (state pattern) (state kell) substitutions)))
 
 (defgeneric recursive-match (pattern process &optional substitutions)

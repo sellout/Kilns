@@ -20,10 +20,9 @@
   (unify (argument pattern) (argument agent)
          (unify (name pattern) (name agent) substitutions)))
 
-(defmethod unify
-    ((pattern symbol) (agent symbol)
-     &optional (substitutions (make-empty-environment)))
-  (unify (symbol-name pattern) (symbol-name agent) substitutions))
+(defgeneric name-equal (a b)
+  (:method (a b)                   (equal a b))
+  (:method ((a symbol) (b symbol)) (equal (symbol-name a) (symbol-name b))))
 
 ;;; this is probably not necessary, but I don't understand these environments well
 (defun duplicate-environment (env)
