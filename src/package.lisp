@@ -21,6 +21,7 @@
            #:restriction-abstraction #:pattern-abstraction
            #:kell-abstraction #:application-abstraction
            #:names #:restricted-names #:continuation #:messages
+           #:@
            ;; FIXME: shouldn't export, maybe keep in separate package
            #:parent #:deadp #:lock #:map-parallel-composition #:map-process
            #:find-process-variable-value

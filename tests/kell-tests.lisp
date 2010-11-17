@@ -18,3 +18,11 @@
 (test should-assume-null-kell-continuation
   (let ((process (kell 'test (message 'test))))
     (is (match null (continuation process)))))
+
+(test should-apply-abstraction
+  (is (match (@ (make-instance 'pattern-abstraction
+                               :pattern (kell-calculus::convert-process-to-pattern (message 'param (process-variable 'x)))
+                               :process (process-variable 'x))
+                (make-instance 'concretion
+                               :messages (message 'param (message 'test))))
+             (message 'test))))

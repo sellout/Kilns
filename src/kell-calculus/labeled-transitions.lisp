@@ -20,10 +20,12 @@
   `(or generic-abstraction generic-concretion))
 
 (defclass concretion (agent)
-  ((restricted-names :reader restricted-names)
-   (messages :reader messages :type multiset
+  ((restricted-names :initform nil
+                     :initarg :restricted-names :reader restricted-names)
+   (messages :initform nil :initarg :messages :reader messages
              :documentation "A multiset without up-mossages")
-   (continuation :reader continuation :type process))
+   (continuation :initform null :initarg :continuation :reader continuation
+                 :type process))
   (:documentation "C ::= νã.Ω P
                    Ω ::= ∅ | a<P> | a<P>↓b | a[P] | Ω|Ω"))
 
@@ -154,23 +156,23 @@
   (:method ((agent1 application-abstraction) (agent2 concretion))
     (@ (abstraction agent1) (compose (concretion agent1) agent2)))
   (:method ((agent1 pattern-abstraction) (agent2 concretion))
-    (destructuring-bind (processes substitutions)
-        (match (pattern agent1) (messages agent2))
-      (mapc #'remove-process processes)
-      (trigger-process agent1 substitutions)
-      (activate-continuation (continuation agent2))))
+    (let ((substitutions (match (pattern agent1) (messages agent2))))
+      (compose (substitute (process agent1) substitutions)
+               (continuation agent2))))
   (:method ((agent1 kell-abstraction) (agent2 concretion))
-    (destructuring-bind (processes substitutions)
-        (match (pattern (abstraction (process agent1)))
-               (compose (messages (concretion (process agent1)))
-                        (messages agent2)))
-      (let ((kell (make-instance 'kell
-                                 :name (name agent1)
-                                 :continuation (continuation agent1))))
-        (setf (parent agent1) kell))
-      (mapc #'remove-process processes)
-      (trigger-process agent1 substitutions)
-      (activate-continuation (continuation agent2))))
+    (let* ((nested-abstraction (abstraction (process agent1)))
+           (nested-concretion (concretion (process agent1)))
+           (substitutions (match (pattern nested-abstraction)
+                                 (compose (messages nested-concretion)
+                                          (messages agent2)))))
+      (compose (make-instance
+                'kell
+                :name (name agent1)
+                :state (compose (substitute (process nested-abstraction)
+                                            substitutions)
+                                (continuation nested-concretion))
+                :continuation (continuation agent1))
+               (continuation agent2))))
   ;; The remaining methods eliminate any restrictions that might be hiding valid
   ;; applications.
   (:method ((agent1 restriction-abstraction) (agent2 restriction-abstraction))
