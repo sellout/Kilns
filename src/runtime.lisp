@@ -387,9 +387,8 @@
           (if (deadp live-process)
             (return nil)
             (when (not (deadp trigger))
-              (destructuring-bind (processes substitutions)
-                                  (handler-case (match (pattern trigger) (parent trigger))
-                                    (unification-failure () (list nil nil)))
+              (multiple-value-bind (substitutions processes)
+                  (match (pattern trigger) (parent trigger))
                 (when processes
                   (execute-match trigger processes substitutions)
                   (return t)))))

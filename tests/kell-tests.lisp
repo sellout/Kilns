@@ -64,13 +64,27 @@
                               :messages (list (message 'matching)
                                               (message 'match2))
                               :continuation (par (message 'que)
-                                                 (message 'pasa))))))
+                                                 (message 'pasa)))))))
 
-  (test should-apply-abstraction
-    (is (match (@ (make-instance 'pattern-abstraction
-                                 :pattern (kell-calculus::convert-process-to-pattern
-                                           (message 'param (process-variable 'x)))
-                                 :process (process-variable 'x))
-                  (make-instance 'concretion
-                                 :messages (message 'param (message 'test))))
-          (message 'test)))))
+(test should-apply-abstraction
+  (is (match (@ (make-instance 'pattern-abstraction
+                               :pattern (kell-calculus::convert-process-to-pattern
+                                         (message 'param (process-variable 'x)))
+                               :process (process-variable 'x))
+                (make-instance 'concretion
+                               :messages (message 'param (message 'test))))
+        (message 'test))))
+
+(test should-suspend-application
+  (let ((pattern-abstraction
+         (make-instance 'pattern-abstraction
+                        :pattern (kell-calculus::convert-process-to-pattern
+                                  (message 'param (process-variable 'x)))
+                        :process (process-variable 'x)))
+        (concretion
+         (make-instance 'concretion
+                        :messages (message 'not-param (message 'test)))))
+    (is (match (@ pattern-abstraction concretion)
+               (make-instance 'application-abstraction
+                              :abstraction pattern-abstraction
+                              :concretion concretion)))))

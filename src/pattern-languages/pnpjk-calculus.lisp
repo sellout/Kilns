@@ -115,13 +115,13 @@
     (unify pattern process substitutions))
   (:method ((pattern process) process
             &optional (substitutions (make-empty-environment)))
-    (second (match pattern process substitutions)))
+    (match pattern process substitutions))
   (:method ((pattern message) (process message)
             &optional (substitutions (make-empty-environment)))
     (if (typep (name pattern) 'name-variable)
       (recursive-match (argument pattern) (argument process)
                        (unify (name pattern) (name process) substitutions))
-      (second (match pattern process substitutions)))))
+      (match pattern process substitutions))))
 
 (defgeneric collect-bound-names (pattern)
   (:method (pattern)
