@@ -26,7 +26,8 @@
            #:parent #:deadp #:lock #:map-parallel-composition #:map-process
            #:find-process-variable-value
            #:find-symbol-value
-           #:kells #:processes #:remove-process-from
+           #:kells #:processes #:triggers #:primitives #:process-variables
+           #:remove-process-from
            #:local-patterns #:down-patterns #:up-patterns #:kell-patterns))
 
 (defpackage kilns

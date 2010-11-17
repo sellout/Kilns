@@ -21,7 +21,7 @@
   (:method ((process message))
     (reduce #'union
             (list (free-names (name process))
-                  (free-names (state process))
+                  (free-names (argument process))
                   (free-names (continuation process)))))
   (:method ((process parallel-composition))
     (reduce #'union (map-parallel-composition #'free-names process)))

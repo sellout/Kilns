@@ -9,9 +9,24 @@
   (unify (intern (format nil "?~a" (name pattern))) agent substitutions))
 
 (defmethod unify
-    ((pattern kell) (agent kell) &optional (substitutions (make-empty-environment)))
+    ((pattern kell) (agent kell)
+     &optional (substitutions (make-empty-environment)))
   (unify (state pattern) (state agent)
          (unify (name pattern) (name agent) substitutions)))
+
+(defmethod unify
+    ((pattern parallel-composition) (agent parallel-composition)
+     &optional (substitutions (make-empty-environment)))
+  (match-local (process-variables pattern) (process-variables agent)
+               (match-local (messages pattern) (messages agent)
+                            (match-local (kells pattern) (kells agent)
+                                         (match-local (triggers pattern)
+                                                      (triggers agent)
+                                                      (match-local (primitives
+                                                                    pattern)
+                                                                   (primitives
+                                                                    agent)
+                                                                   substitutions))))))
 
 ;;; We should only get here if we know that both messages are relative to the same kell
 (defmethod unify
