@@ -57,6 +57,4 @@
     :pathname "tests/"
     :components ((:file "package")
                  (:file "kell-tests" :depends-on ("package"))
-                 (:file "reader-tests" :depends-on ("package"))
-                 ;; (:file "protocol-tests" :depends-on ("package"))
-                 ))
+                 (:file "protocol-tests" :depends-on ("package"))))
