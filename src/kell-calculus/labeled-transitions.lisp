@@ -150,31 +150,40 @@
         :messages (append (messages agent1) (messages agent2))
         :continuation (compose (continuation agent1) (continuation agent2))))))
 
-(defgeneric apply-abstraction (abstraction)
-  (:method ((abstraction application-abstraction))
-    (@ (abstraction abstraction) (concretion abstraction))))
-
 (defgeneric @ (agent1 agent2)
+  ;; In the base cases, there is no reduction that can be done, so we suspend
+  ;; the application in an APPLICATION-ABSTRACTION for the time being
+  (:method ((agent1 simple-abstraction) (agent2 concretion))
+    (make-instance 'simple-application-abstraction
+                   :abstraction agent1 :concretion agent2))
+  (:method ((agent1 abstraction) (agent2 concretion))
+    (make-instance 'application-abstraction
+                   :abstraction agent1 :concretion agent2))
+  ;; Here is where we do the actual reductions
   (:method ((agent1 application-abstraction) (agent2 concretion))
     (@ (abstraction agent1) (compose (concretion agent1) agent2)))
   (:method ((agent1 pattern-abstraction) (agent2 concretion))
     (let ((substitutions (match (pattern agent1) (messages agent2))))
-      (compose (substitute (process agent1) substitutions)
-               (continuation agent2))))
+      (if substitutions
+          (compose (substitute (process agent1) substitutions)
+                   (continuation agent2))
+          (call-next-method))))
   (:method ((agent1 kell-abstraction) (agent2 concretion))
     (let* ((nested-abstraction (abstraction (process agent1)))
            (nested-concretion (concretion (process agent1)))
            (substitutions (match (pattern nested-abstraction)
                                  (compose (messages nested-concretion)
                                           (messages agent2)))))
-      (compose (make-instance
-                'kell
-                :name (name agent1)
-                :state (compose (substitute (process nested-abstraction)
-                                            substitutions)
-                                (continuation nested-concretion))
-                :continuation (continuation agent1))
-               (continuation agent2))))
+      (if substitutions
+          (compose (make-instance
+                    'kell
+                    :name (name agent1)
+                    :state (compose (substitute (process nested-abstraction)
+                                                substitutions)
+                                    (continuation nested-concretion))
+                    :continuation (continuation agent1))
+                   (continuation agent2))
+          (call-next-method))))
   ;; The remaining methods eliminate any restrictions that might be hiding valid
   ;; applications.
   (:method ((agent1 restriction-abstraction) (agent2 restriction-abstraction))
