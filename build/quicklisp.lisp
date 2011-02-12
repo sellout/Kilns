@@ -271,9 +271,7 @@
    (require "comm"))
   (:reexport-from #:comm
                   #:open-tcp-stream
-                  #:get-host-entry)
-  (:reexport-from #:system
-                  #:wait-for-input-streams))
+                  #:get-host-entry))
 
 
 ;;; SBCL
@@ -397,11 +395,6 @@
     (qlqs-clisp:read-byte-sequence buffer connection
                                   :no-hang nil
                                   :interactive t)))
-
-(defimplementation (read-octets :for lispworks :qualifier :before)
-    (buffer connection)
-  (declare (ignore buffer))
-  (qlqs-lispworks:wait-for-input-streams (list connection)))
 
 (definterface write-octets (buffer connection)
   (:implementation t
@@ -926,7 +919,7 @@
                                   (format nil ":~D" port)))
       (add-line "Connection: close")
       ;; FIXME: get this version string from somewhere else.
-      (add-line "User-Agent: quicklisp-bootstrap/2010101400")
+      (add-line "User-Agent: quicklisp-bootstrap/2010113000")
       (add-newline sink)
       (sink-buffer sink))))
 
@@ -1532,6 +1525,15 @@ the indexes in the header accordingly."
 (defun install (&key ((:path *home*) *home*)
                 ((:proxy *proxy-url*) *proxy-url*))
   (setf *home* (merge-pathnames *home*))
+  (let ((setup-file (qmerge "setup.lisp")))
+    (when (probe-file setup-file)
+      (multiple-value-bind (result proceed)
+          (with-simple-restart (load-setup "Load ~S" setup-file)
+            (error "Quicklisp has already been installed. Load ~S instead."
+                   setup-file))
+        (declare (ignore result))
+        (when proceed
+          (return-from install (load setup-file))))))
   (if (find-package '#:ql)
       (progn
         (write-line "!!! Quicklisp has already been set up. !!!")
@@ -1539,13 +1541,11 @@ the indexes in the header accordingly."
         t)
       (call-with-quiet-compilation #'initial-install)))
 
-(let ((setup-file (qmerge "setup.lisp")))
-  (if (probe-file setup-file)
-      (multiple-value-bind (result proceed)
-          (with-simple-restart (load-setup "Load ~S" setup-file)
-            (error "Quicklisp has already been installed. Load ~S instead."
-                   setup-file))
-        (declare (ignore result))
-        (when proceed
-          (load setup-file)))
-      (write-string *after-load-message*)))
+;;; Try to canonicalize to an absolute pathname; helps on Lisps where
+;;; *default-pathname-defaults* isn't an absolute pathname at startup
+;;; (e.g. CCL, CMUCL)
+(setf *default-pathname-defaults* (truename *default-pathname-defaults*))
+
+(write-string *after-load-message*)
+
+;;; End of quicklisp.lisp
