@@ -1,0 +1,67 @@
+;;; This provides access to POSIX-like functionality. All of this is required by
+;;; any Kilns implementation. Additional OS interfaces may be provided, but can ;;; not be assumed to exist by mobile processes.
+;;;
+;;; Documentation for POSIX is available at
+;;; http://www.opengroup.org/onlinepubs/9699919799/. "System Interfaces/General
+;;; Information" is a particularly useful section.
+
+(load "library/simple-components")
+
+(load "library/environment-variables")
+
+(trigger {os ?message down} {os ?message})
+
+[os (par (include-component "library/signals") ;; NOTE: maybe unnecessary?
+
+         (trigger {os ?message up} ?message)
+
+         ;; POSIX APIs
+         (include-component "library/sockets")
+         (include-component "library/streams")
+         (include-component "library/IPC")
+         (include-component "library/time")
+
+         ;; additional APIs
+         (include-component "library/filesystem")
+
+         ;; this should be in (include-component "library/processes")
+         (trigger* {exec (list ?command ?arguments {?process})}
+                   {process (lisp (external-program:start #.?command
+                                                          #.?arguments
+                                                          :input :stream
+                                                          :output :stream
+                                                          :error :stream))}))]
+
+;;; The FFI can be used in two ways – one is to access things "outside" of Kilns
+;;; – sockets, filesystems, etc. These interfaces live in a kell parallel to the
+;;; primary kell. This makes their status of "outside" match the general model.
+;;; There is a standard set of these "outside" APIs, and they can also be
+;;; extended by the implementation or the developer to cover other aspects of
+;;; the OS. The second use is as a convenience for wrapping APIs that do not yet
+;;; exist natively in Kilns. These should generally be avoided, as any kells
+;;; which use the FFI are tagged as immobile. This means they can not truly be
+;;; passivated (although some limited passivation – IE, to unload the foreign
+;;; library – is still possible). Obviously it is not always possible to avoid
+;;; these use cases, but these issues should be kept in mind.
+
+;;; This is a rough idea of what a fresh system looks like – `outside` may be
+;;; any network kell, `top` is the local kell that contains all local "pure"
+;;; kells, and `os` is the container for all local behavior that is impure,
+;;; sockets, file IO, etc. There is also `environment` which is technically part
+;;; of the OS, but can't be contained as such, because its variables need to be
+;;; accessible from the `top` kell.
+;;;
+;;; One shortcoming with the current implementation is that even though `top`,
+;;; `environment`, and `os` are restricted names, all their processes will be
+;;; sent over the network, because they occur in a network kell. A better
+;;; implementation that treats names as more than just symbols might be able to
+;;; prevent this.
+#| 
+[outside (new (top environment os)
+              (par [top (trigger {environment {PATH ?value} up} ...) ; getvar
+                        {environment {PATH "..."}} ; setvar
+                        {os ...})] ; os calls
+                   {environment {PATH "..."}} ; etc.
+                   (trigger {environment {?var ?value} down} ...)
+                   [os ...]))]
+|#
