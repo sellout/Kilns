@@ -476,8 +476,7 @@
                                       (continuation process)
                                       expandp)))))
 
-(defmethod collect-channel-names
-           ((process kell-abstraction) (kell kell))
+(defmethod collect-channel-names ((process kell-abstraction) (kell kell))
   (let ((name (name process)))
     (push process (gethash name (kells kell)))
     (list (list #'match-on process kell))))
@@ -485,7 +484,6 @@
   ;;; FIXME: should make sure (names process) is empty, or something
   (append (collect-channel-names (messages process) kell)
           (collect-channel-names (continuation process) kell)))
-
 
 (defmethod activate-process ((process kell-abstraction) (kell kell))
   (if (gethash (name process) (kells kell))
