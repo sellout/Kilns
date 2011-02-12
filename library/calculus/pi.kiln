@@ -1,0 +1,29 @@
+(load "library/replication")
+(load "library/utilities")
+
+;;;  ⟦{a (b1 b2 b3) P}⟧ = {a (list b1 b2 b3) ⟦P⟧}
+;;;         ⟦(new x P)⟧ = (new x ⟦P⟧)
+;;;         ⟦(par P Q)⟧ = (par ⟦P⟧ ⟦Q⟧)
+;;;             ⟦(! P)⟧ = (new k (par {k} (trigger* {k} (par ⟦P⟧ {k}))))
+;;; ⟦(+ a(b).P c(d).Q)⟧ = (new k
+;;;                            (par {k}
+;;;                                 (trigger (par {k} {a (list b)}) ⟦P⟧)))
+;;;                                 (trigger (par {k} {c (list d)}) ⟦Q⟧)))
+
+;; We use this instead of the original encoding because that one causes all the
+;; replicated processes to be created, which means it just expands until we're
+;; out of memory. Obviously that isn't viable.
+(def (replicate process)
+    (cl:typecase process
+      (message (message (name process)
+                        (argument process)
+                        (parallel-composition (continuation process)
+                                              (replicate process))))
+      (message (kell (name process)
+                     (state process)
+                     (parallel-composition (continuation process)
+                                           (replicate process))))
+      (trigger (trigger* (pattern trigger)
+                         (process trigger)))
+      (parallel-composition (map-process #'replicate process))
+      (restriction (new (names process) (replicate (process process))))))

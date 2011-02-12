@@ -1,0 +1,12 @@
+;;; Seal encoding
+
+;;;             [[null]] = null
+;;; [[(out x n (y...))]]
+;;; [[(in x n (y...))]]
+;;; [[{x n y}]]
+;;; [[{x n (y...)}]]
+;;; [[(par P Q)]] = (par [[P]] [[Q]])
+;;; [[(new x P)]] = (new x [[P]])
+;;; [[a.P]] = {[[a]] [[P]]} or (trigger [[a]] [[P]])
+;;; [[[n P]]] = [n [[P]]]
+;;; [[!a.P]] = (replicate [[a.P]])
