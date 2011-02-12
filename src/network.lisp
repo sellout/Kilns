@@ -44,7 +44,7 @@
       (make-thread (lambda () (handle-request client))
                    :name "request-handler"))))
 
-(defun start-kilns-listener ()
+(defun start-kilns-listener (&optional port)
   (make-thread (lambda ()
                  (handler-case
                      (sockets:with-open-socket
@@ -54,7 +54,7 @@
                                  :external-format '(:utf-8 :eol-style :lf)
                                  :ipv6 nil
                                  :local-host sockets:+ipv4-unspecified+
-                                 :local-port *base-port*
+                                 :local-port (or port *base-port*)
                                  :reuse-address t)
                        (sockets:listen-on socket :backlog 5)
                        (loop while socket

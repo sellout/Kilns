@@ -25,7 +25,10 @@
            :description "The number of CPUs/cores available.")
   (lispobj :short-name "k" :long-name "kell"
            :argument-name "NAME" :typespec 'symbol
-           :description "The name of the kell to use as the top kell."))
+           :description "The name of the kell to use as the top kell.")
+  (lispobj :short-name "p" :long-name "port"
+           :argument-name "NUMBER" :typespec '(unsigned-byte 16)
+           :description "The network port to listen for other kiln instances on."))
 
 (defun application-toplevel ()
   (com.dvlsoft.clon:make-context)
@@ -36,7 +39,8 @@
          (format t "kilns version ~a"
                  (asdf:component-version (asdf:find-system :kilns)))
          (com.dvlsoft.clon:exit)))
-  (kilns::toplevel (com.dvlsoft.clon:getopt :long-name "cpu-count")
-                   (com.dvlsoft.clon:getopt :long-name "kell")))
+  (kilns::toplevel :cpu-count (com.dvlsoft.clon:getopt :long-name "cpu-count")
+                   :local-kell (com.dvlsoft.clon:getopt :long-name "kell")
+                   :port-number (com.dvlsoft.clon:getopt :long-name "port")))
 
 (com.dvlsoft.clon:dump "kilns" application-toplevel)
