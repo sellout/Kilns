@@ -1,3 +1,21 @@
+(new (lambda fun arg abs)
+     ;;            [[x]] = x
+     ;; [[(lambda x P)]] = {abs (trigger {lambda x} [[P]])}
+     ;;        [[(P Q)]] = (new (fun arg) (par (App) [fun [[P]]] {arg [[Q]]}))
+     (par (def (lambda (var) process)
+              `{abs (trigger {lambda (process-variable ',var)} ,process)})
+          (def (apply fun arg)
+              `(new (fun arg)
+                    (par (App)
+                         [fun ,fun]
+                         {arg ,arg})))
+          (def (App)
+              `(trigger (par [fun {abs ?p}] {arg ?q})
+                        (par ?p {lambda ?q})))))
+
+#| encoding from the πCalculus book – keep around until we know the new one
+   works
+
 (load "library/replication")
 (load "library/utilities")
 
@@ -28,3 +46,5 @@
                              {replicate {,x (translate-lambda-term ,(cl:second term) ,v)}}))))))
     ;; variable
     `{(name-variable ',term) {,channel}}))
+
+|#
