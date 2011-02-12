@@ -87,56 +87,62 @@
 (defgeneric match (pattern process &optional substitutions)
   (:method ((pattern pattern) (kell kell)
             &optional (substitutions (make-empty-environment)))
-    (list (append (destructuring-bind (procs subst)
-                      (match-list #'match-local
-                                  (local-message-pattern pattern)
-                                  (messages kell)
-                                  substitutions)
-                    (setf substitutions subst)
-                    procs)
-                  (destructuring-bind (procs subst)
-                      (match-list #'match-down
-                                  (down-message-pattern pattern)
-                                  (apply #'compose-hash-tables
-                                         (mapcar #'messages (subkells kell)))
-                                  substitutions)
-                    (setf substitutions subst)
-                    procs)
-                  (destructuring-bind (procs subst)
-                      (match-list #'match-up
-                                  (up-message-pattern pattern)
-                                  (messages (parent kell))
-                                  substitutions)
-                    (setf substitutions subst)
-                    procs)
-                  (destructuring-bind (procs subst)
-                      (match-list #'match-kell
-                                  (kell-message-pattern pattern)
-                                  (kells kell)
-                                  substitutions)
-                    (setf substitutions subst)
-                    procs))
-          substitutions))
+    (let ((processes (append (destructuring-bind (procs subst)
+                                 (match-list #'match-local
+                                             (local-message-pattern pattern)
+                                             (messages kell)
+                                             substitutions)
+                               (setf substitutions subst)
+                               procs)
+                             (destructuring-bind (procs subst)
+                                 (match-list #'match-down
+                                             (down-message-pattern pattern)
+                                             (apply #'compose-hash-tables
+                                                    (mapcar #'messages
+                                                            (subkells kell)))
+                                             substitutions)
+                               (setf substitutions subst)
+                               procs)
+                             (destructuring-bind (procs subst)
+                                 (match-list #'match-up
+                                             (up-message-pattern pattern)
+                                             (messages (parent kell))
+                                             substitutions)
+                               (setf substitutions subst)
+                               procs)
+                             (destructuring-bind (procs subst)
+                                 (match-list #'match-kell
+                                             (kell-message-pattern pattern)
+                                             (kells kell)
+                                             substitutions)
+                               (setf substitutions subst)
+                               procs))))
+      (values substitutions processes)))
   (:method ((pattern process) (process process)
             &optional (substitutions (make-empty-environment)))
     ;; FIXME: This should ensure that _all_ processes match, not just enough to
     ;;        satisfy pattern.
-    (list (remove nil
-                  (append (destructuring-bind (procs subst)
-                              (match-local (messages-in pattern)
-                                           (messages-in process)
-                                           substitutions)
-                            (setf substitutions subst)
-                            procs)
-                          (destructuring-bind (procs subst)
-                              (match-kell (kells-in pattern)
-                                          (kells-in process)
-                                          substitutions)
-                            (setf substitutions subst)
-                            procs)))
-          substitutions))
+    (let ((processes (remove nil
+                             (append (destructuring-bind (procs subst)
+                                         (match-local (messages-in pattern)
+                                                      (messages-in process)
+                                                      substitutions)
+                                       (setf substitutions subst)
+                                       procs)
+                                     (destructuring-bind (procs subst)
+                                         (match-kell (kells-in pattern)
+                                                     (kells-in process)
+                                                     substitutions)
+                                       (setf substitutions subst)
+                                       procs)))))
+      (values substitutions processes)))
   (:method (pattern process &optional (substitutions (make-empty-environment)))
-    (unify pattern process substitutions)))
+    (values (unify pattern process substitutions)
+            process))
+  (:method :around
+      (pattern process &optional (substitutions (make-empty-environment)))
+    (handler-case (call-next-method)
+      (unification-failure () (values nil nil)))))
 
 (defun match-list (type-function patterns processes substitutions)
   "Finds one match in PROCESSES for each item in PATTERNS. Also ensures that the
@@ -155,7 +161,9 @@
                                     (push process matched-processes)
                                     (return-from per-pattern process)))))
                             (gethash (name pattern) processes))
-                      (error 'unification-failure)))
+                      (error 'unification-failure
+                             :format-control "Could not unify ~s with any process in ~s"
+                             :format-arguments (list pattern processes))))
                   patterns)
           substitutions)))
 
@@ -175,10 +183,14 @@
                                       (setf processes (remove process processes))
                                       (return-from per-pattern process))))
                                 processes)
-                          (error 'unification-failure)))
+                          (error 'unification-failure
+                                 :format-control "Could not unify ~s with any process in ~s"
+                                 :format-arguments (list pattern processes))))
                       patterns)
               substitutions)
-        (error 'unification-failure))))
+        (error 'unification-failure
+               :format-control "Can not unify two different length lists: ~s ~s"
+               :format-arguments (list patterns processes)))))
 (defgeneric match-down (pattern process &optional substitutions))
 (defgeneric match-up (pattern process &optional substitutions))
 (defgeneric match-kell (pattern process &optional substitutions)
@@ -196,7 +208,9 @@
                                   (setf processes (remove process processes))
                                   (return-from per-pattern process))))
                             processes)
-                      (error 'unification-failure)))
+                      (error 'unification-failure
+                             :format-control "Could not unify ~s with any process in ~s"
+                             :format-arguments (list pattern processes))))
                   patterns)
           substitutions)))
 

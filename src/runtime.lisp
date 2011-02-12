@@ -294,7 +294,8 @@
     (values))
   (defun toplevel (&optional cpu-count local-kell)
     (unless cpu-count (setf cpu-count (get-cpu-count)))
-    (let* ((*top-kell* (make-instance 'kell :name (gensym "TOP")))
+    (let* ((*top-kell* (make-instance (if local-kell 'network-kell 'kell)
+                         :name (gensym "TOP")))
            (*package* (find-package :kilns-user))
            (*readtable* *kilns-readtable*)
            (*local-kell* (when local-kell (intern local-kell))))
@@ -305,7 +306,8 @@
         ;; parents
         (setf current-kell *top-kell*
               (parent *top-kell*)
-              (kell (gensym "OUTSIDE") *top-kell*))
+              (make-instance 'network-kell
+                             :name (gensym "OUTSIDE") :process *top-kell*))
         (unwind-protect
             (loop do
               (printk "~a> " (name current-kell))
@@ -385,9 +387,8 @@
           (if (deadp live-process)
             (return nil)
             (when (not (deadp trigger))
-              (destructuring-bind (processes substitutions)
-                                  (handler-case (match (pattern trigger) (parent trigger))
-                                    (unification-failure () (list nil nil)))
+              (multiple-value-bind (substitutions processes)
+                  (match (pattern trigger) (parent trigger))
                 (when processes
                   (execute-match trigger processes substitutions)
                   (return t)))))

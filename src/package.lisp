@@ -21,11 +21,13 @@
            #:restriction-abstraction #:pattern-abstraction
            #:kell-abstraction #:application-abstraction
            #:names #:restricted-names #:continuation #:messages
+           #:@
            ;; FIXME: shouldn't export, maybe keep in separate package
            #:parent #:deadp #:lock #:map-parallel-composition #:map-process
            #:find-process-variable-value
            #:find-symbol-value
-           #:kells #:processes #:remove-process-from
+           #:kells #:processes #:triggers #:primitives #:process-variables
+           #:remove-process-from
            #:local-patterns #:down-patterns #:up-patterns #:kell-patterns))
 
 (defpackage kilns
@@ -52,7 +54,9 @@
            ;; fraKtal pattern language
            #:!=
            ;; abbreviated syntax
-           #:par #:new 
+           #:par #:new
+           ;; networking
+           #:defhost
            ;; interactive commands
            #:load #:move-up #:move-down
            #:system-state #:dump-system-state #:lisp #:watch))

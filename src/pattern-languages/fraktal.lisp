@@ -61,7 +61,7 @@
                                      (unify (variable name) (name process)
                                             substitutions)
                                      substitutions)))))
-    (otherwise (second (match pattern process substitutions)))))
+    (otherwise (match pattern process substitutions))))
 
 ;; FIXME: This is fraktal-specific, but kind of digs a bit more into the
 ;;        internals than I'd like

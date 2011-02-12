@@ -47,8 +47,7 @@
      &optional (substitutions (make-empty-environment)))
   (unify (intern (format nil "?~a" (name pattern))) agent substitutions))
 
-(defmethod find-name-variable-value
-    ((variable name-variable) &optional env errorp)
+(defun find-name-variable-value (variable &optional env errorp)
   (find-variable-value (intern (format nil "?~a" (name variable))) env errorp))
 
 (defclass blank (process)
@@ -80,25 +79,25 @@
 (defmethod match-local :around
            ((pattern message) (message message)
             &optional (substitutions (make-empty-environment)))
-  (if (equal (name pattern) (name message))
+  (if (name-equal (name pattern) (name message))
     (recursive-match (argument pattern) (argument message) substitutions)))
 
 (defmethod match-down :around
            ((pattern message) (message message)
             &optional (substitutions (make-empty-environment)))
-  (if (equal (name pattern) (name message))
+  (if (name-equal (name pattern) (name message))
     (recursive-match (argument pattern) (argument message) substitutions)))
 
 (defmethod match-up :around
            ((pattern message) (message message)
             &optional (substitutions (make-empty-environment)))
-  (if (equal (name pattern) (name message))
+  (if (name-equal (name pattern) (name message))
     (recursive-match (argument pattern) (argument message) substitutions)))
 
 (defmethod match-kell :around
            ((pattern kell) (kell kell)
             &optional (substitutions (make-empty-environment)))
-  (if (equal (name pattern) (name kell))
+  (if (name-equal (name pattern) (name kell))
     (unify (state pattern) (state kell) substitutions)))
 
 (defgeneric recursive-match (pattern process &optional substitutions)
@@ -116,13 +115,13 @@
     (unify pattern process substitutions))
   (:method ((pattern process) process
             &optional (substitutions (make-empty-environment)))
-    (second (match pattern process substitutions)))
+    (match pattern process substitutions))
   (:method ((pattern message) (process message)
             &optional (substitutions (make-empty-environment)))
     (if (typep (name pattern) 'name-variable)
       (recursive-match (argument pattern) (argument process)
                        (unify (name pattern) (name process) substitutions))
-      (second (match pattern process substitutions)))))
+      (match pattern process substitutions))))
 
 (defgeneric collect-bound-names (pattern)
   (:method (pattern)

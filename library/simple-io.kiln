@@ -7,6 +7,12 @@
 (trigger* {echo ?string up}
           (lisp (kilns::printk "~a~%" #.?string) null))
 
-(trigger* {read {?rc} up} {?rc (lisp (kilns::read))})
+(trigger* {read {?rc} up} {rc (lisp (kilns::read))})
+(trigger* {read (list ?stream {?rc}) up} {rc (lisp (kilns::read #.?stream))})
 
-(trigger* {read-string {?rc} up} {?rc (lisp (cl:read-line))})
+(trigger* {read-string {?rc} up} {rc (lisp (cl:read-line))})
+
+
+(trigger* {write ?process up} (lisp (cl::write #.?process)))
+(trigger* {write (list ?process ?stream) up}
+          (lisp (cl::write #.?process :stream #.?stream)))

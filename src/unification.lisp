@@ -9,9 +9,24 @@
   (unify (intern (format nil "?~a" (name pattern))) agent substitutions))
 
 (defmethod unify
-    ((pattern kell) (agent kell) &optional (substitutions (make-empty-environment)))
+    ((pattern kell) (agent kell)
+     &optional (substitutions (make-empty-environment)))
   (unify (state pattern) (state agent)
          (unify (name pattern) (name agent) substitutions)))
+
+(defmethod unify
+    ((pattern parallel-composition) (agent parallel-composition)
+     &optional (substitutions (make-empty-environment)))
+  (match-local (process-variables pattern) (process-variables agent)
+               (match-local (messages pattern) (messages agent)
+                            (match-local (kells pattern) (kells agent)
+                                         (match-local (triggers pattern)
+                                                      (triggers agent)
+                                                      (match-local (primitives
+                                                                    pattern)
+                                                                   (primitives
+                                                                    agent)
+                                                                   substitutions))))))
 
 ;;; We should only get here if we know that both messages are relative to the same kell
 (defmethod unify
@@ -20,9 +35,9 @@
   (unify (argument pattern) (argument agent)
          (unify (name pattern) (name agent) substitutions)))
 
-(defmethod match-messages (first second)
-  (handler-case (unify first second)
-    (unification-failure () nil)))
+(defgeneric name-equal (a b)
+  (:method (a b)                   (equal a b))
+  (:method ((a symbol) (b symbol)) (equal (symbol-name a) (symbol-name b))))
 
 ;;; this is probably not necessary, but I don't understand these environments well
 (defun duplicate-environment (env)
@@ -50,10 +65,9 @@
   (unify (car (kell-message-pattern pattern)) agent substitutions))
 
 ;; NOTE: FIND-VARIABLE-VALUE isn't generic, so we use a different name
-(defmethod find-symbol-value ((variable symbol) &optional env errorp)
+(defun find-symbol-value (variable &optional env errorp)
   (find-variable-value (intern (format nil "?~a" variable)) env errorp))
-(defmethod find-process-variable-value
-    ((variable process-variable) &optional env errorp)
+(defun find-process-variable-value (variable &optional env errorp)
   (find-variable-value (intern (format nil "?~a" (name variable))) env errorp))
 
 ;;; It turns out that occurs-in-p is used to make sure that variables don't
@@ -62,3 +76,38 @@
 (defmethod unify::occurs-in-p ((var symbol) pat env)
   (declare (ignore pat env))
   nil)
+
+;;; Unification for abstractions and concretions
+
+(defmethod unify
+    ((pattern concretion) (agent concretion)
+     &optional (substitutions (make-empty-environment)))
+  (unify (continuation pattern) (continuation agent)
+         (unify (messages pattern) (messages agent)
+                (unify (restricted-names pattern) (restricted-names agent)
+                       substitutions))))
+
+(defmethod unify
+    ((pattern kell-abstraction) (agent kell-abstraction)
+     &optional (substitutions (make-empty-environment)))
+  (unify (abstraction pattern) (abstraction agent)
+         (unify (continuation pattern) (continuation agent)
+                (unify (name pattern) (name agent) substitutions))))
+
+(defmethod unify
+    ((pattern application-abstraction) (agent application-abstraction)
+     &optional (substitutions (make-empty-environment)))
+  (unify (abstraction pattern) (abstraction agent)
+         (unify (concretion pattern) (concretion agent) substitutions)))
+
+(defmethod unify
+    ((pattern restriction-abstraction) (agent restriction-abstraction)
+     &optional (substitutions (make-empty-environment)))
+  (unify (abstraction pattern) (abstraction agent)
+         (unify (names pattern) (names agent) substitutions)))
+
+(defmethod unify
+    ((pattern pattern-abstraction) (agent pattern-abstraction)
+     &optional (substitutions (make-empty-environment)))
+  (unify (process pattern) (process agent)
+         (unify (pattern pattern) (pattern agent) substitutions)))
