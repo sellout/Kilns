@@ -1,10 +1,9 @@
 (in-package :kilns)
 
+;; Came up with the default port number by mapping the letters i–s to 0–10, then
+;; spelling “kilns” with those numbers:
+;; (k -> 2), (i -> 0), (l -> 3), (n -> 5), (s -> 10)
 (defvar *base-port* 20360)
-
-;;
-;; ijklmnopqrs mapped to 0–10, then kilns converted to it (k -> 2) * 10^4,
-;; (i -> 0) * 10^3, (l -> 3) * 10^2, (n -> 5) * 10^1, (s -> 10) * 10^0.
 
 ;;; Protocol format – use kilns reader
 ;;; {keep-alive}
@@ -89,7 +88,7 @@
 (defmethod print-object ((obj network-kell) stream)
   "Adds a little indicator to the kell to mark it as a network kell."
   (format stream "[<@>~a ~a~:[ ~a~;~]]"
-          (name obj) (process obj)
+          (name obj) (state obj)
           (eql (continuation obj) null) (continuation obj)))
 
 ;;; A multicast message is sent whenever 'match-on' is triggered on a network
