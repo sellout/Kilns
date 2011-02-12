@@ -145,15 +145,16 @@
           (name obj) (hostname obj) (port obj)
           (eql (continuation obj) null) (continuation obj)))
 
-(defmethod socket ((kell host-kell))
-  (or (slot-value kell 'socket)
-      (setf (slot-value kell 'socket)
-            (sockets:make-socket :address-family :internet
-                                 :type :stream
-                                 :connect :active
-                                 :remote-host (hostname kell)
-                                 :remote-port (port kell)
-                                 :keepalive t))))
+(defgeneric socket (kell)
+  (:method ((kell host-kell))
+    (or (slot-value kell 'socket)
+        (setf (slot-value kell 'socket)
+              (sockets:make-socket :address-family :internet
+                                   :type :stream
+                                   :connect :active
+                                   :remote-host (hostname kell)
+                                   :remote-port (port kell)
+                                   :keepalive t)))))
 
 (defmethod add-process ((process kell) (kell network-kell) &optional watchp)
   "When adding a kell to a network kell, it can be either the kell representing
@@ -230,7 +231,7 @@
   ;;; FIXME: I think we need to do something to convert the kellpath to a kell
   (push-event item))
 
-(defmethod really-match-on ((process message) (kell network-kell))
+(defmethod match-on ((process message) (kell network-kell))
   "Find all triggers that could match – up, down, or local."
   (let ((name (name process)))
     (select-matching-pattern
@@ -241,11 +242,11 @@
                                                    (up-patterns subkell)))
                                         (subkells kell))))
      process)))
-(defmethod really-match-on ((process kell) (kell network-kell))
+(defmethod match-on ((process kell) (kell network-kell))
   "Find all triggers that could match."
   (select-matching-pattern (gethash (name process) (kell-patterns kell))
                            process))
-(defmethod really-match-on ((process trigger) (kell network-kell))
+(defmethod match-on ((process trigger) (kell network-kell))
   "Just match on the new trigger."
   (select-matching-pattern (list process) process))
 
