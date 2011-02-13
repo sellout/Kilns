@@ -1,0 +1,28 @@
+(load "library/utilities")
+
+;;; Not much here yet, just some API and half-assed wrapping of IOLib.
+
+(trigger* {socket (list ?domain ?type ?protocol {?rc})}
+          {rc (lisp (sockets:make-socket ))})
+
+(trigger {bind (list ?socket ?address)}
+         (lisp (sockets:bind)
+               null))
+
+(trigger* {listen (list ?socket ?backlog-size)}
+          (lisp (sockets:listen)
+                null))
+
+(trigger* {accept (list ?socket ?address {?new-socket})
+          {new-socket (lisp (sockets:accept))})
+
+(trigger* {connect (list ?socket ?server-address)}
+          (lisp (sockets:connect)
+                null))
+
+(trigger* {get-host-by-name (list ?name {?host})}
+          {host (lisp (sockets:get-host-by-name))})
+
+(trigger* {get-host-by-address (list ?address ?type {?host})}
+          {host (lisp (sockets:get-host-by-addr))})
+

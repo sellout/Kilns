@@ -1,0 +1,6 @@
+;;; No implementation yet, just some notes
+
+Some characters can become multiple codepoints on an upcase/downcase/titlecase conversion. While we can't predict which is the correct pairing, we can store the original when we do a case conversion so that if we ever switch back, we know what the original was.
+
+EG, ı -> I -> ı, even though I -> i might be the default conversion. Also, for a
+tri-form letter, we have to make sure we always stay consistent with the original. EG, in lower -> upper -> title, the titlecase form has to be valid as a lower -> title conversion as well as a valid upper -> title conversion (I don't think this should ever happen, but if lower (the original) and upper don't have a compatible title form, then we make sure that the original and title are compatible)
