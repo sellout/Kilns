@@ -21,4 +21,6 @@
     ("?\\w+" . font-lock-variable-name-face)
     ("\\w+" . font-lock-constant-face)))
 
+(define-key kilns-mode-map (kbd "C-c C-z") 'run-kilns)
+
 (provide 'kilns-mode)

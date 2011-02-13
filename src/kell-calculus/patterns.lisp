@@ -141,6 +141,8 @@
             process))
   (:method :around
       (pattern process &optional (substitutions (make-empty-environment)))
+    ;; FIXME: not really ignorable, but CCL complains
+    (declare (ignorable pattern process substitutions))
     (handler-case (call-next-method)
       (unification-failure () (values nil nil)))))
 

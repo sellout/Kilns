@@ -282,6 +282,27 @@
   (princ "How many CPUs/cores are in your computer? ")
   (read))
 
+(defun toplevel (&key cpu-count local-kell port-number)
+  (unless cpu-count (setf cpu-count (get-cpu-count)))
+  (let* ((use-network-p (or local-kell port-number))
+         (*top-kell* (make-instance (if use-network-p 'network-kell 'kell)
+                                    :name (gensym "TOP")))
+         (*package* (find-package :kilns-user))
+         (*readtable* *kilns-readtable*)
+         (*local-kell* (when local-kell (intern local-kell))))
+    (ccl::def-standard-initial-binding *package* (find-package :kilns-user))
+    (ccl::def-standard-initial-binding *readtable* *kilns-readtable*)
+    ;;(when use-network-p (start-kilns-listener port-number))
+    (let ((kilns (start-kilns cpu-count)))
+      ;; dummy kell for now, to handle locking and other places we refer to
+      ;; parents
+      (setf  (parent *top-kell*)
+             (make-instance 'network-kell
+                            :name (gensym "OUTSIDE") :process *top-kell*))
+      (unwind-protect (real-toplevel *top-kell*)
+        (mapc #'destroy-thread kilns)
+        (clear-events)))))
+
 (let ((current-kell))
   (defun move-up ()
     (setf current-kell (parent current-kell))
@@ -292,30 +313,13 @@
         (setf current-kell new-kell)
         (error 'no-such-kell-error :name kell-name :container current-kell)))
     (values))
-  (defun toplevel (&optional cpu-count local-kell)
-    (unless cpu-count (setf cpu-count (get-cpu-count)))
-    (let* ((*top-kell* (make-instance (if local-kell 'network-kell 'kell)
-                         :name (gensym "TOP")))
-           (*package* (find-package :kilns-user))
-           (*readtable* *kilns-readtable*)
-           (*local-kell* (when local-kell (intern local-kell))))
-      (ccl::def-standard-initial-binding *package* (find-package :kilns-user))
-      (ccl::def-standard-initial-binding *readtable* *kilns-readtable*)
-      (let ((kilns (start-kilns cpu-count)))
-        ;; dummy kell for now, to handle locking and other places we refer to
-        ;; parents
-        (setf current-kell *top-kell*
-              (parent *top-kell*)
-              (make-instance 'network-kell
-                             :name (gensym "OUTSIDE") :process *top-kell*))
-        (unwind-protect
-            (loop do
-              (printk "~a> " (name current-kell))
-                 (handler-case (add-process (read) current-kell)
-                   (end-of-file () (return))
-                   (kiln-error (c) (handle-error c))))
-          (mapc #'destroy-thread kilns)
-          (clear-events))))))
+  (defmethod real-toplevel (top-kell)
+    (setf current-kell top-kell)
+    (loop do
+         (printk "~a> " (name current-kell))
+         (handler-case (add-process (read) current-kell)
+           (end-of-file () (return))
+           (kiln-error (c) (handle-error c))))))
 
 (defgeneric remove-process (process)
   (:method ((process message))
@@ -476,8 +480,7 @@
                                       (continuation process)
                                       expandp)))))
 
-(defmethod collect-channel-names
-           ((process kell-abstraction) (kell kell))
+(defmethod collect-channel-names ((process kell-abstraction) (kell kell))
   (let ((name (name process)))
     (push process (gethash name (kells kell)))
     (list (list #'match-on process kell))))
@@ -485,7 +488,6 @@
   ;;; FIXME: should make sure (names process) is empty, or something
   (append (collect-channel-names (messages process) kell)
           (collect-channel-names (continuation process) kell)))
-
 
 (defmethod activate-process ((process kell-abstraction) (kell kell))
   (if (gethash (name process) (kells kell))

@@ -9,19 +9,44 @@
       (load "build/quicklisp")
       (funcall (intern "INSTALL" :quicklisp-quickstart)))))
 
-(ql:quickload "bordeaux-threads" :verbose nil)
-(ql:quickload "cl-unification" :verbose nil)
-(ql:quickload "iolib" :verbose nil)
-(ql:quickload "closer-mop" :verbose nil)
-
 (load "kilns.asd")
-(asdf:load-system :kilns :verbose nil)
+(ql:quickload "kilns" :verbose nil)
+(ql:quickload "com.dvlsoft.clon" :verbose nil)
 
-(defun application-toplevel ()
-  (destructuring-bind (app &optional cpu-tag cpu-count kell)
-                      (ccl::command-line-arguments)
-    (declare (ignore app cpu-tag))
-    (kilns::toplevel (if cpu-count (parse-integer cpu-count)) kell)))
+(com.dvlsoft.clon:defsynopsis (:postfix "FILES...")
+  (text :contents "The Kilns programming language, based on the Kell calculus.")
+  (group (:header "Immediate exit options:")
+         (flag :short-name "h" :long-name "help"
+               :description "Print this help and exit.")
+         (flag :short-name "v" :long-name "version"
+               :description "Print version number and exit."))
+  (lispobj :short-name "c" :long-name "cpu-count"
+           :argument-name "NUMBER" :typespec '(integer 1)
+           :description "The number of CPUs/cores available.")
+  (stropt :short-name "k" :long-name "kell" :argument-name "NAME"
+          :description "The name of the kell to use as the top kell.")
+  (lispobj :short-name "p" :long-name "port"
+           :argument-name "NUMBER" :typespec '(unsigned-byte 16)
+           :description "The network port to listen for other kiln instances
+                         on."))
 
-(save-application "kilns"
-                  :toplevel-function #'application-toplevel :prepend-kernel t)
+(let ((files-to-load))
+  (defmethod kilns::real-toplevel :before (top-kell)
+    (mapcar (lambda (file) (kilns::add-process (kilns:load file) top-kell))
+            files-to-load))
+
+  (defun application-toplevel ()
+    (com.dvlsoft.clon:make-context)
+    (cond ((com.dvlsoft.clon:getopt :long-name "help")
+           (com.dvlsoft.clon:help)
+           (com.dvlsoft.clon:exit))
+          ((com.dvlsoft.clon:getopt :long-name "version")
+           (format t "kilns version ~a"
+                   (asdf:component-version (asdf:find-system :kilns)))
+           (com.dvlsoft.clon:exit)))
+    (setf files-to-load (com.dvlsoft.clon:remainder))
+    (kilns::toplevel :cpu-count (com.dvlsoft.clon:getopt :long-name "cpu-count")
+                     :local-kell (com.dvlsoft.clon:getopt :long-name "kell")
+                     :port-number (com.dvlsoft.clon:getopt :long-name "port"))))
+
+(com.dvlsoft.clon:dump "kilns" application-toplevel)

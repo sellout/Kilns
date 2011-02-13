@@ -40,9 +40,9 @@
                                             :depends-on ("pnpjk-calculus"))))
                (:file "utilities" :depends-on ("package"))
                (:file "syntax" :depends-on ("package"))
-               (:file "unification"
-                      :depends-on ("package" "kell-calculus"))
-               (:file "network" :depends-on ("package" "kell-calculus"))
+               (:file "unification" :depends-on ("package" "kell-calculus"))
+               (:file "network"
+                      :depends-on ("package" "kell-calculus" "runtime"))
                (:file "runtime"
                       :depends-on ("syntax" "kell-calculus" "unification"))
                (:file "reader" :depends-on ("runtime"))

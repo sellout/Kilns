@@ -1,10 +1,9 @@
 (in-package :kilns)
 
+;; Came up with the default port number by mapping the letters i–s to 0–10, then
+;; spelling “kilns” with those numbers:
+;; (k -> 2), (i -> 0), (l -> 3), (n -> 5), (s -> 10)
 (defvar *base-port* 20360)
-
-;;
-;; ijklmnopqrs mapped to 0–10, then kilns converted to it (k -> 2) * 10^4,
-;; (i -> 0) * 10^3, (l -> 3) * 10^2, (n -> 5) * 10^1, (s -> 10) * 10^0.
 
 ;;; Protocol format – use kilns reader
 ;;; {keep-alive}
@@ -45,7 +44,7 @@
       (make-thread (lambda () (handle-request client))
                    :name "request-handler"))))
 
-(defun start-kilns-listener ()
+(defun start-kilns-listener (&optional port)
   (make-thread (lambda ()
                  (handler-case
                      (sockets:with-open-socket
@@ -55,7 +54,7 @@
                                  :external-format '(:utf-8 :eol-style :lf)
                                  :ipv6 nil
                                  :local-host sockets:+ipv4-unspecified+
-                                 :local-port *base-port*
+                                 :local-port (or port *base-port*)
                                  :reuse-address t)
                        (sockets:listen-on socket :backlog 5)
                        (loop while socket
@@ -89,7 +88,7 @@
 (defmethod print-object ((obj network-kell) stream)
   "Adds a little indicator to the kell to mark it as a network kell."
   (format stream "[<@>~a ~a~:[ ~a~;~]]"
-          (name obj) (process obj)
+          (name obj) (state obj)
           (eql (continuation obj) null) (continuation obj)))
 
 ;;; A multicast message is sent whenever 'match-on' is triggered on a network
@@ -145,15 +144,16 @@
           (name obj) (hostname obj) (port obj)
           (eql (continuation obj) null) (continuation obj)))
 
-(defmethod socket ((kell host-kell))
-  (or (slot-value kell 'socket)
-      (setf (slot-value kell 'socket)
-            (sockets:make-socket :address-family :internet
-                                 :type :stream
-                                 :connect :active
-                                 :remote-host (hostname kell)
-                                 :remote-port (port kell)
-                                 :keepalive t))))
+(defgeneric socket (kell)
+  (:method ((kell host-kell))
+    (or (slot-value kell 'socket)
+        (setf (slot-value kell 'socket)
+              (sockets:make-socket :address-family :internet
+                                   :type :stream
+                                   :connect :active
+                                   :remote-host (hostname kell)
+                                   :remote-port (port kell)
+                                   :keepalive t)))))
 
 (defmethod add-process ((process kell) (kell network-kell) &optional watchp)
   "When adding a kell to a network kell, it can be either the kell representing
@@ -230,7 +230,7 @@
   ;;; FIXME: I think we need to do something to convert the kellpath to a kell
   (push-event item))
 
-(defmethod really-match-on ((process message) (kell network-kell))
+(defmethod match-on ((process message) (kell network-kell))
   "Find all triggers that could match – up, down, or local."
   (let ((name (name process)))
     (select-matching-pattern
@@ -241,11 +241,11 @@
                                                    (up-patterns subkell)))
                                         (subkells kell))))
      process)))
-(defmethod really-match-on ((process kell) (kell network-kell))
+(defmethod match-on ((process kell) (kell network-kell))
   "Find all triggers that could match."
   (select-matching-pattern (gethash (name process) (kell-patterns kell))
                            process))
-(defmethod really-match-on ((process trigger) (kell network-kell))
+(defmethod match-on ((process trigger) (kell network-kell))
   "Just match on the new trigger."
   (select-matching-pattern (list process) process))
 
