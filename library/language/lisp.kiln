@@ -1,0 +1,48 @@
+(load "library/replication")
+(load "library/utilities")
+(load "library/constants")
+(load "library/simple-components")
+(include-component "library/math")
+
+;; Some definitions of Lisp functions and macros to make things seem a bit more
+;; familiar. NOTE: Just because these exist doesn't mean they're the most direct
+;; way to your goal. EG, LET could be defined using the lambda calculus
+;; definitions, but the definition below generates much simpler code.
+
+(load "library/calculus/lambda")
+
+(trigger* {true (list ?true ?false)} ?true)
+(trigger* {false (list ?true ?false)} ?false)
+(trigger* {and (list {?chan1} {?chan2} ?true ?false)}
+          {chan1 (list {chan2 (list ?true ?false)} ?false)})
+
+;; Common Lisp-style LET
+(def (let vars cl:&body body)
+    `(new ,(cl:mapcar #'cl:car vars)
+          (par ,@(cl:mapcar (cl:lambda (pair)
+                              (cl:destructuring-bind
+                                    (name cl:&optional (value null)) pair
+                                `{,name ,value}))
+                            vars)
+               (trigger (par ,@(cl:mapcar (cl:lambda (pair)
+                                            (cl:let ((name (cl:car pair)))
+                                              `{,name
+                                                (process-variable ',name)}))
+                                          vars))
+                        (par ,@body)))))
+
+;; A simplified DEFUN – no docstring, no &keywords
+(def (defun name args cl:&body body)
+    `(trigger* {,name (par ,@(cl:mapcar #'process-variable args))}
+               (par ,@body)))
+
+(def (defconstant name value cl:&optional documentation)
+    `{constant {,name ,value}})
+
+;; Some messy DEFVAR/DEFPARAMETER hybrid. We ignore the documentation
+(def (defvar name cl:&optional (value null) documentation)
+    `{,name ,value})
+
+;; This is maybe more like SETQ
+(def (setf place value)
+    `(trigger {,place _} {,place ,value}))
