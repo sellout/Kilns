@@ -85,7 +85,7 @@ This should not include the name of the kilns binary."
 
 (define-derived-mode inferior-kilns-mode comint-mode "Inf-Kilns"
   "Major mode for interacting with kilns"
-  (setq comint-input-senter 'inferior-kilns-input-sender))
+  (setq comint-input-sender 'inferior-kilns-input-sender))
 
 (defun inferior-kilns-info-grabber (proc string)
   "Just a stub function for now.  We'll do awesome stuff later.")
