@@ -58,6 +58,11 @@
 (defmethod print-object ((obj blank) stream)
   (format stream "_"))
 
+(defmethod unify
+    ((pattern blank) agent &optional (substitutions (make-empty-environment)))
+  "Always matches."
+  substitutions)
+
 ;;; For convenience, we write a␣x1, ⋯, xn␣ for a␣1␣x1␣ | ⋯ | n␣xn␣␣ where
 ;;; 1, ⋯, n only occur in these encodings.
 ;;; 
