@@ -38,7 +38,7 @@
 (defmethod match-kell
            ((pattern kell) (kell kell)
             &optional (substitutions (make-empty-environment)))
-  (if (equal (name pattern) (name kell))
+  (if (name-equal (name pattern) (name kell))
     (unify (state pattern) (state kell) substitutions)))
 
 ;;; Note that, apart from the use of join patterns (i.e. the possibility to
