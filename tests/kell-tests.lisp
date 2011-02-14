@@ -83,7 +83,7 @@
                         :process (process-variable 'x)))
         (concretion
          (make-instance 'concretion
-                        :messages (message 'not-param (message 'test)))))
+                        :messages (list (message 'not-param (message 'test))))))
     (is (match (@ pattern-abstraction concretion)
                (make-instance 'application-abstraction
                               :abstraction pattern-abstraction

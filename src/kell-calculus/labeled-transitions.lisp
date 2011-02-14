@@ -26,7 +26,8 @@
              :documentation "A multiset without up-mossages")
    ;; FIXME: the continuation should default to NULL, but we haven't yet defined
    ;;        that.
-   (continuation :initarg :continuation :reader continuation :type process))
+   (continuation :initform null :initarg :continuation :reader continuation
+                 :type process))
   (:documentation "C ::= νã.Ω P
                    Ω ::= ∅ | a<P> | a<P>↓b | a[P] | Ω|Ω"))
 
