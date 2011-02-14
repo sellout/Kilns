@@ -1,0 +1,37 @@
+(load "library/replication")
+(load "library/simple-sockets")
+
+;;; This is the implementation of the protocol used for distributed Kilns
+;;; communication.
+
+;; Continuously read requests off the wire
+(trigger* {read-requests (list ?socket {?rc})}
+          (new process
+               {read (list ?socket {process})}
+               (trigger {process ?request}
+                        {rc (par {client ?socket} {contents ?request})
+                            {read-requests (list ?socket {rc})}})))
+
+;;; open a socket, then just READ everything that comes over the socket
+(new socket
+     {open-socket (list (par {connect :passive}
+                             {address-family :internet}
+                             {type :stream})
+                        {socket})
+     (trigger* {socket ?socket}
+               {read-requests (list ?socket {request})))
+
+
+
+(trigger* {request (par {client ?client} {contents {keep-alive}})}
+          {write (list {keep-alive} ?client)})
+
+(trigger* {request (par {client ?client}
+                        {contents {handshake (par {path ?path}
+                                                  {version ?version})}})}
+          {= (list ?version "0.0.1"
+                   {write (list {handshake (par {path {some {path}}}
+                                                        {version "0.0.1"})}
+                                ?client)}
+                   {write (list {handshake {error "incompatible version"}}
+                                ?client)})})

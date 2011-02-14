@@ -1,6 +1,16 @@
+(load "library/replication")
 (load "library/utilities")
 
 ;;; Not much here yet, just some API and half-assed wrapping of IOLib.
+
+(trigger* {open-socket (list (par {connect ?connect}
+                                  {address-family ?address-family}
+                                  {type ?type})
+                             {?rc})
+                       up}
+          {rc (lisp (sockets:open-socket :connect #.?connect
+                                         :address-family #.?address-family
+                                         :type #.?type))})
 
 (trigger* {socket (list ?domain ?type ?protocol {?rc})}
           {rc (lisp (sockets:make-socket ))})
@@ -25,4 +35,3 @@
 
 (trigger* {get-host-by-address (list ?address ?type {?host})}
           {host (lisp (sockets:get-host-by-addr))})
-
