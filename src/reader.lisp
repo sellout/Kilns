@@ -4,7 +4,25 @@
 ;;   (add-process form *top-kell*))
 
 (defun read (&rest read-args)
-  (apply #'cl:read read-args))
+  (let* ((*readtable* kilns::*kilns-readtable*)
+         (*package* (find-package :kilns-user))
+         (value (apply #'cl:read read-args)))
+    (case value
+      (null null)
+      (otherwise value))))
+
+(defun read-from-string (string &optional (eof-error-p t) eof-value
+                                &key (start 0) end preserve-whitespace
+                                &aux idx)
+  "The characters of string are successively given to the lisp reader
+   and the lisp object built by the reader is returned. Macro chars
+   will take effect."
+  (values
+   (with-input-from-string (stream string :index idx :start start :end end)
+     (if preserve-whitespace
+       (read-preserving-whitespace stream eof-error-p eof-value)
+       (read stream eof-error-p eof-value)))
+   idx))
 
 ;;; FIXME: for networking, load needs to be able to take a path to a subkell
 ;;;        that represents what is to be run in the local instance. It should

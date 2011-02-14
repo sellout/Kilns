@@ -37,7 +37,7 @@
   (:use #:closer-common-lisp #:bordeaux-threads #:unify
         #:kell-calculus)
   (:shadowing-import-from #:kell-calculus #:substitute #:match)
-  (:shadow #:complement #:load #:read)
+  (:shadow #:complement #:load #:read #:read-from-string)
   (:export ;; core calculus
            #:trigger
            #:restriction
