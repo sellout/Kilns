@@ -7,4 +7,5 @@ if [ $# -gt 0 ]; then
    dx86cl64 --eval '(load "kilns.asd")' \
             --eval '(ql:quickload "kilns")' \
             --eval '(asdf:test-system :kilns)'
+            --eval '(quit)'
 fi
