@@ -1,5 +1,5 @@
-;;; FIXME: this works, but it's technically not guaranteed that these `defhost` forms
-;;;         are executed before the kells are loaded.
+;;; FIXME: this works, but it's technically not guaranteed that these `defhost`
+;;;        forms are executed before the kells are loaded.
 (defhost 'client "localhost" 8010)
 (defhost 'server "localhost" 8011)
 
