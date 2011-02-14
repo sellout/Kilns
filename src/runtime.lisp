@@ -303,6 +303,8 @@
         (mapc #'destroy-thread kilns)
         (clear-events)))))
 
+(defgeneric real-toplevel (top-kell))
+
 (let ((current-kell))
   (defun move-up ()
     (setf current-kell (parent current-kell))
