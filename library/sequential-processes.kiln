@@ -1,9 +1,25 @@
+;;; An attempt at being able to define serial (as opposed to parallel) process
+;;; composition.
 
+(def (ser2 process1 process2)
+     `(new done
+           (par ,process1
+                (trigger {done} ,process2))))
 
-(def (seq2 process1 process2)
-     `(new start
-           (@ process1 {start})
-           (trigger {start} ,process2)))
+;; Similar to `par`, but defines a sequence of operations to perform in order.
+;; Each process must indicate its completion by signaling over `done`.
+(def (ser cl:&rest processes)
+    `(cl:flet ((ser-pair (proc1 proc2)
+                 (ser2 proc1 proc2)))
+       (cl:reduce #'ser-pair (cl:list ,@processes) :from-end cl:t)))
 
-(def (seq cl:&rest processes)
-     `(cl:reduce #'seq2 processes))
+;; Turns an arbitrary process into a statement that can be used in `ser`.
+(def (statement process)
+    (cl:let ((proc-var (cl:gensym)))
+      `(cl:let ((,proc-var ,process))
+         (cl:loop for proc = ,proc-var then (kell-calculus:continuation proc)
+                  until (cl:eql (continuation proc) null)
+                  ;; TODO: need a syntax for adding a new continuation onto an
+                  ;;       existing process
+                  finally (cl:progn (cl:setf (continuation proc) {done})
+                                    (cl:return ,proc-var))))))
