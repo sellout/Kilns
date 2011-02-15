@@ -1,0 +1,43 @@
+(load "library/replication")
+(load "library/utilities")
+
+(trigger* {true (list ?true _) up} {component-out ?true})
+(trigger* {false (list _ ?false) up} {component-out ?false})
+
+(def (true channel)
+     `(trigger* (message ',channel (list ?true _)) ?true))
+(def (false channel)
+     `(trigger* (message ',channel (list _ ?false)) ?false))
+
+(def (negate channel negchan)
+     `(trigger* (message ',negchan (list ?true ?false))
+                (message ',channel (list ?false ?true))))
+
+(def (and chan1 chan2 andchan)
+     `(trigger* (message ',andchan (list ?true ?false))
+                (message ',chan1 (list (message ',chan2 (list ?true ?false)) ?false))))
+
+(def (or chan1 chan2 orchan)
+     `(trigger* (message ',orchan (list ?true ?false))
+                (message ',chan1 (list ?true (message ',chan2 (list ?true ?false))))))
+
+(def (or chan1 chan2 orchan)
+     `(trigger* (message ',orchan (list ?true ?false))
+                (message ',chan1 (list ?true (message ',chan2 (list ?true ?false))))))
+
+(def (xor chan1 chan2 xorchan)
+     `(trigger* (message ',xorchan (list ?true ?false))
+                (message ',chan1 (list (message ',chan2 (list ?false ?true))
+                                       (message ',chan2 (list ?true ?false))))))
+
+#|
+(new result
+     (par {zerop (list x {result {true}} {result {false}})}
+          {< (list x y {result {true}} {result {false}})}
+          (trigger (par {result {true}} {result {true}})
+                   {both-are-true})
+          ;; NOTE: drop {result _} to get a possibly-faster match, but it means there is
+          ;;       garbage left afterward (use sandbox to fix that)
+          (trigger (par {result {false}} {result _})
+                   {at least one was false})))
+|#
