@@ -1,0 +1,50 @@
+;; This is an example of modeling a server cluster with kilns, in order to test
+;; its fault-tolerance.
+
+;;  (trigger [a ?x] [a (par ?x (trigger {new-trig} ...))])
+;;  That will effectively add a new trigger "in place"
+
+
+(load "library/simple-components")
+(include-component "library/simple-io")
+
+;; --- Abstraction scratch pad ---			   
+;; (trigger* (par {provision {?name} down} [server ?process])
+;;                (par [server ?process]
+;; 			        [name ?process]))
+;;
+;;(trigger [a ?x] (par {transfer ?x} [a ?x]))
+;;					
+;; [server (par [machine ]
+;;             (triger* {provision}
+;;			          (trigger [machine ?x]
+;;					           (par [machine ?x]
+;;							        {}))))]
+
+(trigger* {notify ?server down}
+		  (par {echo ?server}
+			   {echo ""})) 
+
+(trigger* {send-msg ?x down}
+          (par ?x
+		       {echo ?x}))
+
+[proxy (par (trigger* {request ?r up}
+                      (par {notify "proxy"}
+                           {send-msg {accept-request "GET foo.html"}})))]
+
+[web (par (trigger* {accept-request ?r up}
+                    (par {notify "web accept-request"}
+                         {send-msg {get-data {serve-page}}}))
+          (trigger* {serve-page _ up}
+                    (par {echo "serving data"}
+                         {notify "web serve-page"})))]
+
+[db (par (trigger* {get-data ?msg up}
+                   (par {notify "db get-data"}
+                        {send-msg {?msg "Some kind of data"}})))]
+						   
+{request "GET foo.html"} 
+{request "GET bar.html"}
+{request "GET baz.html"}
+

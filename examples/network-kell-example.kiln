@@ -1,0 +1,41 @@
+;;; Uses the name-passing jK pattern language
+(load "library/replication")
+
+(def receive-targeted-alert (data-center)
+  `(trigger* {targeted-alert (par {alert ?alert} (message ',data-center)) up}
+             {alert ?alert}))
+
+(def receive-alert ()
+  `(trigger* {alert ?alert up} {alert ?alert}))
+
+(def inter-data-center-communication (data-center)
+  `(par (receive-targeted-alert ,data-center)
+        (receive-alert)))
+
+(def data-center (name file)
+  `[,name (par (load ,file)
+               (inter-data-center-communication ,name))])
+
+[amazon
+      (par (data-center seattle-data-center "us-data-center")
+           (data-center philadelphia-data-center "us-data-center")
+           (data-center hong-kong-data-center "chinese-data-center")
+           (data-center london-data-center "eu-data-center")
+           ;; receive a broadcast message from any data center, and pass it
+           ;; along to every data center (sender included)
+           (trigger* {broadcast ?alert down}
+                     (par {targeted-alert (par {alert ?alert}
+                                               {seattle-data-center})}
+                          {targeted-alert (par {alert ?alert}
+                                               {philadelphia-data-center})}
+                          {targeted-alert (par {alert ?alert}
+                                               {hong-kong-data-center})}
+                          {targeted-alert (par {alert ?alert}
+                                               {london-data-center})}))
+           ;; pass-alonge a message to a single, specific data center
+           (trigger* {inform (par {?data-center} ?alert) down}
+                     {targeted-alert (par {alert ?alert}
+                                          {?data-center})})
+           ;; pass along a message to a single, unspecified data center
+           (trigger* {singlecast ?alert down}
+                     {alert ?alert}))]

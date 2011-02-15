@@ -1,0 +1,30 @@
+(load "library/replication")
+
+(def (service name file)
+     [,service (par (load ,file)
+                    (trigger* {,service ?message up} ?message))]
+
+[services (par [product-discovery (par (load "product-discovery-layout.kiln")
+                                       (trigger* {product-discovery ?message up}
+                                                 ?message))]
+               [search (par (load "search-layout.kiln")
+                            (trigger* {search ?message up}
+                                      ?message))]
+               [recommendations (par (load "recommendations-layout.kiln")
+                                     (trigger* {recommendations ?message up}
+                                               ?message))]
+               (trigger* {cross-service {?service ?message} down}
+                         {?service message})
+               (trigger* {service-out ?message down} {service-out ?message}))]
+(trigger* {service-out ?message down} ?message})
+
+;;; product-discovery-layout.kiln
+
+;; This actually maps whatever:8000 to services/product-discovery/some-host,
+;; because this file is loaded inside services/product-discovery in the above
+;; file.
+(defhost some-host "whatever" 8000)
+(defhost other-host "yep" 8000)
+
+[some-host (load "product-discovery.kiln")]
+[other-host (load "product-discovery.kiln")]
