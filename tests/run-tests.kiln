@@ -4,7 +4,7 @@
 ;;;        isolate test runs from other things we might do, as well as each
 ;;;        other
 (sandbox (par (load "tests/test-examples")
-              (load "tests/test-utilities")
-              (load "tests/test-math")
-              (load "tests/test-association-lists"))
+              (load "tests/library/test-utilities")
+              (load "tests/library/test-math")
+              (load "tests/library/test-association-lists"))
          rc)

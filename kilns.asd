@@ -54,7 +54,7 @@
 
 (defsystem kilns-tests
     :depends-on (kilns fiveam)
-    :pathname "tests/"
+    :pathname "tests/src/"
     :components ((:file "package")
                  (:file "reader-tests" :depends-on ("package"))
                  (:file "kell-tests" :depends-on ("package"))
