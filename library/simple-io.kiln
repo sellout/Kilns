@@ -4,6 +4,26 @@
 ;;; to lisp to actually read and write. This library provides a few basic tools
 ;;; for reading and writing.
 
+#|
+Rather than locking in the implementation for every print, each stream should
+have a semaphore message created along with it, so we can do
+
+(trigger* {read (list ?stream {?rc}) up}
+          (trigger {stream-semaphore stream}
+                   (new token
+                        (par {token (lisp (kilns::read #.?stream))}
+                             (trigger {token ?tok}
+                                      (par {rc ?tok}
+                                           {stream-semaphore stream}))))))
+
+The idea being that when there's a request to read from a particular stream, we
+grab the semaphore for that stream, then try to read. When we get the resulting
+token, we send it over `rc` and re-create the semaphore.
+
+In general, the less the implementation has to do, the better. So now we don't
+need to lock.
+|#
+
 (trigger* {echo ?string up}
           (lisp (kilns::printk "~a~%" #.?string) null))
 
