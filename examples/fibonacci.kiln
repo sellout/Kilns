@@ -26,3 +26,20 @@
                                             2)}
                               (trigger (par {f ?fib1} {f ?fib2})
                                        {+ (list ?fib1 ?fib2 {rc})}))))})
+
+#|
+;; alternative implementation
+;; use sandbox and trigger* instead of repeat and trigger  
+(trigger* {fibonacci (list ?index {?rc})}
+          {<= (list ?index 1
+                    {rc ?index}
+                    (sandbox (new (previous f)
+                                  (par {- (list ?index 1 {previous})}
+                                       {- (list ?index 2 {previous})}
+                                       (trigger* {previous ?new-index}
+                                                 {fibonacci (list ?new-index
+                                                                  {f})})
+                                       (trigger (par {f ?fib1} {f ?fib2})
+                                                {+ (list ?fib1 ?fib2 {rc})}))
+                                  rc)))})
+|#
