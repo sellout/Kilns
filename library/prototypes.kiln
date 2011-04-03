@@ -1,0 +1,87 @@
+(load "library/replication")
+(load "library/utilities")
+
+;;; This is a simple prototype-based object system. It allows you to create a
+;;; new object, invoke methods, update methods, and clone the object. It is from
+;;; http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.59.4483 with
+;;; changes to make it actually implementable.
+
+#| some usage examples
+
+(create-object cons
+               (par {car (trigger ...)}
+                    {cdr (trigger ...)}))
+(invoke cons car)}
+|#
+
+(new (m inv upd clone r)
+     (par
+      ;; interface
+      
+      (def (create-object name methods)
+        `(par (Env) (object ,name ,methods)))
+
+      (def (invoke object method)
+        `{m (list (message ,object) {inv} (message ,method))})
+
+      (def (update object method pattern definition)
+        `{m (list (message ,object)
+                  {upd}
+                  (message ,method)
+                  (trigger {r (message ,method ?,pattern)}
+                           (par ,definition ,object)))})
+
+      (def (clone object)
+        `{m (list (message ,object) {clone})})
+
+      ;; macros
+      
+      (def (object a l)
+        `(kell ,a
+               (par (clone-i ,a ,l)
+                    (message ,a)
+                    (map {?nam ?defin} (object-i ,a ?nam ?defin) ,l))))
+
+      (def (object-i a li qi)
+        `(par (invoke-i ,a ,li) (update-i ,a ,li) (message ,li ,qi)))
+
+      (def (invoke-i name li)
+        `(trigger* (par {m (list (message ,name) {inv} (message ,li))}
+                        (message ,li ?q)
+                        (message ,name))
+                   (par {r (message ,li ,name)}
+                        ?q
+                        (message ,li)
+                        (message ,li ?q))))
+
+      (def (update-i a li)
+        `(trigger* (par {m (list (message ,a) {upd} (message ,li) ?p)}
+                        (message ,li _)
+                        (message ,a))
+                   (par (message ,li ?p) (message ,a))))
+
+      (def (clone-i name l)
+        `(trigger* (par {m (list (message ,name) {clone})}
+                        (message ,name)
+                        ;; FIXME: not going to work like this in the pattern
+                        (map {?nam ?defin} (message ?nam ?defin) ,l))
+                   (par (map {?nam ?defin} (message ?nam ?defin) ,l)
+                        (message ,name)
+                        (new b
+                             {make (list {b} ,l)}))))
+
+      (def (meth object method b f)
+        `(trigger {r (list (message ,method {(channel-variable ,b)}))}
+                  (par ,f (message ,object))))
+
+      ;; environment
+
+      (def (Env)
+        `(par (Router) (Factory)))
+
+      (def (Router)
+        `(trigger* {m ?x} {m ?x}))
+
+      (def (Factory)
+        `(trigger* {make (list {?b} ?l)}
+                   (object b ?l)))))
