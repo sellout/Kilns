@@ -18,7 +18,7 @@
      font-lock-keyword-face)
     ;; FIXME: shouldn't be highlighting the "(", but can't do lookbehind
     ("(\\w+" . font-lock-function-name-face)
-    ("?\\w+" . font-lock-variable-name-face)
+    ("\\?\\w+" . font-lock-variable-name-face)
     ("\\w+" . font-lock-constant-face)))
 
 (define-key kilns-mode-map (kbd "C-c C-z") 'run-kilns)
