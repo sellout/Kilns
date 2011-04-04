@@ -90,6 +90,16 @@
           (name obj) (state obj)
           (eql (continuation obj) null) (continuation obj)))
 
+(defun cont (process &rest continuation)
+  "Since continuations are rare, this separates them from the main body of the
+   process, simplifying the syntax for the common case."
+  (let ((existing-continuation (continuation process)))
+    (if (eq existing-continuation null)
+        (setf (continuation process)
+              (apply #'parallel-composition continuation))
+        (apply #'cont existing-continuation continuation)))
+  process)
+
 (defclass parallel-composition (process)
   ((process-variables :initform nil :type list :accessor process-variables)
    (messages :initform nil :type list :accessor messages)

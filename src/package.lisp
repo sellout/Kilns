@@ -4,7 +4,7 @@
   (:use #:cl #:bordeaux-threads #:unify)
   (:shadow #:substitute #:match)
   (:export #:name #:process-variable #:identifier #:name-type
-           #:null #:trigger #:new #:par #:def
+           #:null #:trigger #:new #:par #:def #:cont
            #:process #:message #:kell #:subkells
            #:argument #:state
            #:parallel-composition #:compose
