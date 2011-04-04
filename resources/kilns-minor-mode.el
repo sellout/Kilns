@@ -80,9 +80,6 @@ This should not include the name of the kilns binary."
 (defvar inferior-kilns-buffer nil
   "Buffer that the kilns process runs in")
 
-(defvar inverior-kilns-process nil
-  "The comint process for the inferior kilns ")
-
 (define-derived-mode inferior-kilns-mode comint-mode "Inf-Kilns"
   "Major mode for interacting with kilns"
   (setq comint-input-sender 'inferior-kilns-input-sender))
