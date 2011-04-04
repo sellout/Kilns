@@ -66,6 +66,8 @@
           (append (messages process) (kells process)))
     pattern)
   (:method ((process message) &optional (pattern (make-instance 'pattern)))
+    (unless (argument process) ; FIXME: should only happen with pnp-jK & FraKtal
+      (setf (argument process) kilns:_))
     (case (continuation process)
       (down (push process (down-message-pattern pattern)))
       (up (push process (up-message-pattern pattern)))

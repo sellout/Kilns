@@ -10,9 +10,9 @@
   (let ((process (message 'test (message 'test))))
     (is (match null (continuation process)))))
 
-(test should-assume-null-message-argument
+(test should-assume-nil-message-argument-and-null-continuation
   (let ((process (message 'test)))
-    (is (match null (argument process)))
+    (is (match nil (argument process)))
     (is (match null (continuation process)))))
 
 (test should-assume-null-kell-continuation

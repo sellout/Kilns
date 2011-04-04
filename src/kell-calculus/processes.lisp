@@ -32,7 +32,7 @@
 
 (defclass message (process)
   ((name :initarg :name :accessor name :type name)
-   (argument :initarg :argument :initform null :type generic-process
+   (argument :initarg :argument :initform nil :type generic-process
              :accessor argument)
    (continuation :initarg :continuation :initform null :type (or process symbol)
                  :accessor continuation)))
@@ -40,7 +40,7 @@
 (defmethod print-object ((obj message) stream)
   (format stream "{~a~:[ ~s~:[ ~s~;~]~;~]}"
           (name obj)
-          (and (eql (argument obj) null)
+          (and (or (null (argument obj)) (eql (argument obj) null))
                (eql (continuation obj) null))
           (argument obj)
           (eql (continuation obj) null)
