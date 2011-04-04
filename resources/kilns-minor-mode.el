@@ -109,21 +109,14 @@ This might get wacked."
       (inferior-kilns-process))))
 
 (defun inferior-kilns-start-process ()
-  "Actually start the kilns interpreter.
-
-   This sets the current directory to the path of the kilns binary before
-   launching kilns. I am not 100% sure this is the proper way to do it, but it
-   does seem the most convenient."
-  (let ((old-dir default-directory))
-    (cd inferior-kilns-binary-path)
-    (setq inferior-kilns-buffer
-          (make-comint "Kilns"
-                       (concat inferior-kilns-binary-path
-                               inferior-kilns-binary)))
-    (with-current-buffer inferior-kilns-buffer
-      (inferior-kilns-mode)
-      (run-hooks 'inferior-kilns-hook))
-    (cd old-dir)))
+  "Actually start the kilns interpreter."
+  (setq inferior-kilns-buffer
+        (make-comint "Kilns"
+                     (concat inferior-kilns-binary-path
+                             inferior-kilns-binary)))
+  (with-current-buffer inferior-kilns-buffer
+    (inferior-kilns-mode)
+    (run-hooks 'inferior-kilns-hook)))
 
 (provide 'kilns-minor-mode)
 
