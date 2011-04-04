@@ -36,7 +36,8 @@ For more information, see http://github.com/sellout/Kilns")
 ;; Below are complete command list:
 ;;
 ;;  `run-kilns'
-;;    Switch to the kilns window if runing, otherwise Launch the Kilns interpreter in a comint window.
+;;    Switch to the kilns window if runing, otherwise Launch the Kilns
+;;    interpreter in a comint window.
 ;;
 ;;; Customizable Options:
 ;;
@@ -74,8 +75,8 @@ This should not include the name of the kilns binary."
 
 (defvar kilns-minor-mode-map ()
   (let ((map (make-sparse-keymap)))
-	(define-key map "\C-c\C-s" 'run-kilns)
-	map))
+    (define-key map "\C-c\C-s" 'run-kilns)
+    map))
 
 (defvar inferior-kilns-buffer nil
   "Buffer that the kilns process runs in")
@@ -93,7 +94,8 @@ This might get wacked."
   (comint-send-string proc (concat string "\n")))
 
 (defun run-kilns ()
-  "Switch to the kilns window if runing, otherwise Launch the Kilns interpreter in a comint window."
+  "Switch to the kilns window if runing, otherwise Launch the Kilns interpreter
+   in a comint window."
   (interactive)
   (pop-to-buffer (process-buffer (inferior-kilns-process)))
   (goto-char (process-mark (inferior-kilns-process))))
@@ -101,24 +103,27 @@ This might get wacked."
 (defun inferior-kilns-process ()
   "Returns the current kilns process, or starts up a new one"
   (if (buffer-live-p inferior-kilns-buffer)
-	  (get-buffer-process inferior-kilns-buffer)
-	  (progn
-	   (inferior-kilns-start-process)
-	   (inferior-kilns-process))))
+      (get-buffer-process inferior-kilns-buffer)
+    (progn
+      (inferior-kilns-start-process)
+      (inferior-kilns-process))))
 
 (defun inferior-kilns-start-process ()
   "Actually start the kilns interpreter.
 
-This sets the current directory to the path of the kilns binary before launching kilns.
-I am not 100% sure this is the proper way to do it, but it does seem the most convenient."
+   This sets the current directory to the path of the kilns binary before
+   launching kilns. I am not 100% sure this is the proper way to do it, but it
+   does seem the most convenient."
   (let ((old-dir default-directory))
-	(cd inferior-kilns-binary-path)
-	(setq inferior-kilns-buffer
-		  (make-comint "Kilns" (concat inferior-kilns-binary-path inferior-kilns-binary)))
-	(with-current-buffer inferior-kilns-buffer
-						 (inferior-kilns-mode)
-						 (run-hooks 'inferior-kilns-hook))
-	(cd old-dir)))
+    (cd inferior-kilns-binary-path)
+    (setq inferior-kilns-buffer
+          (make-comint "Kilns"
+                       (concat inferior-kilns-binary-path
+                               inferior-kilns-binary)))
+    (with-current-buffer inferior-kilns-buffer
+      (inferior-kilns-mode)
+      (run-hooks 'inferior-kilns-hook))
+    (cd old-dir)))
 
 (provide 'kilns-minor-mode)
 
