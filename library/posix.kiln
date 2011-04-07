@@ -1,5 +1,6 @@
 ;;; This provides access to POSIX-like functionality. All of this is required by
-;;; any Kilns implementation. Additional OS interfaces may be provided, but can ;;; not be assumed to exist by mobile processes.
+;;; any Kilns implementation. Additional OS interfaces may be provided, but can
+;;; not be assumed to exist by mobile processes.
 ;;;
 ;;; Documentation for POSIX is available at
 ;;; http://www.opengroup.org/onlinepubs/9699919799/. "System Interfaces/General
@@ -32,10 +33,10 @@
                                                           :output :stream
                                                           :error :stream))}))]
 
-;;; The FFI can be used in two ways – one is to access things "outside" of Kilns
-;;; – sockets, filesystems, etc. These interfaces live in a kell parallel to the
-;;; primary kell. This makes their status of "outside" match the general model.
-;;; There is a standard set of these "outside" APIs, and they can also be
+;;; The FFI can be used in two ways – one is to access things "outside" of
+;;; Kilns – sockets, filesystems, etc. These interfaces live in a kell parallel
+;;; to the primary kell. This makes their status of "outside" match the general
+;;; model. There is a standard set of these "outside" APIs, and they can also be
 ;;; extended by the implementation or the developer to cover other aspects of
 ;;; the OS. The second use is as a convenience for wrapping APIs that do not yet
 ;;; exist natively in Kilns. These should generally be avoided, as any kells
