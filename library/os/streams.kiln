@@ -1,7 +1,7 @@
 (load "library/replication")
 (load "library/utilities")
 (load "library/simple-components")
-(include-component "library/ordering")
+{include-component "library/ordering"}
 
 (trigger* {read-byte (list ?stream {?rc})}
           {rc (lisp (cl:read-byte #.?stream))})
@@ -39,7 +39,7 @@
           {read-item (list ?stream {rc}) {read-sequence (list ?stream {rc})}})
 
 #|
-(include-component "library/streams")
+{include-component "library/streams"}
 
 (new listen
      (par {new-input-stream (par {source "some-file"} {listener {listen}})}

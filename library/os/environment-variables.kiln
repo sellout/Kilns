@@ -1,7 +1,7 @@
 (load "library/replication")
 (load "library/utilities")
 (load "library/simple-components")
-(include-component "library/identity")
+{include-component "library/identity"}
 
 ;;; This should give the illusion that these variables work the same as "normal"
 ;;; variables, IE
@@ -40,7 +40,8 @@
       
       ;; private API that directly accesses the environment
 
-      (include-component "library/lisp-ffi")
+      (load "library/simple-components")
+      {include-component "library/lisp-ffi"}
 
       (trigger* {get-environment-variable {?name}}
                 (new env

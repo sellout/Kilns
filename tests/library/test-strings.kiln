@@ -1,13 +1,14 @@
 (load "library/test-framework")
 (load "library/utilities")
-(load "library/simple-components")
 
 {test-result (par {should {get-length}}
-                  {test (par (include-component "library/strings")
+                  {test (par (load "library/simple-components")
+                             {include-component "library/strings"}
                              {string-length (list "test" {rc})})}
                   {expected-result {rc 4}})}
 
 {test-result (par {should {concatenate}}
-                  {test (par (include-component "library/strings")
+                  {test (par (load "library/simple-components")
+                             {include-component "library/strings"}
                              {string-concat (list "test " "concat" {rc})})}
                   {expected-result {rc "test concat"}})}

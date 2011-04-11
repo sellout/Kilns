@@ -1,8 +1,8 @@
 (load "library/utilities")
 (load "library/replication")
 (load "library/simple-components")
-(include-component "library/ordering")
-(include-component "library/math")
+{include-component "library/ordering"}
+{include-component "library/math"}
 
 ;; Sends the given process `count` times.
 (trigger* {repeat (list ?process ?count)}

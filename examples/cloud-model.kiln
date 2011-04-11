@@ -6,7 +6,7 @@
 
 
 (load "library/simple-components")
-(include-component "library/simple-io")
+{include-component "library/simple-io"}
 
 ;; --- Abstraction scratch pad ---			   
 ;; (trigger* (par {provision {?name} down} [server ?process])

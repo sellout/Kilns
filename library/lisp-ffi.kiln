@@ -2,7 +2,7 @@
 (load "library/utilities")
 
 (load "library/simple-components")
-(include-component "library/identity")
+{include-component "library/identity"}
 
 ;;; This is a bit hacky for now, to just fill in the patterns I tend to use
 

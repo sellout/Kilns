@@ -1,6 +1,6 @@
 (load "library/utilities")
 (load "library/simple-components")
-(include-component "library/simple-io")
+{include-component "library/simple-io"}
 
 (new a
      (par (new r

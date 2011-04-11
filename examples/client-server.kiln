@@ -4,11 +4,11 @@
 (defhost 'server "localhost" 8011)
 
 (load "library/utilities")
-(load "library/simple-components")
 
-[client (par [a (par (include-component "library/identity")
-                     (include-component "library/math")
-                     (include-component "library/simple-io")
+[client (par [a (par (load "library/simple-components")
+                     {include-component "library/identity"}
+                     {include-component "library/math"}
+                     {include-component "library/simple-io"}
                      (trigger* {signal ?i}
                                (par {= (list ?i 5
                                              (par {move}

@@ -16,7 +16,7 @@
           Maybe `def` could look like (def (name pattern) response-chan body)
 
 (load "library/simple-components")
-(include-component "library/lisp-ffi")
+{include-component "library/lisp-ffi"}
 
 (def (list cl:&rest processes)
      (new (item nil index result)

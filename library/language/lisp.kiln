@@ -2,7 +2,7 @@
 (load "library/utilities")
 (load "library/constants")
 (load "library/simple-components")
-(include-component "library/math")
+{include-component "library/math"}
 
 ;; Some definitions of Lisp functions and macros to make things seem a bit more
 ;; familiar. NOTE: Just because these exist doesn't mean they're the most direct

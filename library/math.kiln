@@ -1,8 +1,8 @@
 (load "library/replication")
 (load "library/utilities")
 (load "library/simple-components")
-(include-component "library/identity")
-(include-component "library/ordering")
+{include-component "library/identity"}
+{include-component "library/ordering"}
 
 ;; primitives
 

@@ -2,11 +2,12 @@
 (load "library/replication")
 (load "library/simple-components")
 
-(include-component "library/identity")
-(include-component "library/simple-io")
+{include-component "library/identity"}
+{include-component "library/simple-io"}
 
 (new (a signal sigup)
-     (par [a (par (include-component "library/math")
+     (par [a (par (load "library/simple-components")
+                  {include-component "library/math"}
                   (trigger* {signal ?i}
                             (par {+ (list ?i 1 {signal})}
                                  {sigup ?i}))

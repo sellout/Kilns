@@ -1,6 +1,6 @@
 (load "library/association-lists")
 (load "library/simple-components")
-(load-component "library/simple-io" io)
+{load-component (par {filename "library/simple-io"} {prefix {io}})}
 
 ;;; general structure of list requests
 #|

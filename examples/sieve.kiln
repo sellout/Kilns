@@ -1,12 +1,12 @@
 (load "library/replication")
 (load "library/utilities")
 (load "library/simple-components")
-(include-component "library/identity")
-(include-component "library/math")
+{include-component "library/identity"}
+{include-component "library/math"}
 
 ;;; Here are a couple fun things to try when you load this file:
 ;;; 
-;;; (include-component "library/simple-io")
+;;; {include-component "library/simple-io"}
 ;;; 
 ;;; {natural-numbers {echo}}
 ;;; {fibonacci-numbers {echo}}

@@ -12,20 +12,20 @@
 
 (trigger {os ?message down} {os ?message})
 
-[os (par ;;(include-component "library/os/signals") ;; NOTE: maybe unnecessary?
+[os (par ;;{include-component "library/os/signals"} ;; NOTE: maybe unnecessary?
 
          (trigger {os ?message up} ?message)
 
          ;; POSIX APIs
-         ;;(include-component "library/os/sockets")
-         (include-component "library/os/streams")
-         ;;(include-component "library/os/IPC")
-         ;;(include-component "library/os/time")
+         ;;{include-component "library/os/sockets"}
+         {include-component "library/os/streams"}
+         ;;{include-component "library/os/IPC"}
+         ;;{include-component "library/os/time"}
 
          ;; additional APIs
-         ;;(include-component "library/os/filesystem")
+         ;;{include-component "library/os/filesystem"}
 
-         ;; this should be in (include-component "library/os/processes")
+         ;; this should be in {include-component "library/os/processes"}
          (trigger* {exec (list ?command ?arguments {?process})}
                    {process (lisp (external-program:start #.?command
                                                           #.?arguments

@@ -21,9 +21,7 @@
 ;;;       responses in `component-out`, since the local call you're making will
 ;;;       do that itself.
 
-;; FIXME: outer-* should be restricted, but it doesn't work with our current
-;;        implementation of definitions
-;;(new (outer-replace-component outer-remove-component)
+(new (outer-replace-component outer-remove-component)
 
      ;; `include-component` will allow you to send messages that match those
      ;;  triggers directly. EG, if there is a trigger in the component that
@@ -31,11 +29,12 @@
      ;;  with it. This gives you direct access, but you need to be careful that
      ;;  the "exported" triggers don't conflict with your own triggers. This is
      ;;  similar to :USEing the component in a Common Lisp DEFPACKAGE.
-     (par (def (include-component filename)
-            `(new component (par (trigger* {component-out ?out down} ?out)
-                                 (trigger* {component-local ?local down} ?local)
-                                 [component (load ,filename)])))
-
+     (par (trigger* {include-component ?filename}
+                    (new component (par (trigger* {component-out ?out down}
+                                                  ?out)
+                                        (trigger* {component-local ?local down}
+                                                  ?local)
+                                        [component (lisp (load #.?filename))])))
           ;; `load-component` gives you better isolation, but requires that you
           ;; "qualify" the message with the name of the kell you pass in. Using
           ;;  the same example as above, if you name the component "io", then
@@ -44,72 +43,46 @@
           ;;  ensure that {io ...} doesn't conflict with your own triggers.
           ;;  Nothing the component writer does can interfere with your other
           ;;  messages and triggers.
-          (def (load-component filename prefix)
-            (cl:let ((kellname (cl:gensym (cl:symbol-name prefix))))
-              `(new ,kellname
-                    (par (trigger* {component-out ?out down} ?out)
-                         [,kellname (par (trigger* {,prefix ?message up}
-                                                   ?message)
-                                         (trigger* {component-local ?local down}
-                                                   ?local)
-                                         (trigger* {component-out ?out down}
-                                                   {component-out ?out})
-                                         [,kellname (load ,filename)]
-                                         (trigger {replace-component (par {prefix {,prefix}}
-                                                                          {filename ?file})
-                                                                     up}
-                                                  {outer-replace-component
-                                                   (par {filename ?file}
-                                                        {prefix {,prefix}}
-                                                        {component-name {,kellname}})})
-                                         (trigger {remove-component {,prefix} up}
-                                                  {outer-remove-component {,kellname}}))]))))
-
-;;; If we fix how `load` works (get it to execute at the right time), we can
-;;; implement this as processes rather than definitions.
-
-          #|
-          (trigger* {include-component ?filename}
-          (new component (par (trigger* {component-out ?out down} ?out)
-          (trigger* {component-local ?local down} ?local)
-          [component (load #.?filename)])))
           (trigger* {load-component (par {filename ?file} {prefix {?pre}})}
-          (new component
-          (par (trigger* {component-out ?out down} ?out)
-          [component (par (trigger* {?prefix ?message up}
-          ?message)
-          (trigger* {component-local ?local down}
-          ?local)
-          (trigger* {component-out ?out down}
-          {component-out ?out})
-          [component (load #.?filename)]
-          (trigger {replace-component (par {prefix {pre}}
-          {filename ?file})
-          up}
-          {outer-replace-component
-          (par {filename ?file}
-          {prefix {pre}}
-          {component-name {component}})})
-          (trigger {remove-component {pre} up}
-          {outer-remove-component {component}}))]))
-          |#
+                    (new component
+                         (par (trigger* {component-out ?out down} ?out)
+                              [component (par (trigger* {?prefix ?message up}
+                                                        ?message)
+                                              (trigger* {component-local ?local
+                                                                         down}
+                                                        ?local)
+                                              (trigger* {component-out ?out
+                                                                       down}
+                                                        {component-out ?out})
+                                              [component (lisp (load #.?file))]
+                                              (trigger {replace-component
+                                                        (par {prefix {pre}}
+                                                             {filename ?file})
+                                                        up}
+                                                       {outer-replace-component
+                                                        (par {filename ?file}
+                                                             {prefix {pre}}
+                                                             {component-name {component}})})
+                                              (trigger {remove-component {pre}
+                                                                         up}
+                                                       {outer-remove-component {component}}))])))
+
           (trigger* {outer-replace-component (par {filename ?file}
                                                   {prefix {?pre}}
                                                   {component-name {?component}})
                                              down}
                     (trigger [component ?x]
-                             ;; FIXME: this can’t work until `load` is fixed
-                             {load-component ?file ?pre}))
+                             {load-component (par {filename ?file}
+                                                  {prefix {pre}})}))
           (trigger* {outer-remove-component {?component} down}
-                    (trigger [component ?x] null)))
-;;)
+                    (trigger [component ?x] null))))
 
 ;;; With this approach, you can do
 #|
-          {load-component (par {prefix {xml}} {filename "xml-component"})}
-          {replace-component (par {prefix {xml}} {filename "new-xml-component"})}
-          {remove-component {xml}}
-          |#
+{load-component (par {prefix {xml}} {filename "xml-component"})}
+{replace-component (par {prefix {xml}} {filename "new-xml-component"})}
+{remove-component {xml}}
+|#
 
 ;;; TODO: We should also make it possible to store state outside of the main
 ;;;       component kell. This should be used to hold parameters that have been
