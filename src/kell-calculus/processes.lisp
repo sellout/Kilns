@@ -56,7 +56,7 @@
 
 (defclass kell (process)
   ((name :initarg :name :accessor name :type name)
-   (state :initarg :state :initform null :type process :accessor state)
+   (state :initarg :state :initform null :type generic-process :accessor state)
    (continuation :initarg :continuation :initform null :type process
                  :accessor continuation)
    ;; implementation details
