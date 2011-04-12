@@ -316,6 +316,12 @@
         (setf current-kell new-kell)
         (error 'no-such-kell-error :name kell-name :container current-kell)))
     (values))
+  (defun system-state ()
+    "Prints the current kell."
+    ;; TODO: It would be great to pretty-print this, but just setting
+    ;;       *PRINT-PRETTY* isn't enough.
+    (print current-kell)
+    (values))
   (defmethod real-toplevel (top-kell)
     (setf current-kell top-kell)
     (loop do

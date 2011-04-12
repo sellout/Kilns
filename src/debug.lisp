@@ -1,12 +1,5 @@
 (in-package #:kilns)
 
-(defun system-state ()
-  "Prints the current kell."
-  ;; TODO: It would be great to pretty-print this, but just setting
-  ;;       *PRINT-PRETTY* isn't enough.
-  (print *top-kell*)
-  null)
-
 (defun sort-triggers (kell)
   (let (uplocal uplocaldown updown localdown up local down)
     (mapc (lambda (trigger)
