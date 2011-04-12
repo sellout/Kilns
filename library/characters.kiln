@@ -4,3 +4,33 @@ Some characters can become multiple codepoints on an upcase/downcase/titlecase c
 
 EG, ı -> I -> ı, even though I -> i might be the default conversion. Also, for a
 tri-form letter, we have to make sure we always stay consistent with the original. EG, in lower -> upper -> title, the titlecase form has to be valid as a lower -> title conversion as well as a valid upper -> title conversion (I don't think this should ever happen, but if lower (the original) and upper don't have a compatible title form, then we make sure that the original and title are compatible)
+
+Unicode case mappings: http://unicode.org/reports/tr21/tr21-5.html
+
+To provide some "reverseable" mappings, I think we should store each string as the characters that are given to us always. When you change the case of a string, it just attaches a conversion marker to it, and that only comes into play with some destructive operation. We also add toOriginalCase() to the list of conversions, which just removes any other conversions applied. EG:
+
+(setf foo "Scott McLeod")
+;; foo => string:"Scott McLeod",case:original
+(setf up-foo (to-uppercase foo))
+;; up-foo => string:"Scott McLeod",case:upper
+(setf title-foo (to-titlecase up-foo))
+;; title-foo => string:"Scott McLeod",case:title
+(print title-foo)
+;; ==> "Scott Mcleod"
+(setf orig-foo (to-originalcase title-foo))
+;; title-foo => string:"Scott McLeod",case:original
+(print orig-foo)
+;; ==> "Scott McLeod"
+(setf sub-foo (subseq title-foo 3))
+;; sub-foo => string:"tt Mcleod",case:original
+(print sub-foo)
+;; ==> "tt Mcleod"
+
+Two things to note in the above example – printing causes the current conversion to be applied to the original string. And subseq also causes the conversion to be applied, because to just maintain the conversion flag there wouldn't have the right behavior:
+
+(setf fake-foo (subseq title-foo 3))
+;; fake-foo *> string:"tt McLeod",case:title
+(print fake-foo)
+;; ==> "Tt Mcleod"
+
+Another option might be to maintain the whole string with the subseq just setting indexes on which to base other behavior. This would allow shared immutable storage between different sequences.
