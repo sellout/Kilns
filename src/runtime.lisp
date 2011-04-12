@@ -240,7 +240,8 @@
     (call-next-method)
     (activate-process (state process) process))
   (:method ((process parallel-composition) (kell kell))
-    (map-process (lambda (sub-process) (activate-process sub-process kell)) process))
+    (map-process (lambda (sub-process) (activate-process sub-process kell))
+                 process))
   (:method ((process pattern-abstraction) (kell kell))
     (setf (parent process) kell)
     (mapc #'push-event (collect-channel-names process kell)))
@@ -413,7 +414,8 @@
   (:documentation "Tries to find a match for all the patterns that could match
                    channel NAME in KELL.")
   (:method :around (process kell)
-    (declare (ignorable kell)) ; FIXME: kell is _not_ ignorable, but CCL complains
+    ;; FIXME: kell is _not_ ignorable, but CCL complains
+    (declare (ignorable kell))
     (when (not (deadp process))
       (handler-case (call-next-method)
         (kiln-error (c) (handle-error c)))))
