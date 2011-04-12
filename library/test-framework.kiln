@@ -6,9 +6,10 @@
 {include-component "library/identity"}
 {include-component "library/simple-io"}
 
-;;; A very simple test framework. All it _should_ do is collect the results and let you do
-;;; what you will with them. However, iterating through the results is currently confusing
-;;; me, so I'm also printing each result as it's determined.
+;;; A very simple test framework. All it _should_ do is collect the results and
+;;; let you do what you will with them. However, iterating through the results
+;;; is currently confusing me, so I'm also printing each result as it's
+;;; determined.
 
 (new (outcomes show-result)
      (par {new-list {outcomes}}
