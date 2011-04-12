@@ -299,7 +299,7 @@
       ;; parents
       (setf  (parent *top-kell*)
              (make-instance 'network-kell
-                            :name (gensym "OUTSIDE") :process *top-kell*))
+                            :name (gensym "OUTSIDE") :state *top-kell*))
       (unwind-protect (real-toplevel *top-kell*)
         (mapc #'destroy-thread kilns)
         (clear-events)))))
