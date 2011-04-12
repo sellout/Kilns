@@ -1,4 +1,5 @@
 (load "library/utilities")
+(load "library/sandbox")
 
 (trigger* {zero (list {?f} ?x {?rc}) up} {rc x})
 (trigger* {succ (list {?n} {?name}) up}
@@ -11,17 +12,17 @@
 (trigger* {plus (list {?m} {?n} {?name}) up}
           {m (list {succ} {n} {name})})
 (trigger* {mult (list {?m} {?n} {?name}) up}
-          (sandbox (new plusn
-                        (par (trigger* {plusn (list {?o} {?rc})}
-                                       {plus (list {n} {o} {rc})})
-                             {m (list {plusn} {zero} {name})}))
-                   name))
+          {sandbox (list (new plusn
+                              (par (trigger* {plusn (list {?o} {?rc})}
+                                             {plus (list {n} {o} {rc})})
+                                   {m (list {plusn} {zero} {name})}))
+                         {name})})
 (trigger* {exp (list {?m} {?n} {?name}) up}
-          (sandbox (new multn
-                        (par (trigger* {multn (list {?o} {?rc})}
-                                       {mult (list {n} {o} {rc})})
-                             {m (list {multn} {one} {name})}))
-                   name))
+          {sandbox (list (new multn
+                              (par (trigger* {multn (list {?o} {?rc})}
+                                             {mult (list {n} {o} {rc})})
+                                   {m (list {multn} {one} {name})}))
+                         {name})})
 (trigger* {pred (list {?n} {?name}) up}
           (trigger* {name (list {?f} ?x {?rc})}
                     (new (gh ux uu)
@@ -37,11 +38,11 @@
 (trigger* {sub (list {?m} {?n} {?name}) up}
           {n (list {pred} {m} {name})})
 (trigger* {zerop (list {?n} {?rc}) up}
-          (sandbox (new s
-                        (par (trigger {s (list ?x {?norc})}
-                                      {rc {false}})
-                             {n (list {s} {true} {rc})}))
-                   rc))
+          {sandbox (list (new s
+                              (par (trigger {s (list ?x {?norc})}
+                                            {rc {false}})
+                                   {n (list {s} {true} {rc})}))
+                         {rc})})
 
 ;; Convert between native and church representations
 (trigger* {church (list {0} {?rc}) up} {rc {zero}})

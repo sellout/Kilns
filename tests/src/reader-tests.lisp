@@ -21,17 +21,3 @@
                       `(load ,(process-variable 'filename)))
              (eval (kilns::read-from-string "(trigger {load ?filename} (load ?filename))")))))
 |#
-
-#| this doesn't really test anything
-(test should-define-sandbox
-  (is (equal 'kilns-user::sandbox
-             (eval (kilns::read-from-string
-    "(def (sandbox temp-process final-response-channel)
-        `(new (sandbox response)
-              (par (trigger {response ?result down}
-                            (par (trigger [sandbox ?completed-process] null)
-                                 (message ',final-response-channel ?result)))
-                   [sandbox (par (trigger {,final-response-channel ?result down}
-                                          {response ?result})
-                                 [sandbox ,temp-process])])))")))))
-|#

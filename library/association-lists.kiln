@@ -10,12 +10,12 @@
 (def (Lop p k g s r l cons nil)
      `(new k*
            (trigger {,l ?x}
-                    (par (sandbox (par ,p
-                                       {,l ?x}
-                                       (create-list-operations ,g ,s ,r ,l ,cons ,nil)
-                                       (trigger (par {,k ?z} {,l ?x*})
-                                                {k* (list ?z ?x*)}))
-                                  k*)
+                    (par {sandbox (list (par ,p
+                                             {,l ?x}
+                                             (create-list-operations ,g ,s ,r ,l ,cons ,nil)
+                                             (trigger (par {,k ?z} {,l ?x*})
+                                                      {k* (list ?z ?x*)}))
+                                        {k*})}
                          (trigger {k* (list ?z ?x*)} (par {,k ?z} {,l ?x*}))))))
 
 (def (create-list-operations g s r l cons nil)

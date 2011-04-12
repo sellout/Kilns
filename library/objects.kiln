@@ -25,12 +25,12 @@
                                    (par {object-rep vars}
                                         (trigger* (par {object-name (list ?operation {?rc})} {object-rep ?rep})
                                                   (new k*
-                                                       (par (sandbox (par ?operation
-                                                                          {object-rep ?rep}
-                                                                          (create-object-operations ,g ,s ,r ,l ,cons ,nil)
-                                                                          (trigger (par {rc ?response} {object-rep ?new-rep})
-                                                                                   {k* (list ?response ?new-rep)}))
-                                                                     k*)
+                                                       (par {sandbox (list (par ?operation
+                                                                                {object-rep ?rep}
+                                                                                (create-object-operations ,g ,s ,r ,l ,cons ,nil)
+                                                                                (trigger (par {rc ?response} {object-rep ?new-rep})
+                                                                                         {k* (list ?response ?new-rep)}))
+                                                                           {k*})}
                                                             (trigger {k* (list ?response ?new-rep)}
                                                                      (par {rc ?response} {object-rep ?new-rep})))))))))))
 

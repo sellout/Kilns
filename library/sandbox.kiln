@@ -1,10 +1,13 @@
 ;; this just requires the jk pattern language
 
-(def (sandbox temp-process final-response-channel)
-  `(new (sandbox response)
-        (par (trigger {response ?result down}
-                      (par (trigger [sandbox ?completed-process] null)
-                           {,final-response-channel ?result}))
-             [sandbox (par (trigger {,final-response-channel ?result down}
-                                    {response ?result})
-                           [sandbox ,temp-process])])))
+(load "library/replication")
+(load "library/utilities")
+
+(trigger* {sandbox (list ?temp-process {?final-response-channel})}
+          (new (sandbox response)
+               (par (trigger {response ?result down}
+                             (par (trigger [sandbox ?completed-process] null)
+                                  {final-response-channel ?result}))
+                    [sandbox (par (trigger {final-response-channel ?result down}
+                                           {response ?result})
+                                  [sandbox ?temp-process])])))

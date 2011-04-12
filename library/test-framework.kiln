@@ -18,10 +18,10 @@
                                                {test ?test}
                                                {expected-result {?channel ?result}})}
                              (new rc
-                                  (par (sandbox (par ?test
-                                                     (trigger {channel ?result}
-                                                              {rc {channel ?result}}))
-                                                rc)
+                                  (par {sandbox (list (par ?test
+                                                           (trigger {channel ?result}
+                                                                    {rc {channel ?result}}))
+                                                      {rc})}
                                        (trigger {rc ?test-result}
                                                 {= (list {channel ?result} ?test-result
                                                          {l (list {set (list {?name} {success}

@@ -14,11 +14,14 @@
 
 ;; This approach attempts to use triggering directly – but how do we show a
 ;; failed match?
+(load "library/sandbox")
 (trigger* {= (list ?proc1 ?proc2 ?true ?false) up}
-          (sandbox (par {comparison ?proc1}
-                        (trigger {comparison 'proc2} {component-out ?true})
-                        (trigger {comparison ????} {component-out ?false}))
-                   component-out))
+          {sandbox (list (par {comparison ?proc1}
+                              (trigger {comparison 'proc2}
+                                       {component-out ?true})
+                              (trigger {comparison ????}
+                                       {component-out ?false}))
+                         {component-out})})
 
 ;; This approach does recursive equality, but how do we compare channel names
 ;; (and other primitives)?
