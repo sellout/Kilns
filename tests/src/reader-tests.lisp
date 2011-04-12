@@ -22,6 +22,7 @@
              (eval (kilns::read-from-string "(trigger {load ?filename} (load ?filename))")))))
 |#
 
+#| this doesn't really test anything
 (test should-define-sandbox
   (is (equal 'kilns-user::sandbox
              (eval (kilns::read-from-string
@@ -33,3 +34,4 @@
                    [sandbox (par (trigger {,final-response-channel ?result down}
                                           {response ?result})
                                  [sandbox ,temp-process])])))")))))
+|#
