@@ -5,6 +5,9 @@
 ;; component instead of using one of the `*-component operations`.
 (load "library/sequences")
 
+;;; This is somewhat similar to CALLF, as described in
+;;; http://www.mail-archive.com/alexandria-devel@common-lisp.net/msg00020.html
+
 #|
 (trigger {upcase (list ?string {?rc}) up} ...)
 
