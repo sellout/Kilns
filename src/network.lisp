@@ -232,15 +232,8 @@
 
 (defmethod match-on ((process message) (kell network-kell))
   "Find all triggers that could match – up, down, or local."
-  (let ((name (name process)))
-    (select-matching-pattern
-     (remove-duplicates (append (gethash name (local-patterns kell))
-                                (gethash name (down-patterns (parent kell)))
-                                (mapcan (lambda (subkell)
-                                          (gethash name
-                                                   (up-patterns subkell)))
-                                        (subkells kell))))
-     process)))
+  (select-matching-pattern (find-triggers-matching-message (name process) kell)
+                           process))
 (defmethod match-on ((process kell) (kell network-kell))
   "Find all triggers that could match."
   (select-matching-pattern (gethash (name process) (kell-patterns kell))

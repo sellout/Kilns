@@ -411,7 +411,9 @@
   "Collect down-patterns from parent kell, up-patterns from subkells, and local-
    and kell-patterns from the given kell."
   (remove-duplicates (append (gethash name (local-patterns kell))
-                             (gethash name (down-patterns (parent kell)))
+                             (handler-case
+                                 (gethash name (down-patterns (parent kell)))
+                               (unbound-slot () nil))
                              (mappend (lambda (subkell)
                                         (gethash name (up-patterns subkell)))
                                       (subkells kell)))))

@@ -118,7 +118,9 @@
                              (destructuring-bind (procs subst)
                                  (match-list #'match-up
                                              (up-message-pattern pattern)
-                                             (messages (parent kell))
+                                             (handler-case
+                                                 (messages (parent kell))
+                                               (unbound-slot () nil))
                                              substitutions)
                                (setf substitutions subst)
                                procs)
