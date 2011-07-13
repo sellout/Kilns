@@ -5,7 +5,8 @@
 
 (defmethod unify
     ((pattern process-variable) agent
-     &optional (substitutions (make-empty-environment)))
+     &optional (substitutions (make-empty-environment))
+     &key &allow-other-keys)
   (unify (intern (format nil "?~a" (name pattern))) agent substitutions))
 
 ;;; FIXME: currently, name variables and process variables can conflict. Do we
@@ -15,18 +16,22 @@
 ;;;        can't clash because the types would conflict.
 (defmethod unify
     ((pattern name-variable) agent
-     &optional (substitutions (make-empty-environment)))
+     &optional (substitutions (make-empty-environment))
+     &key &allow-other-keys)
   (unify (intern (format nil "?~a" (name pattern))) agent substitutions))
 
 (defmethod unify
-    ((pattern kell) (agent kell) &optional (substitutions (make-empty-environment)))
+    ((pattern kell) (agent kell)
+     &optional (substitutions (make-empty-environment))
+     &key &allow-other-keys)
   (unify (process pattern) (process agent)
          (unify (name pattern) (name agent) substitutions)))
 
 ;;; We should only get here if we know that both messages are relative to the same kell
 (defmethod unify
     ((pattern message) (agent message)
-     &optional (substitutions (make-empty-environment)))
+     &optional (substitutions (make-empty-environment))
+     &key &allow-other-keys)
   (unify (process pattern) (process agent)
          (unify (name pattern) (name agent) substitutions)))
 
@@ -47,7 +52,8 @@
 
 (defmethod unify
     ((pattern pattern) (agent message)
-     &optional (substitutions (make-empty-environment)))
+     &optional (substitutions (make-empty-environment))
+     &key &allow-other-keys)
   (unify (car (append (local-message-pattern pattern)
                       (up-message-pattern pattern)
                       (down-message-pattern pattern)))
@@ -55,8 +61,9 @@
          substitutions))
 
 (defmethod unify
-    ((pattern pattern) (agent kell) &optional
-     (substitutions (make-empty-environment)))
+    ((pattern pattern) (agent kell)
+     &optional (substitutions (make-empty-environment))
+     &key &allow-other-keys)
   (unify (car (kell-message-pattern pattern)) agent substitutions))
 
 ;; NOTE: FIND-VARIABLE-VALUE isn't generic, so we use a different name
