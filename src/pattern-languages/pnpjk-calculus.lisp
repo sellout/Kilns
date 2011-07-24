@@ -44,7 +44,8 @@
 ;;;        can't clash because the types would conflict.
 (defmethod unify
     ((pattern name-variable) agent
-     &optional (substitutions (make-empty-environment)))
+     &optional (substitutions (make-empty-environment))
+     &key &allow-other-keys)
   (unify (intern (format nil "?~a" (name pattern))) agent substitutions))
 
 (defun find-name-variable-value (variable &optional env errorp)
@@ -59,7 +60,9 @@
   (format stream "_"))
 
 (defmethod unify
-    ((pattern blank) agent &optional (substitutions (make-empty-environment)))
+    ((pattern blank) agent
+     &optional (substitutions (make-empty-environment))
+     &key &allow-other-keys)
   "Always matches."
   substitutions)
 

@@ -5,18 +5,21 @@
 
 (defmethod unify
     ((pattern process-variable) agent
-     &optional (substitutions (make-empty-environment)))
+     &optional (substitutions (make-empty-environment))
+     &key &allow-other-keys)
   (unify (intern (format nil "?~a" (name pattern))) agent substitutions))
 
 (defmethod unify
     ((pattern kell) (agent kell)
-     &optional (substitutions (make-empty-environment)))
+     &optional (substitutions (make-empty-environment))
+     &key &allow-other-keys)
   (unify (state pattern) (state agent)
          (unify (name pattern) (name agent) substitutions)))
 
 (defmethod unify
     ((pattern parallel-composition) (agent parallel-composition)
-     &optional (substitutions (make-empty-environment)))
+     &optional (substitutions (make-empty-environment))
+     &key &allow-other-keys)
   (match-local (process-variables pattern) (process-variables agent)
                (match-local (messages pattern) (messages agent)
                             (match-local (kells pattern) (kells agent)
@@ -31,7 +34,8 @@
 ;;; We should only get here if we know that both messages are relative to the same kell
 (defmethod unify
     ((pattern message) (agent message)
-     &optional (substitutions (make-empty-environment)))
+     &optional (substitutions (make-empty-environment))
+     &key &allow-other-keys)
   (unify (argument pattern) (argument agent)
          (unify (name pattern) (name agent) substitutions)))
 
@@ -52,7 +56,8 @@
 
 (defmethod unify
     ((pattern pattern) (agent message)
-     &optional (substitutions (make-empty-environment)))
+     &optional (substitutions (make-empty-environment))
+     &key &allow-other-keys)
   (unify (car (append (local-message-pattern pattern)
                       (up-message-pattern pattern)
                       (down-message-pattern pattern)))
@@ -60,8 +65,9 @@
          substitutions))
 
 (defmethod unify
-    ((pattern pattern) (agent kell) &optional
-     (substitutions (make-empty-environment)))
+    ((pattern pattern) (agent kell)
+     &optional (substitutions (make-empty-environment))
+     &key &allow-other-keys)
   (unify (car (kell-message-pattern pattern)) agent substitutions))
 
 ;; NOTE: FIND-VARIABLE-VALUE isn't generic, so we use a different name
@@ -81,7 +87,8 @@
 
 (defmethod unify
     ((pattern concretion) (agent concretion)
-     &optional (substitutions (make-empty-environment)))
+     &optional (substitutions (make-empty-environment))
+     &key &allow-other-keys)
   (unify (continuation pattern) (continuation agent)
          (unify (messages pattern) (messages agent)
                 (unify (restricted-names pattern) (restricted-names agent)
@@ -89,25 +96,29 @@
 
 (defmethod unify
     ((pattern kell-abstraction) (agent kell-abstraction)
-     &optional (substitutions (make-empty-environment)))
+     &optional (substitutions (make-empty-environment))
+     &key &allow-other-keys)
   (unify (abstraction pattern) (abstraction agent)
          (unify (continuation pattern) (continuation agent)
                 (unify (name pattern) (name agent) substitutions))))
 
 (defmethod unify
     ((pattern application-abstraction) (agent application-abstraction)
-     &optional (substitutions (make-empty-environment)))
+     &optional (substitutions (make-empty-environment))
+     &key &allow-other-keys)
   (unify (abstraction pattern) (abstraction agent)
          (unify (concretion pattern) (concretion agent) substitutions)))
 
 (defmethod unify
     ((pattern restriction-abstraction) (agent restriction-abstraction)
-     &optional (substitutions (make-empty-environment)))
+     &optional (substitutions (make-empty-environment))
+     &key &allow-other-keys)
   (unify (abstraction pattern) (abstraction agent)
          (unify (names pattern) (names agent) substitutions)))
 
 (defmethod unify
     ((pattern pattern-abstraction) (agent pattern-abstraction)
-     &optional (substitutions (make-empty-environment)))
+     &optional (substitutions (make-empty-environment))
+     &key &allow-other-keys)
   (unify (process pattern) (process agent)
          (unify (pattern pattern) (pattern agent) substitutions)))
