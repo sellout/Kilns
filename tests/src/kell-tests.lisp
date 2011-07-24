@@ -58,22 +58,22 @@
                           :restricted-names '(y)
                           :messages (list (message 'match2))
                           :continuation (message 'pasa))))
-    (is (match (compose a b)
-               (make-instance 'concretion
+    (is (match (make-instance 'concretion
                               :restricted-names '(x y)
                               :messages (list (message 'matching)
                                               (message 'match2))
                               :continuation (par (message 'que)
-                                                 (message 'pasa)))))))
+                                                 (message 'pasa)))
+               (compose a b)))))
 
 (test should-apply-abstraction
-  (is (match (@ (make-instance 'pattern-abstraction
+  (is (match (message 'test)
+             (@ (make-instance 'pattern-abstraction
                                :pattern (kell-calculus::convert-process-to-pattern
                                          (message 'param (process-variable 'x)))
                                :process (process-variable 'x))
                 (make-instance 'concretion
-                               :messages (message 'param (message 'test))))
-        (message 'test))))
+                               :messages (message 'param (message 'test)))))))
 
 (test should-suspend-application
   (let ((pattern-abstraction
