@@ -17,6 +17,7 @@
            #:channel-names
            #:local-message-pattern #:down-message-pattern
            #:up-message-pattern #:kell-message-pattern
+           #:sub-reduce
            #:abstraction #:concretion #:agent
            #:restriction-abstraction #:pattern-abstraction
            #:kell-abstraction #:application-abstraction
