@@ -236,6 +236,14 @@
 ;;;   but cannot have free process variables (i.e. all process variables
 ;;;   appearing in a pattern are bound in the pattern).
 
+(defmethod free-names ((pattern pattern))
+  (reduce #'union
+          (append (local-message-pattern pattern)
+                  (down-message-pattern pattern)
+                  (up-message-pattern pattern)
+                  (kell-message-pattern pattern))
+          :key #'free-names))
+
 (defgeneric bound-names (pattern)
   (:documentation
    "This returns a list of all channel-names that are bound by the given pattern."))

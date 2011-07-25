@@ -7,108 +7,88 @@
        (set= (union (bound-names left) (bound-variables left))
              (union (bound-names right) (bound-variables right)))))
 
-(defgeneric apply-restriction (local-name global-name process &optional expandp)
-  (:documentation "DESTRUCTIVE. Returns the process with all restrictions
-                   expanded to have unique names.")
-  (:method (local-name global-name process &optional (expandp t))
-    (declare (ignore local-name global-name expandp))
+(defgeneric apply-restriction (local-name global-name process)
+  (:documentation "Replaces all instances of a restricted name with a globally-
+                   unique name.")
+  (:method :around (local-name global-name process)
+    (declare (ignorable global-name)) ; FIXME: not really, but CCL complains
+    (if (find local-name (free-names process))
+        (call-next-method)
+        process))
+  (:method (local-name global-name process)
+    (declare (ignore local-name global-name))
     process)
-  (:method (local-name global-name (process message) &optional (expandp t))
-    (if (eql (name process) local-name)
-      (setf (name process) global-name))
-    (psetf (argument process)
-           (apply-restriction local-name global-name (argument process) expandp)
-           (continuation process)
-           (apply-restriction local-name global-name (continuation process)
-                              expandp))
-    process)
-  (:method (local-name global-name (process kell) &optional (expandp t))
-    (if (eql (name process) local-name)
-      (setf (name process) global-name))
-    (psetf (state process)
-           (apply-restriction local-name global-name (state process) expandp)
-           (continuation process)
-           (apply-restriction local-name global-name (continuation process)
-                              expandp))
-    process)
-  (:method (local-name global-name (process parallel-composition)
-            &optional (expandp t))
-    (apply #'parallel-composition
-           (map-parallel-composition (lambda (proc)
-                                       (apply-restriction local-name
-                                                          global-name
-                                                          proc
-                                                          expandp))
-                                     process)))
-  (:method (local-name global-name (process pattern) &optional (expandp t))
-    (psetf (local-message-pattern process)
-           (mapcar (lambda (message)
-                     (apply-restriction local-name global-name message expandp))
-                   (local-message-pattern process))
-           (down-message-pattern process)
-           (mapcar (lambda (message)
-                     (apply-restriction local-name global-name message expandp))
-                   (down-message-pattern process))
-           (up-message-pattern process)
-           (mapcar (lambda (message)
-                     (apply-restriction local-name global-name message expandp))
-                   (up-message-pattern process))
-           (kell-message-pattern process)
-           (mapcar (lambda (message)
-                     (apply-restriction local-name global-name message expandp))
-                   (kell-message-pattern process)))
-    process)
-  (:method (local-name global-name (process restriction-abstraction)
-            &optional (expandp t))
-    (if expandp
-      (apply-restriction local-name global-name (expand-restriction process)
-                         expandp)
-      (if (find local-name (names process))
-        process
-        (make-instance (class-of process)
-          :names (names process)
-          :abstraction (apply-restriction local-name
-                                          global-name
-                                          (abstraction process)
-                                          expandp)))))
-  (:method (local-name global-name (process pattern-abstraction)
-            &optional (expandp t))
+  (:method (local-name global-name (process message))
+    (message (if (eql (name process) local-name) global-name (name process))
+             (apply-restriction local-name global-name (argument process))
+             (apply-restriction local-name global-name (continuation process))))
+  (:method (local-name global-name (process kell))
+    (kell (if (eql (name process) local-name) global-name (name process))
+          (apply-restriction local-name global-name (state process))
+          (apply-restriction local-name global-name (continuation process))))
+  (:method (local-name global-name (process parallel-composition))
+    (map-process (lambda (proc) (apply-restriction local-name global-name proc))
+                 process))
+  (:method (local-name global-name (process pattern))
+    (make-instance 'pattern
+                   :local-message-pattern
+                   (mapcar (lambda (message)
+                             (apply-restriction local-name global-name message))
+                           (local-message-pattern process))
+                   :down-message-pattern
+                   (mapcar (lambda (message)
+                             (apply-restriction local-name global-name message))
+                           (down-message-pattern process))
+                   :up-message-pattern
+                   (mapcar (lambda (message)
+                             (apply-restriction local-name global-name message))
+                           (up-message-pattern process))
+                   :kell-message-pattern
+                   (mapcar (lambda (message)
+                             (apply-restriction local-name global-name message))
+                           (kell-message-pattern process))))
+  (:method (local-name global-name (process restriction-abstraction))
     (make-instance (class-of process)
-      :pattern (apply-restriction local-name global-name (pattern process)
-                                  expandp)
-      :process (apply-restriction local-name global-name (process process)
-                                  nil))))
-
-(defgeneric expand-restriction (restriction)
-  (:method ((restriction restriction-abstraction))
-    (let ((abstraction (abstraction restriction)))
-      (mapc (lambda (name)
-              (setf abstraction
-                    ;; TODO: apply-restriction should handle all names
-                    ;;       at once, rather than one at a time
-                    (apply-restriction name
-                                       (gensym (format nil "~a-" name))
-                                       abstraction)))
-            (names restriction))
-      abstraction))
-  (:method ((restriction concretion))
-    (if (length (restricted-names restriction))
-        (let ((messages (messages restriction))
-              (continuation (continuation restriction)))
-          (mapc (lambda (name)
-                  (psetf messages
-                         (apply-restriction name
-                                            (gensym (format nil "~a-"
-                                                            name))
-                                            messages)
-                         continuation
-                         (apply-restriction name
-                                            (gensym (format nil "~a-" name))
-                                            continuation)))
-                (restricted-names restriction))
-          (make-instance (class-of restriction)
-                         :messages messages :continuation continuation))
-        restriction)))
+                   :names (names process)
+                   :abstraction (apply-restriction local-name
+                                                   global-name
+                                                   (abstraction process))))
+  (:method (local-name global-name (process pattern-abstraction))
+    (make-instance (class-of process)
+                   :pattern (apply-restriction local-name
+                                               global-name
+                                               (pattern process))
+                   :process (apply-restriction local-name
+                                               global-name
+                                               (process process))))
+  (:method (local-name global-name (process kell-abstraction))
+    (make-instance (class-of process)
+                   :name (if (eql (name process) local-name)
+                             global-name
+                             (name process))
+                   :abstraction (apply-restriction local-name
+                                                   global-name
+                                                   (abstraction process))
+                   :continuation (apply-restriction local-name
+                                                    global-name
+                                                    (continuation process))))
+  (:method (local-name global-name (process application-abstraction))
+    (make-instance (class-of process)
+                   :abstraction (apply-restriction local-name
+                                                   global-name
+                                                   (abstraction process))
+                   :concretion (apply-restriction local-name
+                                                  global-name
+                                                  (concretion process))))
+  (:method (local-name global-name (process concretion))
+    (make-instance (class-of process)
+                   :restricted-names (restricted-names process)
+                   :messages (apply-restriction local-name
+                                                global-name
+                                                (messages process))
+                   :continuation (apply-restriction local-name
+                                                    global-name
+                                                    (continuation process)))))
 
 (defgeneric sub-reduce (process)
   (:documentation "The sub-reduction relation is defined to handle scope
@@ -117,11 +97,34 @@
     process)
   (:method ((process kell))
     (kell (name process) (sub-reduce (state process)) (continuation process)))
-  (:method ((process restriction))
-    (expand-restriction (make-instance 'restriction
-                                       :names (names process)
-                                       :abstraction
-                                       (sub-reduce (abstraction process)))))
+  (:method ((process restriction-abstraction))
+    (let ((abstraction (abstraction process)))
+      (mapc (lambda (name)
+              (setf abstraction
+                    ;; TODO: apply-restriction should handle all names
+                    ;;       at once, rather than one at a time
+                    (apply-restriction name
+                                       (gensym (format nil "~a-" name))
+                                       abstraction)))
+            (names process))
+      abstraction))
+  (:method ((restriction concretion))
+    (if (length (restricted-names restriction))
+        (let ((messages (messages restriction))
+              (continuation (continuation restriction)))
+          (mapc (lambda (name)
+                  (psetf messages
+                         (apply-restriction name
+                                            (gensym (format nil "~a-" name))
+                                            messages)
+                         continuation
+                         (apply-restriction name
+                                            (gensym (format nil "~a-" name))
+                                            continuation)))
+                (restricted-names restriction))
+          (make-instance (class-of restriction)
+                         :messages messages :continuation continuation))
+        restriction))
   (:method ((process parallel-composition))
     (map-process #'sub-reduce process)))
 

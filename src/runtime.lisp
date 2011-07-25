@@ -143,7 +143,7 @@
     (setf (parent process) kell)
     (mapc #'push-event (collect-channel-names process kell)))
   (:method ((process restriction-abstraction) (kell kell))
-    (remove-process process)
+    (remove-process-from process kell)
     (add-process (sub-reduce process) kell)))
 
 (defgeneric add-process (process kell &optional watchp)

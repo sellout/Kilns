@@ -3,6 +3,8 @@
 
 (defgeneric free-names (process)
   (:documentation "Process -> {Name}")
+  (:method (process) ; catchall
+    '())
   (:method ((process null-process))
     '())
   (:method ((process symbol))
@@ -12,7 +14,7 @@
   (:method ((process process-variable))
     '())
   (:method ((process restriction))
-    (set-difference (free-names (process process)) (list (name process))))
+    (set-difference (free-names (abstraction process)) (names process)))
   (:method ((process kell))
     (reduce #'union
             (list (free-names (name process))

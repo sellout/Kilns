@@ -20,7 +20,7 @@
 (defmethod print-object ((obj trigger) stream)
   (format stream "(trigger ~s ~s)" (pattern obj) (process obj)))
 
-(defclass restriction (process restriction-abstraction)
+(defclass restriction (restriction-abstraction process)
   ())
 
 (defmacro new (names process)
