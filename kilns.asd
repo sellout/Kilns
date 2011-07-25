@@ -14,7 +14,9 @@
   :components ((:file "package")
                (:module "kell-calculus"
                         :depends-on ("package")
-                        :components ((:file "identifiers"
+                        :components ((:file "definitions"
+                                            :depends-on ("labeled-transitions"))
+                                     (:file "identifiers"
                                             :depends-on ("labeled-transitions"))
                                      (:file "processes"
                                             :depends-on ("identifiers"))

@@ -194,18 +194,3 @@
     (@ agent1 (expand-restriction agent2)))
   (:method ((agent1 restriction-abstraction) (agent2 concretion))
     (@ (expand-restriction agent1) agent2)))
-
-(defmacro def ((name &rest parameters) &body body)
-  "Allows us to define new operations. It's currently just like CL's DEFMACRO, but
-   hopefully I can improve on that."
-  `(progn (defmacro ,name (,@parameters)
-            ,@body)
-          null))
-
-#|
-(defmacro def ((name &rest parameters) process)
-  `(defmacro ,name (&rest messages)
-     `(@ ,(make-instance 'pattern-abstraction
-            :pattern '(list ,@parameters) :process ,process)
-         (make-instance 'concretion :messages (list ,@,messages)))))
-|#
