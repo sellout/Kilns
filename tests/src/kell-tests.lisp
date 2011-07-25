@@ -21,6 +21,21 @@
                                :messages (list (message 1 (message 'yes))
                                                (message 2 (message 'sir))))))))
 
+(test should-not-reduce-to-process
+  (is-false (match (par (message 'yes) (message 'sir))
+              (@ (make-instance 'definition
+                                :name 'test
+                                :pattern (make-instance 'pattern
+                                                        :local-message-pattern
+                                                        (list (message 1 (process-variable 'first))
+                                                              (message 2 (process-variable 'second))))
+                                :process (par (process-variable 'first)
+                                              (process-variable 'second)))
+                 (make-instance 'named-concretion
+                                :name 'nope
+                                :messages (list (message 1 (message 'yes))
+                                                (message 2 (message 'sir))))))))
+
 (test should-assume-null-message-continuation
   (let ((process (message 'test (message 'test))))
     (is (match null (continuation process)))))

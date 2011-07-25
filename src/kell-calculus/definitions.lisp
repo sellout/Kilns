@@ -33,3 +33,9 @@
     `(make-instance 'named-concretion
                     :name ,(car list) :messages '(list ,@(cdr list))))
 |#
+
+(defmethod @ ((abstraction definition) (concretion named-concretion))
+  (if (eq (name abstraction) (name concretion))
+      (call-next-method)
+      (par abstraction concretion)))
+  
