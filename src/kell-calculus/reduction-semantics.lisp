@@ -7,6 +7,9 @@
        (set= (union (bound-names left) (bound-variables left))
              (union (bound-names right) (bound-variables right)))))
 
+(defun unique-name (name)
+  (gensym (format nil "~a-~d-" name (ccl::process-tcr (current-thread)))))
+
 (defgeneric apply-restriction (local-name global-name process)
   (:documentation "Replaces all instances of a restricted name with a globally-
                    unique name.")
@@ -103,9 +106,7 @@
               (setf abstraction
                     ;; TODO: apply-restriction should handle all names
                     ;;       at once, rather than one at a time
-                    (apply-restriction name
-                                       (gensym (format nil "~a-" name))
-                                       abstraction)))
+                    (apply-restriction name (unique-name name) abstraction)))
             (names process))
       abstraction))
   (:method ((restriction concretion))
@@ -114,12 +115,10 @@
               (continuation (continuation restriction)))
           (mapc (lambda (name)
                   (psetf messages
-                         (apply-restriction name
-                                            (gensym (format nil "~a-" name))
-                                            messages)
+                         (apply-restriction name (unique-name name) messages)
                          continuation
                          (apply-restriction name
-                                            (gensym (format nil "~a-" name))
+                                            (unique-name name)
                                             continuation)))
                 (restricted-names restriction))
           (make-instance (class-of restriction)
