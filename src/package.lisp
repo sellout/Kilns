@@ -3,7 +3,8 @@
   ;; FIXME: shouldn't need threads here
   (:use #:cl #:bordeaux-threads #:unify)
   (:shadow #:substitute #:match)
-  (:export #:name #:process-variable #:identifier #:name-type
+  (:export #:definition
+           #:name #:process-variable #:identifier #:name-type
            #:null #:trigger #:new #:par #:def #:cont
            #:process #:message #:kell #:subkells
            #:argument #:state
@@ -24,6 +25,7 @@
            #:names #:restricted-names #:continuation #:messages
            #:@
            ;; FIXME: shouldn't export, maybe keep in separate package
+           #:named-concretion
            #:parent #:deadp #:lock #:map-parallel-composition #:map-process
            #:find-process-variable-value
            #:find-symbol-value

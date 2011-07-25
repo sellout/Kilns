@@ -1,4 +1,4 @@
-(in-package kell-calculus)
+(in-package #:kell-calculus)
 
 (defclass definition (pattern-abstraction)
   ((name :initarg :name :reader name)))

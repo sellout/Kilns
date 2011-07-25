@@ -97,6 +97,11 @@
     combined-hash-table))
 
 (defgeneric match (pattern process &optional substitutions)
+  (:method ((pattern pattern) (process list)
+            &optional (substitutions (make-empty-environment)))
+    (second (match-local (local-message-pattern pattern)
+                         process
+                         substitutions)))
   (:method ((pattern pattern) (kell kell)
             &optional (substitutions (make-empty-environment)))
     (let ((processes (append (destructuring-bind (procs subst)

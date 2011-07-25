@@ -1,10 +1,25 @@
-(in-package kilns-tests)
+(in-package #:kilns-tests)
 
 (def-suite kell-calculus
     :description "Tests for the kell calculus."
     :in kilns)
 
 (in-suite kell-calculus)
+
+(test should-reduce-to-process
+  (is (match (par (message 'yes) (message 'sir))
+             (@ (make-instance 'definition
+                               :name 'test
+                               :pattern (make-instance 'pattern
+                                                       :local-message-pattern
+                                                       (list (message 1 (process-variable 'first))
+                                                             (message 2 (process-variable 'second))))
+                               :process (par (process-variable 'first)
+                                             (process-variable 'second)))
+                (make-instance 'named-concretion
+                               :name 'test
+                               :messages (list (message 1 (message 'yes))
+                                               (message 2 (message 'sir))))))))
 
 (test should-assume-null-message-continuation
   (let ((process (message 'test (message 'test))))
