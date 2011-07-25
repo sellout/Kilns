@@ -15,12 +15,13 @@
                (message ',t (Y ,process ,pattern ,t))))))
 
 
-#| This is what this will hopefully look like with proper abstractions/concretions
+#| This is what this will hopefully look like with proper
+   abstractions/concretions
 ;;; The Y combinator
-(def (Y ?process ?pattern {?u})
-     (trigger (par ?pattern {u ?y}) (par ?process ?y {u ?y})))
+(define (Y ?process ?pattern {?u})
+  (trigger (par pattern {u ?y}) (par process y {u y})))
 
 ;;; A replicating trigger
-(def (trigger* ?pattern ?process)
-     (new t (par (Y ?process ?pattern t) {t (Y ?process ?pattern t)})))
+(define (trigger* ?pattern ?process)
+  (new t (par (Y process pattern t) {t (Y process pattern t)})))
 |#
