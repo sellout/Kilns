@@ -22,7 +22,7 @@
 (defclass concretion (agent)
   ((restricted-names :initform nil
                      :initarg :restricted-names :reader restricted-names)
-   (messages :initform nil :initarg :messages :reader messages
+   (messages :initform nil :initarg :messages :reader messages :type list
              :documentation "A multiset without up-mossages")
    ;; FIXME: the continuation should default to NULL, but we haven't yet defined
    ;;        that.

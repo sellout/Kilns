@@ -96,12 +96,12 @@
   (let* ((concretion-process (message 'concreted))
          (concretion (make-instance 'concretion
                                     :restricted-names '(x)
-                                    :messages (message 'matching)
+                                    :messages (list (message 'matching))
                                     :continuation concretion-process))
          (process (message 'test))
          (result (make-instance 'concretion
                                 :restricted-names '(x)
-                                :messages (message 'matching)
+                                :messages (list (message 'matching))
                                 :continuation (compose concretion-process
                                                        process))))
     (is (match (compose concretion process) result))
@@ -131,7 +131,8 @@
                                          (message 'param (process-variable 'x)))
                                :process (process-variable 'x))
                 (make-instance 'concretion
-                               :messages (message 'param (message 'test)))))))
+                               :messages (list (message 'param
+                                                        (message 'test))))))))
 
 (test should-suspend-application
   (let ((pattern-abstraction
