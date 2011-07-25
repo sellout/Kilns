@@ -36,6 +36,15 @@
 
 (defmethod @ ((abstraction definition) (concretion named-concretion))
   (if (eq (name abstraction) (name concretion))
-      (call-next-method)
+      (let ((substitutions (match (pattern abstraction) (messages concretion))))
+        (if substitutions
+            (compose (substitute (process abstraction) substitutions)
+                     (continuation concretion))
+            (par abstraction concretion)))
       (par abstraction concretion)))
-  
+
+(defmethod @ ((abstraction definition) (concretion concretion))
+  (par abstraction concretion))
+
+(defmethod @ ((abstraction pattern-abstraction) (concretion named-concretion))
+  (par abstraction concretion))
