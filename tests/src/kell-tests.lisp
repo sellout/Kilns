@@ -8,29 +8,20 @@
 
 (test should-reduce-to-process
   (is (match (par (message 'yes) (message 'sir))
-             (@ (make-instance 'definition
-                               :name 'test
-                               :pattern (make-instance 'pattern
-                                                       :local-message-pattern
-                                                       (list (message 1 (process-variable 'first))
-                                                             (message 2 (process-variable 'second))))
-                               :process (par (process-variable 'first)
-                                             (process-variable 'second)))
+             (@ (define (test1 (process-variable 'first)
+                              (process-variable 'second))
+                    (par (process-variable 'first) (process-variable 'second)))
                 (make-instance 'named-concretion
-                               :name 'test
+                               :name 'test1
                                :messages (list (message 1 (message 'yes))
                                                (message 2 (message 'sir))))))))
 
 (test should-not-reduce-to-process
   (is-false (match (par (message 'yes) (message 'sir))
-                   (@ (make-instance 'definition
-                                     :name 'test
-                                     :pattern (make-instance 'pattern
-                                                             :local-message-pattern
-                                                             (list (message 1 (process-variable 'first))
-                                                                   (message 2 (process-variable 'second))))
-                                     :process (par (process-variable 'first)
-                                                   (process-variable 'second)))
+                   (@ (define (test2 (process-variable 'first)
+                                     (process-variable 'second))
+                          (par (process-variable 'first)
+                               (process-variable 'second)))
                       (make-instance 'named-concretion
                                      :name 'nope
                                      :messages (list (message 1 (message 'yes))
@@ -52,14 +43,10 @@
 
 (test should-not-reduce-to-process-with-concretion
   (is-false (match (par (message 'yes) (message 'sir))
-                   (@ (make-instance 'definition
-                                     :name 'test
-                                     :pattern (make-instance 'pattern
-                                                             :local-message-pattern
-                                                             (list (message 1 (process-variable 'first))
-                                                                   (message 2 (process-variable 'second))))
-                                     :process (par (process-variable 'first)
-                                                   (process-variable 'second)))
+                   (@ (define (test3 (process-variable 'first)
+                                     (process-variable 'second))
+                          (par (process-variable 'first)
+                               (process-variable 'second)))
                       (make-instance 'concretion
                                      :messages (list (message 1 (message 'yes))
                                                      (message 2 (message 'sir))))))))

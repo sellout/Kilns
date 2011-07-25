@@ -1,13 +1,17 @@
 (in-package #:kell-calculus)
 
+(defvar *global-definitions* (make-hash-table))
+
 (defclass definition (pattern-abstraction)
   ((name :initarg :name :reader name)))
 
 (defun order-processes (&rest processes)
+  "Works like the `,` sequencer defined in the paper, making parallel processes
+   that are named by sequential integers."
   (let ((index 0))
-    (reduce #'compose (mapcar (lambda (process)
-                                (message (incf index) process))
-                              processes))))
+    (reduce #'compose
+            (mapcar (lambda (process) (message (incf index) process))
+                    processes))))
 
 (defmacro def ((name &rest parameters) &body body)
   "Allows us to define new operations. It's currently just CL's DEFMACRO."
@@ -15,14 +19,14 @@
             ,@body)
           null))
 
-#|
-(defmacro def ((name &rest parameters) process)
-  `(make-instance 'definition
-                  :name ',name
-                  :pattern
-                  (convert-process-to-pattern (order-processes ,@parameters))
-                  :process ,process))
-|#
+;; FIXME: We're calling this DEFINE until we can actually replace DEF with it
+(defmacro define ((name &rest parameters) process)
+  `(setf (gethash ',name *global-definitions*)
+         (make-instance 'definition
+                        :name ',name
+                        :pattern (convert-process-to-pattern
+                                  (order-processes ,@parameters))
+                        :process ,process)))
 
 (defclass named-concretion (concretion)
   ((name :initarg :name :reader name)))

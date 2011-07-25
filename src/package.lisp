@@ -3,7 +3,7 @@
   ;; FIXME: shouldn't need threads here
   (:use #:cl #:bordeaux-threads #:unify)
   (:shadow #:substitute #:match)
-  (:export #:definition
+  (:export #:definition #:define
            #:name #:process-variable #:identifier #:name-type
            #:null #:trigger #:new #:par #:def #:cont
            #:process #:message #:kell #:subkells
