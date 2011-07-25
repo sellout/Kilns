@@ -128,4 +128,19 @@
   (:method ((process parallel-composition))
     (map-process #'sub-reduce process)))
 
+#|
+(defun delta (local-messages)
+  (values (mapcar (lambda (message) (message (name message) (argument message)))
+                  local-messages)
+          (reduce #'compose (mapcar #'continuation local-messages))))
+
+(defun upsilon (kells)
+  (values (mapcar (lambda (kell) (kell (name kell) (state kell))) kells)
+          (reduce #'compose (mapcar #'continuation kells))))
+
+(defun psi (sub-kells)
+  (values (mapcan (lambda (kell) (delta (messages kell))) sub-kells)
+   (reduce #'compose (mapcar #'))))
+|#
+
 ;; FIXME: move KILNS:EXECUTE-MATCH here and rename it to REDUCE
