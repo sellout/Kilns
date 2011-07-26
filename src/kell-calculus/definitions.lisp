@@ -1,6 +1,6 @@
 (in-package #:kell-calculus)
 
-(defvar *global-definitions* (make-hash-table))
+(defvar *global-definitions* (make-hash-table :test #'eq))
 
 (defclass definition (pattern-abstraction)
   ((name :initarg :name :reader name)))
