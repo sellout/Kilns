@@ -188,6 +188,9 @@
                   patterns)
           substitutions)))
 
+;;; FIXME: MATCH* (and the instances in all the process calculi) should return
+;;;        (VALUES substitutions processes), not (LIST processes substitutions).
+
 (defgeneric match-local (pattern process &optional substitutions)
   (:method ((patterns list) (processes list)
             &optional (substitutions (make-empty-environment)))
