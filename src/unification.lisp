@@ -79,8 +79,8 @@
 ;;; It turns out that occurs-in-p is used to make sure that variables don't
 ;;; match things that contain the same variable - but we don't care, that's
 ;;; fine in our calculus.
-(defmethod unify::occurs-in-p ((var symbol) pat env)
-  (declare (ignore pat env))
+(defmethod unify::occurs-in-p ((var symbol) (pat process) env)
+  (declare (ignore env))
   nil)
 
 ;;; Unification for abstractions and concretions
