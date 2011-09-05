@@ -20,7 +20,7 @@
          ;;{include-component "library/os/sockets"}
          {include-component "library/os/streams"}
          ;;{include-component "library/os/IPC"}
-         ;;{include-component "library/os/time"}
+         {include-component "library/os/time"}
 
          ;; additional APIs
          ;;{include-component "library/os/filesystem"}

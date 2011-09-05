@@ -1,0 +1,25 @@
+(load "library/test-framework")
+
+{test-result (par {should {get-current-time}}
+                  {test (par (load "library/simple-components")
+                             {include-component "library/os/time"}
+                             {include-component "library/ordering"}
+                             {time {got-time}}
+                             (trigger {got-time ?time}
+                                      {<= (list 3524182123 'time
+                                                {rc {t}} {rc {f}})}))}
+                  {expected-result {rc {t}}})}
+
+{test-result (par {should {sleep-10-seconds}}
+                  {test (new (start end)
+                             (par (load "library/simple-components")
+                                  {include-component "library/os/time"}
+                                  {include-component "library/math"}
+                                  {time {start}}
+                                  {sleep (list 10 {time {end}})}
+                                  (trigger (par {start ?s} {end ?e})
+                                           {- (list 'e 's {difference})})
+                                  (trigger {difference ?d}
+                                           {<= (list 9 'd
+                                                     {rc {t}} {rc {f}})})))}
+                  {expected-result {rc {t}}})}
