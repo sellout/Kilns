@@ -7,15 +7,20 @@
 ;; primitives
 
 (trigger* {+ (list ?augend ?addend {?rc}) up}
-          {component-out {rc (lisp (cl:+ #.?augend #.?addend))}})
+          (lisp (cl:let ((sum (cl:+ #.?augend #.?addend)))
+                  {component-out {#.?rc sum}})))
 (trigger* {- (list ?minuend ?subtrahend {?rc}) up}
-          {component-out {rc (lisp (cl:- #.?minuend #.?subtrahend))}})
+          (lisp (cl:let ((difference (cl:- #.?minuend #.?subtrahend)))
+                  {component-out {#.?rc difference}})))
 (trigger* {* (list ?multiplier ?multiplicand {?rc}) up}
-          {component-out {rc (lisp (cl:* #.?multiplier #.?multiplicand))}})
+          (lisp (cl:let ((product (cl:* #.?multiplier #.?multiplicand)))
+                  {component-out {#.?rc product}})))
 (trigger* {/ (list ?dividend ?divisor {?rc}) up}
-          {component-out {rc (lisp (cl:/ #.?dividend #.?divisor))}})
+          (lisp (cl:let ((quotient (cl:/ #.?dividend #.?divisor)))
+                  {component-out {#.?rc quotient}})))
 (trigger* {remainder (list ?number ?divisor {?rc}) up}
-          {component-out {rc (lisp (cl:rem #.?number #.?divisor))}})
+          (lisp (cl:let ((remainder (cl:rem #.?number #.?divisor)))
+                  {component-out {#.?rc remainder}})))
 
 ;; derived
 
