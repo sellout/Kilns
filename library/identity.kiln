@@ -2,10 +2,9 @@
 (load "library/utilities")
 
 (trigger* {= (list ?proc1 ?proc2 ?true ?false) up}
-          (lisp (cl:handler-case (cl:progn
-                                   (kilns::match #.?proc1 #.?proc2)
-                                   {component-out #.?true})
-                  (unify:unification-failure () {component-out #.?false}))))
+          (lisp (cl:if (kilns::match #.?proc1 #.?proc2)
+                       {component-out #.?true}
+                       {component-out #.?false})))
 
 #| FIXME: trying to figure out how to implement `=` without digging into the
           internals of the compiler. MATCH is used to define triggers, and so it

@@ -6,6 +6,7 @@
 {sandbox (list (par (load "tests/test-examples")
                     (load "tests/test-triggers")
                     (load "tests/library/test-utilities")
+                    (load "tests/library/test-identity")
                     (load "tests/library/test-math")
                     (load "tests/library/test-association-lists")
                     (load "tests/library/test-strings"))
