@@ -6,32 +6,40 @@
 ;;; http://www.opengroup.org/onlinepubs/9699919799/. "System Interfaces/General
 ;;; Information" is a particularly useful section.
 
-(load "library/simple-components")
+(load "library/replication")
+(load "library/utilities")
+
+;;; FIXME: top-kell needs a (trigger* {os ?message up} 'message) for responses
+;;;        to end up back in the correct kell
 
 (load "library/os/environment-variables")
 
-(trigger {os ?message down} {os ?message})
+(new (os-in os-out)
+     (par (trigger* {os ?message down} {os-in 'message})
+          (trigger* {os-out ?message down} {os 'message})
 
-[os (par ;;{include-component "library/os/signals"} ;; NOTE: maybe unnecessary?
+          [os (par (trigger* {os-in ?message up} 'message)
+                   (trigger* {component-out ?message down} {os-out 'message})
+                   (trigger* {component-local ?message down} 'message)
+                   [os (par ;;(load "library/os/signals") ;; NOTE: maybe unnecessary?
 
-         (trigger {os ?message up} ?message)
+                            ;; POSIX APIs
+                            ;;(load "library/os/sockets")
+                            (load "library/os/streams")
+                            ;;(load "library/os/IPC")
+                            (load "library/os/time")
 
-         ;; POSIX APIs
-         ;;{include-component "library/os/sockets"}
-         {include-component "library/os/streams"}
-         ;;{include-component "library/os/IPC"}
-         {include-component "library/os/time"}
+                            ;; additional APIs
+                            ;;(load "library/os/filesystem")
 
-         ;; additional APIs
-         ;;{include-component "library/os/filesystem"}
+                            ;; this should be in (load "library/os/processes")
+                            (trigger* {exec (list ?command ?arguments {?process})}
+                                      {process (lisp (external-program:start #.?command
+                                                                             #.?arguments
+                                                                             :input :stream
+                                                                             :output :stream
+                                                                             :error :stream))}))])]))
 
-         ;; this should be in {include-component "library/os/processes"}
-         (trigger* {exec (list ?command ?arguments {?process})}
-                   {process (lisp (external-program:start #.?command
-                                                          #.?arguments
-                                                          :input :stream
-                                                          :output :stream
-                                                          :error :stream))}))]
 
 ;;; The FFI can be used in two ways – one is to access things "outside" of
 ;;; Kilns – sockets, filesystems, etc. These interfaces live in a kell parallel
@@ -59,7 +67,8 @@
 ;;; prevent this.
 #| 
 [outside (new (top environment os)
-              (par [top (trigger {environment {PATH ?value} up} ...) ; getvar
+              (par [top (trigger* {os ?message up} 'message) ; os responses
+                        (trigger {environment {PATH ?value} up} ...) ; getvar
                         {environment {PATH "..."}} ; setvar
                         {os ...})] ; os calls
                    {environment {PATH "..."}} ; etc.
