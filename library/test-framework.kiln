@@ -18,21 +18,21 @@
                                                {test ?test}
                                                {expected-result {?channel ?result}})}
                              (new rc
-                                  (par {sandbox (list (par ?test
+                                  (par {sandbox (list (par 'test
                                                            (trigger {channel ?result}
-                                                                    {rc {channel ?result}}))
+                                                                    {rc {channel 'result}}))
                                                       {rc})}
                                        (trigger {rc ?test-result}
-                                                {= (list {channel ?result} ?test-result
-                                                         {l (list {set (list {?name} {success}
-                                                                             {show-result {?name {success}}})}
+                                                {= (list {channel 'result} 'test-result
+                                                         {l (list {set (list {name} {success}
+                                                                             {show-result {name {success}}})}
                                                                   {show-result})}
-                                                         {l (list {set (list {?name}
-                                                                             {failure (par {expected {channel ?result}}
-                                                                                           {got ?test-result})}
-                                                                             {show-result {name {failure (par {expected {channel ?result}}
-                                                                                                              {got ?test-result})}}})}
+                                                         {l (list {set (list {name}
+                                                                             {failure (par {expected {channel 'result}}
+                                                                                           {got 'test-result})}
+                                                                             {show-result {name {failure (par {expected {channel 'result}}
+                                                                                                              {got 'test-result})}}})}
                                                                   {show-result})})})))))
 
           (trigger* {show-result ?result}
-                    {echo ?result})))
+                    {echo 'result})))
