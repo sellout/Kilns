@@ -30,11 +30,11 @@
 
       ;; set an environment variable
       (trigger* {environment {?variable-name ?value} down}
-                {= (list ?value null
+                {= (list 'value null
                          {unset-environment-variable {variable-name}
                                                      (trigger {environment {variable-name _}}
                                                               null)}
-                         {set-environment-variable {variable-name ?value}
+                         {set-environment-variable {variable-name 'value}
                                                    (trigger {environment {variable-name _}}
                                                             null)})})
       
@@ -48,9 +48,9 @@
                      (par {env (lisp (iolib.os:environment-variable
                                       (cl:string '#.?name)))}
                           (trigger {env ?value}
-                                   {if (list ?value
+                                   {if (list 'value
                                              {environment
-                                              {name ?value}
+                                              {name 'value}
                                               {get-environment-variable {name}}}
                                              null)}))))
 
