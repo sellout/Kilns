@@ -1,0 +1,11 @@
+(load "library/test-framework")
+(load "library/calculus/lambda")
+
+{test-result (par {should {apply-lambda}}
+                  {test (apply (lambda (x) 'x) {rc})}
+                  {expected-result {rc}})}
+
+{test-result (par {should {apply-nested-lambda}}
+                  {test (apply (apply (lambda (x) (lambda (y) 'y)) {rc1})
+                               {rc2})}
+                  {expected-result {rc2}})}
