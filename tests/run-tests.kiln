@@ -5,6 +5,7 @@
 ;;;        other
 {sandbox (list (par (load "tests/test-examples")
                     (load "tests/test-triggers")
+                    (load "tests/test-definitions")
                     (load "tests/library/test-utilities")
                     (load "tests/library/test-identity")
                     (load "tests/library/test-math")
