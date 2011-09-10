@@ -15,11 +15,11 @@
                              (par (load "library/simple-components")
                                   {include-component "library/os/time"}
                                   {include-component "library/math"}
-                                  {time {start}}
-                                  {sleep (list 10 {time {end}})}
+                                  (cont {time {start}}
+                                        {sleep (list 10 {time {end}})})
                                   (trigger (par {start ?s} {end ?e})
                                            {- (list 'e 's {difference})})
                                   (trigger {difference ?d}
-                                           {<= (list 9 'd
+                                           {<= (list 10 'd
                                                      {rc {t}} {rc {f}})})))}
                   {expected-result {rc {t}}})}
