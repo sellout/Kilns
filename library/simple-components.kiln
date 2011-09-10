@@ -31,9 +31,9 @@
      ;;  similar to :USEing the component in a Common Lisp DEFPACKAGE.
      (par (trigger* {include-component ?filename}
                     (new component (par (trigger* {component-out ?out down}
-                                                  ?out)
+                                                  'out)
                                         (trigger* {component-local ?local down}
-                                                  ?local)
+                                                  'local)
                                         [component (lisp (load #.?filename))])))
           ;; `load-component` gives you better isolation, but requires that you
           ;; "qualify" the message with the name of the kell you pass in. Using

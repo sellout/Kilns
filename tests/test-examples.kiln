@@ -14,7 +14,7 @@
 {test-result (par {should {execute-received-message}}
                   {test (new a
                              (par {a {echo "Hello World"}}
-                                  (trigger {a ?x} ?x)))}
+                                  (trigger {a ?x} 'x)))}
                   {expected-result {echo "Hello World"}})}
 
 ;;; location.kiln
@@ -33,15 +33,17 @@
                   {test (new a
                              (par {a "Hello"}
                                   {a "World"}
-                                  (trigger {a ?x} {echo ?x})))}
+                                  (trigger {a ?x} {echo 'x})))}
                   {expected-result {echo "Hello"}})}
 
 ;;; synchronous.kiln
 {test-result (par {should {concatenate-message}}
                   {test (new a
-                             (par (new r
+                             (par (load "library/simple-components")
+                                  {include-component "library/strings"}
+                                  (new r
                                        (par {a (list "hello " "world" {r})}
-                                            (trigger {r ?x} {echo ?x})))
+                                            (trigger {r ?x} {echo 'x})))
                                   (trigger {a (list ?x ?y {?r})}
-                                           {r (lisp (cl:concatenate 'cl:string #.?x #.?y))})))}
+                                           {string-concat (list 'x 'y {r})})))}
                    {expected-result {echo "hello world"}})}
