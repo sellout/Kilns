@@ -1,29 +1,41 @@
 (load "library/replication")
 (load "library/utilities")
 
+;;; For the most part, the pi calculus is the core of the kell calculus, but
+;;; certain pi primitives are not in the kell calculus. Here we implement those
+;;; primitives via existing kell primitives.
+
 ;;;  ⟦{a (b1 b2 b3) P}⟧ = {a (list b1 b2 b3) ⟦P⟧}
 ;;;         ⟦(new x P)⟧ = (new x ⟦P⟧)
 ;;;         ⟦(par P Q)⟧ = (par ⟦P⟧ ⟦Q⟧)
 ;;;             ⟦(! P)⟧ = (new k (par {k} (trigger* {k} (par ⟦P⟧ {k}))))
 ;;; ⟦(+ a(b).P c(d).Q)⟧ = (new k
 ;;;                            (par {k}
-;;;                                 (trigger (par {k} {a (list b)}) ⟦P⟧)))
+;;;                                 (trigger (par {k} {a (list b)}) ⟦P⟧)
 ;;;                                 (trigger (par {k} {c (list d)}) ⟦Q⟧)))
 
-;; We use this instead of the original encoding because that one causes all the
-;; replicated processes to be created, which means it just expands until we're
-;; out of memory. Obviously that isn't viable.
-(def (replicate process)
-    (cl:typecase process
-      (message (message (name process)
-                        (argument process)
-                        (parallel-composition (continuation process)
-                                              (replicate process))))
-      (message (kell (name process)
-                     (state process)
-                     (parallel-composition (continuation process)
-                                           (replicate process))))
-      (trigger (trigger* (pattern trigger)
-                         (process trigger)))
-      (parallel-composition (map-process #'replicate process))
-      (restriction (new (names process) (replicate (process process))))))
+(def (! process)
+  ;; We use this instead of the original encoding of replication because that
+  ;; one causes all the replicated processes to be created, which means it just
+  ;; expands until we're out of memory. Obviously that isn't viable.
+  `(cl:etypecase ,process
+     (message (message (name ,process)
+                       (argument ,process)
+                       (parallel-composition (continuation ,process)
+                                             `(! ,,process))))
+     (kell (kell (name ,process)
+                 (state ,process)
+                 (parallel-composition (continuation ,process)
+                                       `(! ,,process))))
+     (trigger (trigger* (pattern ,process)
+                        (process ,process)))
+     (parallel-composition (map-process (cl:lambda (proc) `(! ,proc)) ,process))
+     (restriction (new (names process) `(! ,(process ,process))))))
+
+(def (+ proc1 proc2)
+  `(new k
+        (par {k}
+             (trigger (par {k} {(name ,proc1) (argument ,proc1)})
+                      (continuation ,proc1))
+             (trigger (par {k} {(name ,proc2) (argument ,proc2)})
+                      (continuation ,proc2)))))
