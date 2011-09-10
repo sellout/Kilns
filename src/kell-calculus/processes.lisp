@@ -33,8 +33,14 @@
 (defclass message (process)
   ((name :initarg :name :accessor name :type name)
    (argument :initarg :argument :initform nil :type generic-process
-             :accessor argument)
-   (continuation :initarg :continuation :initform null :type (or process symbol)
+             :accessor argument
+             :documentation
+             "This defaults to nil rather than null so that we can distinguish
+              when the argument was omitted, since in some pattern languages an
+              omitted argument means 'match anything' rather than 'match
+              null'.")
+   (continuation :initarg :continuation :initform null
+                 :type (or generic-process symbol)
                  :accessor continuation)))
 
 (defmethod print-object ((obj message) stream)
@@ -57,7 +63,7 @@
 (defclass kell (process)
   ((name :initarg :name :accessor name :type name)
    (state :initarg :state :initform null :type generic-process :accessor state)
-   (continuation :initarg :continuation :initform null :type process
+   (continuation :initarg :continuation :initform null :type generic-process
                  :accessor continuation)
    ;; implementation details
    (lock :reader lock)
