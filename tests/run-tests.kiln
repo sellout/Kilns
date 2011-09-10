@@ -12,5 +12,6 @@
                     (load "tests/library/test-association-lists")
                     (load "tests/library/test-strings")
                     (load "tests/library/os/test-time")
+                    (load "tests/library/test-os")
                     (load "tests/library/calculus/test-lambda"))
                {rc})}
