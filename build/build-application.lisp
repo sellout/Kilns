@@ -49,4 +49,5 @@
                      :local-kell (com.dvlsoft.clon:getopt :long-name "kell")
                      :port-number (com.dvlsoft.clon:getopt :long-name "port"))))
 
+;;(ccl:save-application "kilns.dylib" :native t)
 (com.dvlsoft.clon:dump "kilns" application-toplevel)
