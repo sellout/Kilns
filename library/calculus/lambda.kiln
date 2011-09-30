@@ -1,7 +1,7 @@
 (new (lam fun arg abs)
-     ;;            [[x]] = x
-     ;; [[(lambda x P)]] = {abs (trigger {lambda x} [[P]])}
-     ;;        [[(P Q)]] = (new (fun arg) (par (App) [fun [[P]]] {arg [[Q]]}))
+     ;;            ⟦x⟧ = x
+     ;; ⟦(lambda x P)⟧ = {abs (trigger {lambda x} ⟦P⟧)}
+     ;;        ⟦(P Q)⟧ = (new (fun arg) (par (App) [fun ⟦P⟧] {arg ⟦Q⟧}))
      (par (def (lambda (var) process)
               `{abs (trigger {lam (process-variable ',var)} ,process)})
           (def (apply fun arg)
