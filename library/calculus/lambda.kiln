@@ -10,5 +10,9 @@
                          [fun ,fun]
                          {arg ,arg})))
           (def (App)
-              `(trigger (par [fun ?o] {arg ?q})
-                        (par ?o (trigger {abs ?p} ?p) {lam ?q})))))
+              ;; TODO: Technically this isn't valid FraKtal (kell patterns can
+              ;;       only contain a variable, not a process), but our
+              ;;       implementation accepts it, and my naive fix to make it
+              ;;       valid broke it.
+              `(trigger (par [fun {abs ?p}] {arg ?q})
+                        (par ?p {lam ?q})))))
