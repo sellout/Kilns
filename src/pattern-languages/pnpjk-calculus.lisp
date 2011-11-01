@@ -102,12 +102,6 @@
   (if (name-equal (name pattern) (name message))
     (recursive-match (argument pattern) (argument message) substitutions)))
 
-(defmethod match-kell :around
-           ((pattern kell) (kell kell)
-            &optional (substitutions (make-empty-environment)))
-  (if (name-equal (name pattern) (name kell))
-    (unify (state pattern) (state kell) substitutions)))
-
 (defgeneric recursive-match (pattern process &optional substitutions)
   (:method (pattern process &optional (substitutions (make-empty-environment)))
     (unify pattern process substitutions))
