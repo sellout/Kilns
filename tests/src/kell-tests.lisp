@@ -9,7 +9,7 @@
 (test should-reduce-to-process
   (is (match (par (message 'yes) (message 'sir))
              (@ (define (test1 (process-variable 'first)
-                              (process-variable 'second))
+                               (process-variable 'second))
                     (par (process-variable 'first) (process-variable 'second)))
                 (make-instance 'named-concretion
                                :name 'test1
