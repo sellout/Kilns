@@ -47,16 +47,19 @@
             (< 1 (length patterns)) patterns)))
 
 (defun up (process)
-  "Paralleling `cont`, this is used to create an up-pattern with the new syntax."
+  "Paralleling `cont`, this is used to create an up-pattern with the new
+   syntax."
   (setf (continuation process) 'up)
   process)
 
 (defun down (process)
-  "Paralleling `cont`, this is used to create a down-pattern with the new syntax."
+  "Paralleling `cont`, this is used to create a down-pattern with the new
+   syntax."
   (setf (continuation process) 'down)
   process)
 
-;;; FIXME: somewhere around here we need to ensure only one kell is in the pattern
+;;; FIXME: somewhere around here we need to ensure only one kell is in the
+;;;        pattern
 
 (defgeneric convert-process-to-pattern (process &optional pattern)
   (:method ((process parallel-composition)
