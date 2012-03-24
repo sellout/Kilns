@@ -102,19 +102,19 @@
 (defgeneric match (pattern process &optional substitutions)
   (:method ((pattern pattern) (process list)
             &optional (substitutions (make-empty-environment)))
-    (second (match-local (local-message-pattern pattern)
+    (values (match-local (local-message-pattern pattern)
                          process
                          substitutions)))
   (:method ((pattern pattern) (kell kell)
             &optional (substitutions (make-empty-environment)))
-    (let ((processes (append (destructuring-bind (procs subst)
+    (let ((processes (append (multiple-value-bind (subst procs)
                                  (match-list #'match-local
                                              (local-message-pattern pattern)
                                              (messages kell)
                                              substitutions)
                                (setf substitutions subst)
                                procs)
-                             (destructuring-bind (procs subst)
+                             (multiple-value-bind (subst procs)
                                  (match-list #'match-down
                                              (down-message-pattern pattern)
                                              (apply #'compose-hash-tables
@@ -123,7 +123,7 @@
                                              substitutions)
                                (setf substitutions subst)
                                procs)
-                             (destructuring-bind (procs subst)
+                             (multiple-value-bind (subst procs)
                                  (match-list #'match-up
                                              (up-message-pattern pattern)
                                              (handler-case
@@ -132,7 +132,7 @@
                                              substitutions)
                                (setf substitutions subst)
                                procs)
-                             (destructuring-bind (procs subst)
+                             (multiple-value-bind (subst procs)
                                  (match-list #'match-kell
                                              (kell-message-pattern pattern)
                                              (kells kell)
@@ -145,13 +145,13 @@
     ;; FIXME: This should ensure that _all_ processes match, not just enough to
     ;;        satisfy pattern.
     (let ((processes (remove nil
-                             (append (destructuring-bind (procs subst)
+                             (append (multiple-value-bind (subst procs)
                                          (match-local (messages-in pattern)
                                                       (messages-in process)
                                                       substitutions)
                                        (setf substitutions subst)
                                        procs)
-                                     (destructuring-bind (procs subst)
+                                     (multiple-value-bind (subst procs)
                                          (match-kell (kells-in pattern)
                                                      (kells-in process)
                                                      substitutions)
@@ -171,8 +171,9 @@
 (defun match-list (type-function patterns processes substitutions)
   "Finds one match in PROCESSES for each item in PATTERNS. Also ensures that the
    same process doesn’t match multiple patterns."
-  (let ((matched-processes ()))
-    (list (mapcar (lambda (pattern)
+  (let* ((matched-processes ())
+         (processes
+          (mapcar (lambda (pattern)
                     (block per-pattern
                       (mapc (lambda (process)
                               (when (not (find process matched-processes))
@@ -188,11 +189,8 @@
                       (error 'unification-failure
                              :format-control "Could not unify ~s with any process in ~s"
                              :format-arguments (list pattern processes))))
-                  patterns)
-          substitutions)))
-
-;;; FIXME: MATCH* (and the instances in all the process calculi) should return
-;;;        (VALUES substitutions processes), not (LIST processes substitutions).
+                  patterns)))
+    (values substitutions processes)))
 
 (defgeneric match-local (pattern process &optional substitutions)
   (:method ((patterns list) (processes list)
@@ -200,21 +198,22 @@
     "Finds one match in PROCESSES for each item in PATTERNS. Also ensures that
      the same process doesn’t match multiple patterns."
     (if (= (length patterns) (length processes))
-        (list (mapcar (lambda (pattern)
-                        (block per-pattern
-                          (mapc (lambda (process)
-                                  (let ((subst (match-local pattern process
-                                                            substitutions)))
-                                    (when subst
-                                      (setf substitutions subst)
-                                      (setf processes (remove process processes))
-                                      (return-from per-pattern process))))
-                                processes)
-                          (error 'unification-failure
-                                 :format-control "Could not unify ~s with any process in ~s"
-                                 :format-arguments (list pattern processes))))
-                      patterns)
-              substitutions)
+        (let ((processes
+               (mapcar (lambda (pattern)
+                         (block per-pattern
+                           (mapc (lambda (process)
+                                   (let ((subst (match-local pattern process
+                                                             substitutions)))
+                                     (when subst
+                                       (setf substitutions subst)
+                                       (setf processes (remove process processes))
+                                       (return-from per-pattern process))))
+                                 processes)
+                           (error 'unification-failure
+                                  :format-control "Could not unify ~s with any process in ~s"
+                                  :format-arguments (list pattern processes))))
+                       patterns)))
+          (values substitutions processes))
         (error 'unification-failure
                :format-control "Can not unify two different length lists: ~s ~s"
                :format-arguments (list patterns processes)))))
@@ -225,21 +224,22 @@
             &optional (substitutions (make-empty-environment)))
     "Finds one match in PROCESSES for each item in PATTERNS. Also ensures that
      the same process doesn’t match multiple patterns."
-    (list (mapcar (lambda (pattern)
-                    (block per-pattern
-                      (mapc (lambda (process)
-                              (let ((subst (match-kell pattern process
-                                                       substitutions)))
-                                (when subst
-                                  (setf substitutions subst)
-                                  (setf processes (remove process processes))
-                                  (return-from per-pattern process))))
-                            processes)
-                      (error 'unification-failure
-                             :format-control "Could not unify ~s with any process in ~s"
-                             :format-arguments (list pattern processes))))
-                  patterns)
-          substitutions)))
+    (let ((processes
+           (mapcar (lambda (pattern)
+                     (block per-pattern
+                       (mapc (lambda (process)
+                               (let ((subst (match-kell pattern process
+                                                        substitutions)))
+                                 (when subst
+                                   (setf substitutions subst)
+                                   (setf processes (remove process processes))
+                                   (return-from per-pattern process))))
+                             processes)
+                       (error 'unification-failure
+                              :format-control "Could not unify ~s with any process in ~s"
+                              :format-arguments (list pattern processes))))
+                   patterns)))
+      (values substitutions processes))))
 
 ;;; – Pattern languages are equipped with three functions fn, bn, and bv, that
 ;;;   map a pattern ξ to its set of free names, bound name variables, and bound
