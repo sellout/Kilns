@@ -6,7 +6,7 @@
 (defsystem kilns
   :version "0.0.4"
   :description "An implementation of the Kell calculus in a lisp-like language."
-  :license ""
+  :license "MIT"
   :author "Greg Pfeil <greg@technomadic.org>"
   :depends-on (bordeaux-threads cl-unification iolib.os closer-mop
                iolib external-program) ; cl+ssl ironclad
