@@ -1,13 +1,8 @@
 #+xcvb (module (:depends-on ("utilities" "syntax")))
 (in-package :kell-calculus)
 
-(defmethod structurally-congruent-p ((left pattern) (right pattern))
-  (and (set= (free-names left) (free-names right))
-       (set= (channel-names left) (channel-names right))
-       (set= (union (bound-names left) (bound-variables left))
-             (union (bound-names right) (bound-variables right)))))
-
 (defun unique-name (name)
+  "Returns a new globally (across threads) unique name."
   (gensym (format nil "~a-~d-" name (ccl::process-tcr (current-thread)))))
 
 (defgeneric apply-restriction (local-name global-name process)
