@@ -64,6 +64,7 @@
      &optional (substitutions (make-empty-environment))
      &key &allow-other-keys)
   "Always matches."
+  (declare (ignore agent))
   substitutions)
 
 ;;; For convenience, we write a␣x1, ⋯, xn␣ for a␣1␣x1␣ | ⋯ | n␣xn␣␣ where
