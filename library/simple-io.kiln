@@ -1,4 +1,5 @@
 (load "library/replication")
+(load "library/utilities")
 
 ;;; IO can not be implemented directly in the calculus, so we need to call out
 ;;; to lisp to actually read and write. This library provides a few basic tools
