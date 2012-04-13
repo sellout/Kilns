@@ -129,7 +129,7 @@
 (defgeneric activate-process (process kell)
   (:method ((process cons) (kell kell))
     (remove-process-from process kell)
-    (add-process (eval process) kell))
+    (add-process process kell))
   (:method ((process process) (kell kell))
     (setf (parent process) kell)
     (mapc #'push-event (collect-channel-names process kell)))
