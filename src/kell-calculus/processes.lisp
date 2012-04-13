@@ -128,22 +128,24 @@
   (reduce #'compose processes :initial-value null))
 
 (defun map-parallel-composition (fn pc)
-  (append (mapcar fn (process-variables pc))
-          (mapcar fn (messages pc))
-          (mapcar fn (kells pc))
-          (mapcar fn (triggers pc))
-          (mapcar fn (primitives pc))))
+  (mapcar fn
+          (append (process-variables pc)
+                  (messages pc)
+                  (kells pc)
+                  (triggers pc)
+                  (primitives pc))))
 
 ;;; FIXME: replace all instances of MAP-PARALLEL-COMPOSITION with this
 (defun map-process (fn process)
-  "Iterates through all the processes (only one if it's not a parallel-composition) and
-   returns a new process as a result."
+  "Iterates through all the processes (only one if it's not a
+   parallel-composition) and returns a new process as a result."
   (apply #'parallel-composition
-         (append (mapcar fn (process-variables-in process))
-                 (mapcar fn (messages-in process))
-                 (mapcar fn (kells-in process))
-                 (mapcar fn (triggers-in process))
-                 (mapcar fn (primitives-in process)))))
+         (mapcar fn
+                 (append (process-variables-in process)
+                         (messages-in process)
+                         (kells-in process)
+                         (triggers-in process)
+                         (primitives-in process)))))
 
 (defmethod (setf parent) (value (process parallel-composition))
   (setf (slot-value process 'parent) value)
