@@ -6,7 +6,7 @@
   `(cl:let ((index 0))
      (cl:apply #'parallel-composition
                (cl:mapcar (cl:lambda (process)
-                            (message (cl:incf index) (cl:eval process)))
+                            (message (cl:incf index) (kilns::eval process)))
                           ',processes))))
 
 #| FIXME: here is the start of an attempt to do this with less CL. The problems
