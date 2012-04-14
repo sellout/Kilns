@@ -7,7 +7,7 @@ fi
 ./build-application.sh test-implementation
 
 if [ -f './kilns' ]; then
-   ./kilns -c ${1:-2} tests/run-tests.kiln
+   ./kilns -c ${1:-2} tests/run-tests
 else
    echo '`kilns` does not exist'
 fi
