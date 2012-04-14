@@ -1,13 +1,17 @@
 (in-package #:kilns)
 
 (defun eval (form)
-  (let* ((operation (car form))
-         (definition (gethash operation kell-calculus::*global-definitions*)))
-    (if definition
-        (@ definition
-           (make-instance 'named-concretion
-                          :name operation :messages (mapcar #'eval (cdr form))))
-        (cl:eval form))))
+  (if (listp form)
+      (let* ((operation (car form))
+             (definition (gethash operation
+                                  kell-calculus::*global-definitions*)))
+        (if definition
+            (@ definition
+                (make-instance 'named-concretion
+                               :name operation
+                               :messages (mapcar #'eval (cdr form))))
+            (cl:eval form)))
+      form))
 
 (defun read (&rest read-args)
   (let* ((*readtable* kilns::*kilns-readtable*)
