@@ -9,8 +9,8 @@
     (let ((new-process (call-next-method)))
       (map-process (lambda (proc)
                      (if (and (listp proc) (not (free-variables proc)))
-                       (eval proc)
-                       proc))
+                         (eval proc)
+                         proc))
                    new-process)))
   (:method (process mapping &optional ignored-vars)
     "This just skips over primitives."
