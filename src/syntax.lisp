@@ -9,8 +9,8 @@
 (setf (readtable-case *kilns-readtable*) :invert)
 
 (defvar *reading-name-p* nil
-  "Indicates whether we are currently reading a message name, and therefore should
-   treat ?x as a name-variable instead of a process-variable.")
+  "Indicates whether we are currently reading a message name, and therefore
+   should treat ?x as a name-variable instead of a process-variable.")
 
 ;;; FIXME: this is broken. Use in read-process once it works
 (defmacro quote-atom (form) 
