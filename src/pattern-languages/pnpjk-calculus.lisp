@@ -3,9 +3,11 @@
 
 ;;; A polyadic name-passing jK
 
-;;; NOTE: need some way to tell that this is an extension of the jk-calculus
+(defclass pnpjk-calculus (jk-calculus)
+  ())
+
 (defvar +pnpjk-calculus+
-  (make-instance 'pattern-language
+  (make-instance 'pnpjk-calculus
     ;; ξ ::= J | ξk | J|ξk
     ;; J ::= ξm | ξd | ξu | J|J
     ;; ξm ::= a⟨ρ̅⟩
@@ -29,8 +31,8 @@
 (defmethod print-object ((obj name-variable) stream)
   (format stream "?~s" (name obj)))
 
-(defun name-variable (name)
-  (make-instance 'name-variable :name name))
+(defmethod egal ((x name-variable) (y name-variable))
+  (egal (name x) (name y)))
 
 (defmethod substitute ((name name-variable) mapping &optional ignored-vars)
   (if (find (name name) ignored-vars)
@@ -54,10 +56,13 @@
 (defclass blank (process)
   ())
 
-(defvar _ (make-instance 'blank))
+(defvar +blank+ (make-instance 'blank))
 
 (defmethod print-object ((obj blank) stream)
   (format stream "_"))
+
+(defmethod egal ((x blank) (y blank))
+  t)
 
 (defmethod unify
     ((pattern blank) agent
@@ -66,6 +71,51 @@
   "Always matches."
   (declare (ignore agent))
   substitutions)
+
+(defmethod define-pattern-message
+    ((pattern-language pnpjk-calculus) name &rest argument)
+  (make-instance 'message
+                 :name name
+                 :argument (apply #'define-pattern-message-argument
+                                  pattern-language argument)))
+
+(defgeneric define-pattern-name-variable (pattern-language name)
+  (:method ((pattern-language pnpjk-calculus) name)
+    (make-instance 'name-variable :name name)))
+
+(defgeneric define-pattern-nested-message
+    (pattern-language name &rest argument-forms)
+  (:method ((pattern-language pnpjk-calculus) name &rest argument-forms)
+    (make-instance 'message
+                   :name (if (listp name)
+                             (define-pattern-name-variable pattern-language
+                                                           (second name))
+                             name)
+                   :argument (apply #'define-pattern-message-argument
+                                    pattern-language argument-forms))))
+
+(defgeneric define-pattern-message-argument
+    (pattern-language &rest argument-forms)
+  (:method ((pattern-language pnpjk-calculus) &rest argument-forms)
+    (if (null argument-forms)
+        +blank+
+        (reduce #'compose
+                (mapcar (lambda (process-form)
+                          (if (listp process-form)
+                              (case (car process-form)
+                                (process-variable (define-pattern-process-variable pattern-language
+                                                      (second process-form)))
+                                (par (mapcar (lambda (process-form)
+                                               (apply #'define-pattern-message
+                                                      pattern-language (cdr process-form)))
+                                             (cdr process-form)))
+                                (message (apply #'define-pattern-nested-message
+                                                pattern-language (cdr process-form))))
+                              (if (eq process-form '_)
+                                  +blank+
+                                  (error "Can not use ~A as a pattern form in ~A."
+                                         process-form pattern-language))))
+                        argument-forms)))))
 
 ;;; For convenience, we write a␣x1, ⋯, xn␣ for a␣1␣x1␣ | ⋯ | n␣xn␣␣ where
 ;;; 1, ⋯, n only occur in these encodings.

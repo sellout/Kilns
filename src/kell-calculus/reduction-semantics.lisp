@@ -17,13 +17,27 @@
     (declare (ignore local-name global-name))
     process)
   (:method (local-name global-name (process message))
-    (message (if (eql (name process) local-name) global-name (name process))
-             (apply-restriction local-name global-name (argument process))
-             (apply-restriction local-name global-name (continuation process))))
+    (make-instance 'message
+                   :name (if (eql (name process) local-name)
+                             global-name
+                             (name process))
+                   :argument (apply-restriction local-name
+                                                global-name
+                                                (argument process))
+                   :continuation (apply-restriction local-name
+                                                    global-name
+                                                    (continuation process))))
   (:method (local-name global-name (process kell))
-    (kell (if (eql (name process) local-name) global-name (name process))
-          (apply-restriction local-name global-name (state process))
-          (apply-restriction local-name global-name (continuation process))))
+    (make-instance 'kell
+                   :name (if (eql (name process) local-name)
+                             global-name
+                             (name process))
+                   :state (apply-restriction local-name
+                                             global-name
+                                             (state process))
+                   :continuation (apply-restriction local-name
+                                                    global-name
+                                                    (continuation process))))
   (:method (local-name global-name (process parallel-composition))
     (map-process (lambda (proc) (apply-restriction local-name global-name proc))
                  process))
@@ -94,7 +108,10 @@
   (:method (process)
     process)
   (:method ((process kell))
-    (kell (name process) (sub-reduce (state process)) (continuation process)))
+    (make-instance 'kell
+                   :name (name process)
+                   :state (sub-reduce (state process))
+                   :continuation (continuation process)))
   (:method ((process restriction-abstraction))
     (let ((abstraction (abstraction process)))
       (mapc (lambda (name)

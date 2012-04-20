@@ -4,6 +4,7 @@
 (defgeneric free-names (process)
   (:documentation "Process -> {Name}")
   (:method (process) ; catchall
+    (declare (ignore process))
     '())
   (:method ((process null-process))
     '())

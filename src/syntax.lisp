@@ -12,29 +12,21 @@
   "Indicates whether we are currently reading a message name, and therefore
    should treat ?x as a name-variable instead of a process-variable.")
 
-;;; FIXME: this is broken. Use in read-process once it works
-(defmacro quote-atom (form) 
-  `(if (listp ',form)
-     ,form
-     ',form))
-
 (defun read-process (type stream char)
   (let ((name (let ((*reading-name-p* t)) (read stream t))))
     (destructuring-bind (&optional process continuation)
         (read-delimited-list (cdr (assoc char *paired-chars*)) stream t)
       (if continuation
-        `(,type (if (listp ',name) ,name ',name)
-                ,process
-                (if (listp ',continuation) ,continuation ',continuation))
-        (if process
-          `(,type (if (listp ',name) ,name ',name) ,process)
-          `(,type (if (listp ',name) ,name ',name)))))))
+          `(,type ,name ,process ,continuation)
+          (if process
+              `(,type ,name ,process)
+              `(,type ,name))))))
 
 (defun variable-reader (stream char)
   (declare (ignore char))
   (if *reading-name-p*
-    `(make-instance 'name-variable :name ',(read stream t))
-    `(make-instance 'process-variable :name ',(read stream t))))
+    `(name-variable ,(read stream t))
+    `(process-variable ,(read stream t))))
 
 (defun kell-reader (stream char)
   (read-process 'kell stream char))
@@ -47,9 +39,6 @@
 (set-macro-character #\] (get-macro-character #\) nil) nil *kilns-readtable*)
 (set-macro-character #\{ #'message-reader nil *kilns-readtable*)
 (set-macro-character #\} (get-macro-character #\) nil) nil *kilns-readtable*)
-
-(defun par (&rest processes)
-  (apply #'parallel-composition processes))
 
 ;;; The syntax of the Kell calculus is given in Figure 1. It is parameterized by
 ;;; the pattern language used to define patterns ξ in triggers ξ ␣ P.

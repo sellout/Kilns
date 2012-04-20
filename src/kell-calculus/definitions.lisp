@@ -10,7 +10,9 @@
    that are named by sequential integers."
   (let ((index 0))
     (reduce #'compose
-            (mapcar (lambda (process) (message (incf index) process))
+            (mapcar (lambda (process) (make-instance 'message
+                                                     :name (incf index)
+                                                     :argument process))
                     processes))))
 
 (defmacro def ((name &rest parameters) &body body)
@@ -18,15 +20,6 @@
   `(progn (defmacro ,name (,@parameters)
             ,@body)
           null))
-
-;; FIXME: We're calling this DEFINE until we can actually replace DEF with it
-(defmacro define ((name &rest parameters) process)
-  `(setf (gethash ',name *global-definitions*)
-         (make-instance 'definition
-                        :name ',name
-                        :pattern (convert-process-to-pattern
-                                  (order-processes ,@parameters))
-                        :process ,process)))
 
 (defclass named-concretion (concretion)
   ((name :initarg :name :reader name)))
@@ -44,11 +37,11 @@
         (if substitutions
             (compose (substitute (process abstraction) substitutions)
                      (continuation concretion))
-            (par abstraction concretion)))
-      (par abstraction concretion)))
+            (compose abstraction concretion)))
+      (compose abstraction concretion)))
 
 (defmethod @ ((abstraction definition) (concretion concretion))
-  (par abstraction concretion))
+  (compose abstraction concretion))
 
 (defmethod @ ((abstraction pattern-abstraction) (concretion named-concretion))
-  (par abstraction concretion))
+  (compose abstraction concretion))

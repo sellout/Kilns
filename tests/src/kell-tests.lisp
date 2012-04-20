@@ -7,88 +7,88 @@
 (in-suite kell-calculus)
 
 (test should-reduce-to-process
-  (is (match (par (message 'yes) (message 'sir))
-             (@ (define (test1 (process-variable 'first)
-                               (process-variable 'second))
-                    (par (process-variable 'first) (process-variable 'second)))
-                (make-instance 'named-concretion
-                               :name 'test1
-                               :messages (list (message 1 (message 'yes))
-                                               (message 2 (message 'sir))))))))
+  (let ((*current-pattern-language* +jk-calculus+))
+    (is (match (eval '(par (message yes) (message sir)))
+          (@ (eval '(define (test1 (process-variable first)
+                                   (process-variable second))
+                      (par first second)))
+             (make-instance 'named-concretion
+                            :name 'test1
+                            :messages (list (eval '(message 1 (message yes)))
+                                            (eval '(message 2 (message sir))))))))))
 
 (test should-not-reduce-to-process
-  (is-false (match (par (message 'yes) (message 'sir))
-                   (@ (define (test2 (process-variable 'first)
-                                     (process-variable 'second))
-                          (par (process-variable 'first)
-                               (process-variable 'second)))
-                      (make-instance 'named-concretion
-                                     :name 'nope
-                                     :messages (list (message 1 (message 'yes))
-                                                     (message 2 (message 'sir))))))))
+  (let ((*current-pattern-language* +jk-calculus+))
+    (is-false (match (eval '(par (message yes) (message sir)))
+                (@ (eval '(define (test2 (process-variable first)
+                                         (process-variable second))
+                            (par first second)))
+                   (make-instance 'named-concretion
+                                  :name 'nope
+                                  :messages (list (eval '(message 1 (message yes)))
+                                                  (eval '(message 2 (message sir))))))))))
 
 (test should-not-reduce-to-process-with-pattern-abstraction
-  (is-false (match (par (message 'yes) (message 'sir))
-                   (@ (make-instance 'pattern-abstraction
-                                     :pattern (make-instance 'pattern
-                                                             :local-message-pattern
-                                                             (list (message 1 (process-variable 'first))
-                                                                   (message 2 (process-variable 'second))))
-                                     :process (par (process-variable 'first)
-                                                   (process-variable 'second)))
-                      (make-instance 'named-concretion
-                                     :name 'nope
-                                     :messages (list (message 1 (message 'yes))
-                                                     (message 2 (message 'sir))))))))
+  (is-false (match (eval '(par (message yes) (message sir)))
+              (@ (make-instance 'pattern-abstraction
+                                :pattern 
+                                (kilns::define-pattern +jk-calculus+
+                                    '(par (message 1 (process-variable first))
+                                          (message 2 (process-variable second))))
+                                :process (eval '(par first second)))
+                 (make-instance 'named-concretion
+                                :name 'nope
+                                :messages (list (eval '(message 1 (message yes)))
+                                                (eval '(message 2 (message sir)))))))))
 
 (test should-not-reduce-to-process-with-concretion
-  (is-false (match (par (message 'yes) (message 'sir))
-                   (@ (define (test3 (process-variable 'first)
-                                     (process-variable 'second))
-                          (par (process-variable 'first)
-                               (process-variable 'second)))
-                      (make-instance 'concretion
-                                     :messages (list (message 1 (message 'yes))
-                                                     (message 2 (message 'sir))))))))
+  (let ((*current-pattern-language* +jk-calculus+))
+    (is-false (match (eval '(par (message yes) (message sir)))
+                (@ (eval '(define (test3 (process-variable first)
+                                   (process-variable second))
+                            first second))
+                   (make-instance 'concretion
+                                  :messages (list (eval '(message 1 (message yes)))
+                                                  (eval '(message 2 (message sir))))))))))
 
 (test should-assume-null-message-continuation
-  (let ((process (message 'test (message 'test))))
-    (is (match null (continuation process)))))
+  (let ((process (eval '(message test (message test)))))
+    (is (match +null-process+ (continuation process)))))
 
 (test should-assume-nil-message-argument-and-null-continuation
-  (let ((process (message 'test)))
-    (is (match nil (argument process)))
-    (is (match null (continuation process)))))
+  (let ((process (eval '(message test))))
+    (is (match +null-process+ (argument process)))
+    (is (match +null-process+ (continuation process)))))
 
 (test should-assume-null-kell-continuation
-  (let ((process (kell 'test (message 'test))))
-    (is (match null (continuation process)))))
+  (let ((process (eval '(kell test (message test)))))
+    (is (match +null-process+ (continuation process)))))
 
 (test should-compose-abstraction-and-process
   (let* ((pattern-abstraction
-         (make-instance 'pattern-abstraction
-                        :pattern (kell-calculus::convert-process-to-pattern
-                                  (message 'param (process-variable 'x)))
-                        :process (process-variable 'x)))
-        (process (message 'test))
-        (result (make-instance 'application-abstraction
-                               :abstraction pattern-abstraction
-                               :concretion (make-instance
-                                            'concretion
-                                            :continuation process))))
+          (make-instance 'pattern-abstraction
+                         :pattern (kilns::define-pattern +jk-calculus+
+                                      '(message param (process-variable x)))
+                         :process (eval 'x)))
+         (process (eval '(message test)))
+         (result (make-instance 'application-abstraction
+                                :abstraction pattern-abstraction
+                                :concretion (make-instance
+                                             'concretion
+                                             :continuation process))))
     (is (match (compose pattern-abstraction process) result))
     (is (match (compose process pattern-abstraction) result))))
 
 (test should-compose-concretion-and-process
-  (let* ((concretion-process (message 'concreted))
+  (let* ((concretion-process (eval '(message concreted)))
          (concretion (make-instance 'concretion
                                     :restricted-names '(x)
-                                    :messages (list (message 'matching))
+                                    :messages (list (eval '(message matching)))
                                     :continuation concretion-process))
-         (process (message 'test))
+         (process (eval '(message test)))
          (result (make-instance 'concretion
                                 :restricted-names '(x)
-                                :messages (list (message 'matching))
+                                :messages (list (eval '(message matching)))
                                 :continuation (compose concretion-process
                                                        process))))
     (is (match (compose concretion process) result))
@@ -97,39 +97,39 @@
 (test should-compose-concretions
   (let ((a (make-instance 'concretion
                           :restricted-names '(x)
-                          :messages (list (message 'matching))
-                          :continuation (message 'que)))
+                          :messages (list (eval '(message matching)))
+                          :continuation (eval '(message que))))
         (b (make-instance 'concretion
                           :restricted-names '(y)
-                          :messages (list (message 'match2))
-                          :continuation (message 'pasa))))
+                          :messages (list (eval '(message match2)))
+                          :continuation (eval '(message pasa)))))
     (is (match (make-instance 'concretion
                               :restricted-names '(x y)
-                              :messages (list (message 'matching)
-                                              (message 'match2))
-                              :continuation (par (message 'que)
-                                                 (message 'pasa)))
+                              :messages (list (eval '(message matching))
+                                              (eval '(message match2)))
+                              :continuation (eval '(par (message que)
+                                                        (message pasa))))
                (compose a b)))))
 
 (test should-apply-abstraction
-  (is (match (message 'test)
+  (is (match (eval '(message test))
              (@ (make-instance 'pattern-abstraction
-                               :pattern (kell-calculus::convert-process-to-pattern
-                                         (message 'param (process-variable 'x)))
-                               :process (process-variable 'x))
+                               :pattern (kilns::define-pattern +jk-calculus+
+                                            '(message param (process-variable x)))
+                               :process (eval 'x))
                 (make-instance 'concretion
-                               :messages (list (message 'param
-                                                        (message 'test))))))))
+                               :messages (list (eval '(message param
+                                                               (message test)))))))))
 
 (test should-suspend-application
   (let ((pattern-abstraction
          (make-instance 'pattern-abstraction
-                        :pattern (kell-calculus::convert-process-to-pattern
-                                  (message 'param (process-variable 'x)))
-                        :process (process-variable 'x)))
+                        :pattern (kilns::define-pattern +jk-calculus+
+                                            '(message param (process-variable x)))
+                        :process (eval 'x)))
         (concretion
          (make-instance 'concretion
-                        :messages (list (message 'not-param (message 'test))))))
+                        :messages (list (eval '(message not-param (message test)))))))
     (is (match (@ pattern-abstraction concretion)
                (make-instance 'application-abstraction
                               :abstraction pattern-abstraction

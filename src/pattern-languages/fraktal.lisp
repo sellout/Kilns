@@ -23,27 +23,45 @@
 ;;; to bind such a name: ((m) ≠ a) matches a name that is not a and binds it to
 ;;; m.
 
+(defclass fraktal (pnpjk-calculus)
+  ())
+
 (defvar +fraktal+
-  (make-instance 'pattern-language
+  (make-instance 'fraktal
     ;; ξ ::= J | ξk | J|ξk
     ;; J ::= ξm | ξd | ξu | J|J
-    ;; ξm ::= a␣ρ̅␣
-    ;; ξu ::= a␣ρ̅␣↑
-    ;; ξd ::= a␣ρ̅␣↓
+    ;; ξm ::= a⟨ρ̅⟩
+    ;; ξu ::= a⟨ρ̅⟩↑
+    ;; ξd ::= a⟨ρ̅⟩↓
     ;; ξk ::= a[x]
-    ;; ρ ::= a␣ρ̅␣ | ρ|ρ
-    ;; ρ̅ ::= x | ρ | (a)␣ρ̅␣ | a̅␣ρ̅␣ | ((m) ≠ a)␣ρ̅␣ | _
+    ;; ρ ::= a⟨ρ̅⟩ | ρ|ρ
+    ;; ρ̅ ::= x | ρ | (a)⟨ρ̅⟩ | a̅⟨ρ̅⟩ | ((m) ≠ a)⟨ρ̅⟩ | _
     ))
 
 (defclass mismatch (name-type)
   ((complement :initarg :complement :accessor complement)
    (variable :initarg :variable :reader variable)))
 
-(defun != (complement &optional variable)
-  (make-instance 'mismatch :variable variable :complement complement))
-
 (defmethod print-object ((obj mismatch) stream)
   (format stream "(!= ~a~@[ ~a~])" (complement obj) (variable obj)))
+
+(defgeneric define-mismatch (pattern-language complement &optional variable)
+  (:method ((pattern-language fraktal) complement &optional variable)
+    (make-instance 'mismatch :complement complement :variable variable)))
+
+(defmethod define-pattern-nested-message
+    ((pattern-language fraktal) name &rest argument-forms)
+  (make-instance 'message
+                 :name (if (listp name)
+                           (case (car name)
+                             (name-variable
+                              (define-pattern-name-variable pattern-language
+                                                            (second name)))
+                             (!= (apply #'define-mismatch
+                                        pattern-language (cdr name))))
+                           name)
+                 :argument (apply #'define-pattern-message-argument
+                                  pattern-language argument-forms)))
 
 ;;; We similarly extend the matching functions, adding two cases for the helper
 ;;; function matchr

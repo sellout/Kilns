@@ -58,6 +58,8 @@
     :depends-on (kilns fiveam)
     :pathname "tests/src/"
     :components ((:file "package")
+                 (:file "eval-tests" :depends-on ("package"))
                  (:file "reader-tests" :depends-on ("package"))
                  (:file "kell-tests" :depends-on ("package"))
-                 (:file "protocol-tests" :depends-on ("package"))))
+                 ;; (:file "protocol-tests" :depends-on ("package"))
+                 ))

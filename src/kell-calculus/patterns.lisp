@@ -46,40 +46,6 @@
     (format stream "~:[~{~a~}~;(par ~{~a~^ ~})~]"
             (< 1 (length patterns)) patterns)))
 
-(defun up (process)
-  "Paralleling `cont`, this is used to create an up-pattern with the new
-   syntax."
-  (setf (continuation process) 'up)
-  process)
-
-(defun down (process)
-  "Paralleling `cont`, this is used to create a down-pattern with the new
-   syntax."
-  (setf (continuation process) 'down)
-  process)
-
-;;; FIXME: somewhere around here we need to ensure only one kell is in the
-;;;        pattern
-
-(defgeneric convert-process-to-pattern (process &optional pattern)
-  (:method ((process parallel-composition)
-            &optional (pattern (make-instance 'pattern)))
-    (mapc (lambda (sub-process)
-            (convert-process-to-pattern sub-process pattern))
-          (append (messages process) (kells process)))
-    pattern)
-  (:method ((process message) &optional (pattern (make-instance 'pattern)))
-    (unless (argument process) ; FIXME: should only happen with pnp-jK & FraKtal
-      (setf (argument process) kilns:_))
-    (case (continuation process)
-      (down (push process (down-message-pattern pattern)))
-      (up (push process (up-message-pattern pattern)))
-      (otherwise (push process (local-message-pattern pattern))))
-    pattern)
-  (:method ((process kell) &optional (pattern (make-instance 'pattern)))
-    (push process (kell-message-pattern pattern))
-    pattern))
-
 ;;; – One can decide whether a pattern matches a given term. More precisely,
 ;;;   each pattern language is equipped with a decidable relation match, which
 ;;;   associates a pair ⟨ξ,M⟩, consisting of a pattern ξ and a multiset of

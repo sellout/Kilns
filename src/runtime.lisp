@@ -421,3 +421,12 @@
       (activate-process (abstraction process) process))))
 (defmethod add-process ((process concretion) (kell kell) &optional watchp)
   (add-process (sub-reduce process) kell watchp))
+
+(defmethod activate-process ((process named-concretion) (kell kell))
+  (let ((definition (gethash (name process) *global-definitions*)))
+    (if definition
+        (progn
+          (remove-process-from process kell)
+          (add-process (@ definition process) kell))
+        (push (parent process)
+              (gethash (name process) *delayed-concretions*)))))

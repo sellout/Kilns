@@ -8,14 +8,11 @@
 (defmethod print-object ((obj null-process) stream)
   (princ "null" stream))
 
-(defvar null (make-instance 'null-process))
+(defvar +null-process+ (make-instance 'null-process))
+(defvar null +null-process+) ; FIXME: remove this var
 
 (defclass trigger (process pattern-abstraction)
   ())
-
-(defmacro trigger (pattern process)
-  `(make-instance 'trigger
-     :pattern (convert-process-to-pattern ,pattern) :process ,process))
 
 (defmethod print-object ((obj trigger) stream)
   (format stream "(trigger ~s ~s)" (pattern obj) (process obj)))
@@ -23,48 +20,37 @@
 (defclass restriction (restriction-abstraction process)
   ())
 
-(defmacro new (names process)
-  `(make-instance 'restriction
-     :names (if (consp ',names) ',names (list ',names)) :abstraction ,process))
-
 (defmethod print-object ((obj restriction) stream)
   (format stream "(new ~a ~s)" (names obj) (abstraction obj)))
 
 (defclass message (process)
   ((name :initarg :name :accessor name :type name)
-   (argument :initarg :argument :initform nil :type generic-process
+   (argument :initarg :argument :initform +null-process+ :type generic-process
              :accessor argument
              :documentation
              "This defaults to nil rather than null so that we can distinguish
               when the argument was omitted, since in some pattern languages an
               omitted argument means 'match anything' rather than 'match
               null'.")
-   (continuation :initarg :continuation :initform null
+   (continuation :initarg :continuation :initform +null-process+
                  :type (or generic-process symbol)
                  :accessor continuation)))
 
 (defmethod print-object ((obj message) stream)
   (format stream "{~a~:[ ~s~:[ ~s~;~]~;~]}"
           (name obj)
-          (and (or (null (argument obj)) (eql (argument obj) null))
-               (eql (continuation obj) null))
+          (and (or (null (argument obj)) (eql (argument obj) +null-process+))
+               (eql (continuation obj) +null-process+))
           (argument obj)
-          (eql (continuation obj) null)
+          (eql (continuation obj) +null-process+)
           (continuation obj)))
-
-(defun message (name &optional argument continuation)
-  (if continuation
-    (make-instance 'message
-      :name name :argument argument :continuation continuation)
-    (if argument
-      (make-instance 'message :name name :argument argument)
-      (make-instance 'message :name name))))
 
 (defclass kell (process)
   ((name :initarg :name :accessor name :type name)
-   (state :initarg :state :initform null :type generic-process :accessor state)
-   (continuation :initarg :continuation :initform null :type generic-process
-                 :accessor continuation)
+   (state :initarg :state :initform +null-process+ :type generic-process
+          :accessor state)
+   (continuation :initarg :continuation :initform +null-process+
+                 :type generic-process :accessor continuation)
    ;; implementation details
    (lock :reader lock)
    ;; while each trigger pattern contains a multiset of typed patterns, we keep
@@ -84,23 +70,16 @@
 (defmethod initialize-instance :after ((obj kell) &key &allow-other-keys)
   (setf (slot-value obj 'lock) (make-lock (format nil "kell ~a" (name obj)))))
 
-(defun kell (name &optional state continuation)
-  (if continuation
-    (make-instance 'kell :name name :state state :continuation continuation)
-    (if state
-      (make-instance 'kell :name name :state state)
-      (make-instance 'kell :name name))))
-
 (defmethod print-object ((obj kell) stream)
   (format stream "[~a ~s~:[ ~s~;~]]"
           (name obj) (state obj)
-          (eql (continuation obj) null) (continuation obj)))
+          (eql (continuation obj) +null-process+) (continuation obj)))
 
 (defun cont (process &rest continuation)
   "Since continuations are rare, this separates them from the main body of the
    process, simplifying the syntax for the common case."
   (let ((existing-continuation (continuation process)))
-    (if (eq existing-continuation null)
+    (if (eq existing-continuation +null-process+)
         (setf (continuation process)
               (apply #'parallel-composition continuation))
         (apply #'cont existing-continuation continuation)))
@@ -125,7 +104,7 @@
           (map-parallel-composition #'identity obj)))
 
 (defun parallel-composition (&rest processes)
-  (reduce #'compose processes :initial-value null))
+  (reduce #'compose processes :initial-value +null-process+))
 
 (defun map-parallel-composition (fn pc)
   (mapcar fn
