@@ -1,11 +1,15 @@
 (in-package #:kell-calculus)
 
 (defclass agent ()
-  ((parent :accessor parent)))
+  ((parent :accessor parent)
+   (deadp :initform nil :accessor deadp
+          :documentation "After a message has been successfully matched, it may
+                          still exist in the event queue. This ensures we don't
+                          waste time trying to match it again.")))
 
 (deftype generic-process ()
   "This allows us to use various primitives as processes."
-  `(or process string number list symbol))
+  `(or agent string number list symbol))
 
 (deftype generic-abstraction ()
   "This allows us to use various primitives as processes."
@@ -22,19 +26,19 @@
 (defclass concretion (agent)
   ((restricted-names :initform nil
                      :initarg :restricted-names :reader restricted-names)
-   (messages :initform nil :initarg :messages :reader messages :type list
-             :documentation "A multiset without up-mossages")
-   ;; FIXME: the continuation should default to NULL, but we haven't yet defined
-   ;;        that.
-   (continuation :initform null :initarg :continuation :reader continuation
+   (messages :initform +null-process+ :initarg :messages :reader messages
+             :type generic-process
+             :documentation "A multiset without up-messages")
+   (continuation :initform +null-process+
+                 :initarg :continuation :reader continuation
                  :type process))
   (:documentation "C ::= νã.Ω P
                    Ω ::= ∅ | a<P> | a<P>↓b | a[P] | Ω|Ω"))
 
 (defmethod print-object ((obj concretion) stream)
-  (format stream "(new ~s ~[~s~;~s~:;(par~{ ~s~})~] || ~s)"
+  (format stream "(new ~s ~s || ~s)"
           (restricted-names obj)
-          (length (messages obj)) (messages obj)
+          (messages obj)
           (continuation obj)))
 
 #|
@@ -56,10 +60,7 @@
          (free-variables (continuation agent))))
 
 (defclass abstraction (agent)
-  ((deadp :initform nil :accessor deadp
-          :documentation "After a message has been successfully matched, it may
-                          still exist in the event queue. This ensures we don't
-                          waste time trying to match it again."))
+  ()
   (:documentation "F"))
 
 (defclass simple-abstraction (abstraction)

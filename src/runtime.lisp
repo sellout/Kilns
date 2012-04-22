@@ -8,6 +8,13 @@
 (defvar *top-kell*)
 (defvar *local-kell*)
 
+(defvar *global-definitions* (make-hash-table :test #'eq)
+  "The set of definitions that are available anywhere in the system.")
+(defvar *delayed-concretions* (make-hash-table :test #'eq)
+  "Concretions that are in matchable space, but for which there is not yet any
+   definition to expand them. They need to be expanded as soon as such a
+   definition appears.")
+
 (define-condition kiln-error (error)
   ()
   (:documentation "This is used to distinguish errors that happen in kilns from
@@ -127,9 +134,6 @@
     '()))
 
 (defgeneric activate-process (process kell)
-  (:method ((process cons) (kell kell))
-    (remove-process-from process kell)
-    (add-process process kell))
   (:method ((process process) (kell kell))
     (setf (parent process) kell)
     (mapc #'push-event (collect-channel-names process kell)))
@@ -152,12 +156,6 @@
      we need to make sure that it is not seen as dead when re-added."
     (declare (ignore kell watchp))
     (setf (deadp process) nil))
-  (:method (process kell &optional watchp)
-    "Handles any other “primitive” processes (strings, numbers, etc.)"
-    (declare (ignore process kell watchp))
-    (values))
-  (:method ((process cons) (kell kell) &optional watchp)
-    (add-process (eval process) kell watchp))
   (:method ((process restriction-abstraction) (kell kell) &optional watchp)
     (add-process (sub-reduce process) kell watchp))
   (:method ((process agent) (kell kell) &optional watchp)
@@ -181,6 +179,7 @@
 (defun toplevel (&key cpu-count local-kell port-number)
   (unless cpu-count (setf cpu-count (get-cpu-count)))
   (let* ((use-network-p (or local-kell port-number))
+         (*current-pattern-language* +fraktal+)
          (*top-kell* (make-instance (if use-network-p 'network-kell 'kell)
                                     :name (gensym "TOP")))
          (*package* (find-package :kilns-user))
@@ -221,7 +220,7 @@
     (setf current-kell top-kell)
     (loop do
          (printk "~a> " (name current-kell))
-         (handler-case (add-process (read) current-kell)
+         (handler-case (add-process (eval (read)) current-kell)
            (end-of-file () (return))
            (kiln-error (c) (handle-error c))))))
 
@@ -263,7 +262,9 @@
 (defun trigger-process (trigger mapping watchp)
   "Activates process after substituting the process-variables in the trigger."
   (remove-process trigger)
-  (add-process (substitute (process trigger) mapping) (parent trigger) watchp))
+  (add-process (expand-concretions (substitute (process trigger) mapping))
+               (parent trigger)
+               watchp))
 
 (defun activate-continuation (process)
   (remove-process process)
@@ -420,13 +421,108 @@
       (call-next-method)
       (activate-process (abstraction process) process))))
 (defmethod add-process ((process concretion) (kell kell) &optional watchp)
-  (add-process (sub-reduce process) kell watchp))
+  (setf (state kell) (compose (sub-reduce process) (state kell)))
+  (when watchp (watch process))
+  (activate-process process kell))
+
+;; FIXME: this can't currently work, ADD-PROCESS doesn't know _where_ in the
+;;        process the concretion should be placed (although it's possible
+;;        there's only one option for each process).
+(defun apply-definition (definition concretion)
+  (remove-process-from concretion (parent concretion))
+  (add-process (@ definition concretion) (parent concretion)))
+
+(defgeneric expand-concretions (process)
+  (:documentation
+   "Expands any accessible concretions in the given process and returns two
+    values the expanded process (possibly the same as the argument if there
+    were no concretions) and a boolean indicating whether the process was
+    altered. This can't just be done in add-/activate-process because we also
+    need to do this for inactive processes that could be involved in a match.")
+  ;; (:method :guarantee "process hasn't changed if there was no expansion"
+  ;;          (process)
+  ;;   (multiple-value-bind (new-process contained-expansion-p) (results)
+  ;;     (implies contained-expansion-p (eq process new-process))))
+  (:method ((process named-concretion))
+    (let ((definition (gethash (name process) *global-definitions*)))
+      (if definition
+        (values (expand-concretions (@ definition process)) t)
+        (progn
+          (push process
+                (gethash (name process) *delayed-concretions*))
+          (values process nil)))))
+  (:method (process)
+    ;; FIXME: won't need this once we actually read everything as a real process
+    (values process nil))
+  (:method ((process null-process))
+    (values process nil))
+  (:method ((process message))
+    (multiple-value-bind (new-argument contained-expansion-p)
+        (expand-concretions (argument process))
+      (values (if contained-expansion-p
+                  (make-instance 'message
+                                 :name (name process)
+                                 :argument new-argument
+                                 :continuation (continuation process))
+                  process)
+              contained-expansion-p)))
+  (:method ((process parallel-composition))
+    (let* ((contained-expansion-p nil)
+           (new-processes
+            (map-parallel-composition (lambda (process)
+                                        (multiple-value-bind (new-process
+                                                              expandedp)
+                                            (expand-concretions process)
+                                          (when expandedp
+                                            (setf contained-expansion-p t))
+                                          new-process))
+                                      process)))
+      (values (if contained-expansion-p
+                  (apply #'parallel-composition new-processes)
+                  process)
+              contained-expansion-p)))
+  (:method ((process kell))
+    (multiple-value-bind (new-state contained-expansion-p)
+        (expand-concretions (state process))
+      (values (when contained-expansion-p
+                (make-instance 'kell
+                               :name (name process)
+                               :state new-state
+                               :continuation (continuation process))
+                process)
+              contained-expansion-p)))
+  (:method ((process trigger))
+    (multiple-value-bind (new-pattern contained-expansion-p)
+        (expand-concretions (pattern process))
+      (values (when contained-expansion-p
+                (make-instance 'trigger
+                               :pattern new-pattern
+                               :process (process process))
+                process)
+              contained-expansion-p)))
+  (:method ((process restriction))
+    (values (expand-concretions (expand-restriction process))
+            t))
+  (:method ((process definition))
+    (values process nil)))
+
+(defmethod add-process ((process definition) (kell kell) &optional watchp)
+  (setf (gethash (name process) *global-definitions*) process)
+  (activate-process process kell))
+
+(defmethod activate-process ((process definition) (kell kell))
+  (mapc (alexandria:curry #'apply-definition process)
+        (gethash (name process) *delayed-concretions*)))
+
+(defmethod add-process ((process named-concretion) (kell kell) &optional watchp)
+  (setf (parent process) kell
+        (state kell) (compose process (state kell)))
+  (when watchp (watch process))
+  (activate-process process kell))
 
 (defmethod activate-process ((process named-concretion) (kell kell))
-  (let ((definition (gethash (name process) *global-definitions*)))
-    (if definition
-        (progn
-          (remove-process-from process kell)
-          (add-process (@ definition process) kell))
-        (push (parent process)
-              (gethash (name process) *delayed-concretions*)))))
+  (multiple-value-bind (expanded-process contained-expansion-p)
+      (expand-concretions process)
+    (when contained-expansion-p
+      (remove-process-from process kell)
+      (add-process expanded-process kell))))

@@ -77,18 +77,17 @@
 
 (defun define-definition (pattern &rest processes)
   (destructuring-bind (name &rest parameters) pattern
-    (setf (gethash name kell-calculus::*global-definitions*)
-          (make-instance 'definition
-                         :name name
-                         :pattern (define-pattern *current-pattern-language*
-                                                  (apply #'order-procs
-                                                         parameters))
-                         :process (define-parallel-composition processes)))))
+    (make-instance 'definition
+                   :name name
+                   :pattern (define-pattern *current-pattern-language*
+                                (apply #'order-procs
+                                       parameters))
+                   :process (define-parallel-composition processes))))
 
 (defun define-named-concretion (name &rest arguments)
   (make-instance 'named-concretion
                  :name name
-                 :messages (mapcar #'eval arguments)))
+                 :messages (eval (apply #'order-procs arguments))))
 
 (defun eval (form)
   (if (listp form)
@@ -111,6 +110,7 @@
 (defun read (&rest read-args)
   (let* ((*readtable* kilns::*kilns-readtable*)
          (*package* (find-package :kilns-user))
+         (*read-eval* nil)
          (value (apply #'cl:read read-args)))
     (case value
       (null null)

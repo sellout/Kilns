@@ -5,13 +5,13 @@
   (:shadow #:substitute #:match)
   (:export #:definition #:define
            #:name #:process-variable #:identifier #:name-type
-           #:null #:trigger #:new #:par #:def #:cont
+           #:null #:+null-process+ #:trigger #:new #:par #:def #:cont
            #:process #:message #:kell #:subkells
            #:argument #:state
            #:parallel-composition #:compose
            #:restriction
            #:null-process
-           #:pattern-language #:pattern #:up #:down
+           #:pattern-language #:*current-pattern-language* #:pattern #:up #:down
            #:substitute
            #:match #:match-local #:match-down #:match-up #:match-kell
            #:bound-names #:free-names #:bound-variables #:free-variables
@@ -42,6 +42,7 @@
   (:shadowing-import-from #:kell-calculus #:substitute #:match)
   (:shadow #:complement #:eval #:load #:read #:read-from-string)
   (:export ;; core calculus
+           #:eval
            #:trigger
            #:restriction
            #:message #:up #:down
@@ -49,13 +50,13 @@
            #:null
            #:parallel-composition
            #:def
-           ;; jK pattern language
+           #:*current-pattern-language*
+           #:+jk-calculus+ ; jK pattern language
            #:process-variable
-           ;; pnp-jK pattern language
-           #:_
+           #:+pnpjk-calculus+ ; pnp-jK pattern language
+           #:+blank+
            #:name-variable
-           ;; fraKtal pattern language
-           #:!=
+           #:+fraktal+ ; fraKtal pattern language
            ;; abbreviated syntax
            #:par #:new
            ;; networking

@@ -86,10 +86,12 @@
   process)
 
 (defclass parallel-composition (process)
+  ;; FIXME: I don't think we need process variables here.
   ((process-variables :initform nil :type list :accessor process-variables)
    (messages :initform nil :type list :accessor messages)
    (kells :initform nil :type list :accessor kells)
    (triggers :initform nil :type list :accessor triggers)
+   (named-concretions :initform nil :accessor named-concretions)
    (primitives :initform nil :type list :accessor primitives
                :documentation "This contains lists, strings, numbers, etc., but
                                also restrictions and any other type of process
@@ -112,6 +114,7 @@
                   (messages pc)
                   (kells pc)
                   (triggers pc)
+                  (named-concretions pc)
                   (primitives pc))))
 
 ;;; FIXME: replace all instances of MAP-PARALLEL-COMPOSITION with this
@@ -124,6 +127,7 @@
                          (messages-in process)
                          (kells-in process)
                          (triggers-in process)
+                         (named-concretions-in process)
                          (primitives-in process)))))
 
 (defmethod (setf parent) (value (process parallel-composition))
@@ -326,6 +330,8 @@
            (append (kells process-a) (kells process-b))
            (triggers pc)
            (append (triggers process-a) (triggers process-b))
+           (named-concretions pc)
+           (append (named-concretions process-a) (named-concretions process-b))
            (primitives pc)
            (append (primitives process-a) (primitives process-b)))
     pc))
