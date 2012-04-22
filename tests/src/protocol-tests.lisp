@@ -25,12 +25,10 @@
                 :external-format '(:utf-8 :eol-style :lf) :ipv6 nil
                 :remote-host (sockets:lookup-hostname "localhost")
                 :remote-port kilns::*base-port*)
-      (let ((*readtable* kilns::*kilns-readtable*)
-            (*package* (find-package :kilns-user)))
-        (write (eval (read-from-string "{keep-alive}")) :stream client)
-        (finish-output client)
-        (is (match-local (eval (read-from-string "{keep-alive}"))
-                         (eval (read client))))))))
+      (write (eval (kilns::read-from-string "{keep-alive}")) :stream client)
+      (finish-output client)
+      (is (match-local (eval (kilns::read-from-string "{keep-alive}"))
+                       (eval (read client)))))))
 
 (test should-handshake
   (with-fixture kilns-socket ()
@@ -39,13 +37,11 @@
                 :external-format '(:utf-8 :eol-style :lf) :ipv6 nil
                 :remote-host (sockets:lookup-hostname "localhost")
                 :remote-port kilns::*base-port*)
-      (let ((*readtable* kilns::*kilns-readtable*)
-            (*package* (find-package :kilns-user)))
-        (write (eval (read-from-string "{handshake (par {path {path {to {local {kell}}}}} {version \"0.0.1\"})}"))
-               :stream client)
-        (finish-output client)
-        (is (match-local (eval (read-from-string "{handshake (par {path {path {to {local {kell}}}}} {version \"0.0.1\"})}"))
-                         (eval (read client))))))))
+      (write (eval (kilns::read-from-string "{handshake (par {path {path {to {local {kell}}}}} {version \"0.0.1\"})}"))
+             :stream client)
+      (finish-output client)
+      (is (match-local (eval (kilns::read-from-string "{handshake (par {path {path {to {local {kell}}}}} {version \"0.0.1\"})}"))
+                       (eval (read client)))))))
 
 (test should-reject-incompatible-protocol-version
   (with-fixture kilns-socket ()
@@ -54,10 +50,9 @@
                 :external-format '(:utf-8 :eol-style :lf) :ipv6 nil
                 :remote-host (sockets:lookup-hostname "localhost")
                 :remote-port kilns::*base-port*)
-      (let ((*readtable* kilns::*kilns-readtable*)
-            (*package* (find-package :kilns-user)))
-        (write (eval (read-from-string "{handshake (par {path {path {to {local {kell}}}}} {version \"10000.0.0\"})}"))
-               :stream client)
-        (finish-output client)
-        (is (match-local (eval (read-from-string "{handshake {error ?message}}"))
-                         (eval (read client))))))))
+      (write (eval (kilns::read-from-string "{handshake (par {path {path {to {local {kell}}}}} {version \"10000.0.0\"})}"))
+             :stream client)
+      (finish-output client)
+      (is (match-local (kilns::define-pattern +pnpjk-calculus+
+                           (kilns::read-from-string "{handshake {error ?message}}"))
+                       (eval (read client)))))))
