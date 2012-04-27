@@ -1,0 +1,18 @@
+{buffer {nil}}
+{item-count 0}
+
+; producer
+(trigger* (par {buffer {nil}} {item-count 0})
+          (trigger {new-item ?item}
+                   {buffer {cons {car ?item} {cdr {nil}}}}
+                   {item-count 1}))
+(trigger* (par {buffer {cons ?items}} {item-count ?count})
+          ;; FIXME: need to give up if it's full
+          (trigger {new-item ?item}
+                   {buffer {cons {car ?item} {cdr {cons ?items}}}}
+                   {+ (list ?count 1 {item-count})}))
+
+; consumer
+(trigger* (par {buffer {cons {car ?item} {cdr ?items}}} {item-count ?count})
+          {buffer ?items}
+          {- (list ?count 1 {item-count})})

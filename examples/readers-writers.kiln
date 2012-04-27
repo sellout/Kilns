@@ -1,0 +1,19 @@
+{no-writers}
+{readers 0}
+
+;;; writer
+(trigger* (par {no-writers} {readers 0})
+          {readers 0}
+          ;; FIXME: This continuation isn't quite good enough, it fires when the
+          ;;        write message is matched, not when the operation is
+          ;;        complete.
+          (cont {write ...} {no-writers}))
+
+;;; reader
+(trigger* (par {no-writers} {readers ?count})
+          {+ (list count 1 {readers})}
+          {no-writers}
+          {read {message}}
+          (trigger (par {message} {readers ?count})
+                   {echo message}
+                   {- (list count 1 {readers})}))
