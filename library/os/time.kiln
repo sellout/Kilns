@@ -43,7 +43,7 @@
 ;; FIXME: somehow make it possible to expose the time remaining
 ;; FIXME: should we run this in a thread reserved for sleeping, or is there some
 ;;        other way to delay something, that doesn't involve blocking a thread?
-(trigger* (up {sleep (list ?seconds ?process)})
+(trigger* (up {sleep {seconds ?seconds} {then ?process}})
           (lisp (cl:sleep #.?seconds)
                 {component-out #.?process}))
 
