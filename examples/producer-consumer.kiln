@@ -1,18 +1,32 @@
-{buffer {nil}}
-{item-count 0}
+(load "library/replication")
+(load "library/constants")
+(load "library/simple-components")
+{include-component "library/math"}
 
-; producer
-(trigger* (par {buffer {nil}} {item-count 0})
-          (trigger {new-item ?item}
-                   {buffer {cons {car ?item} {cdr {nil}}}}
-                   {item-count 1}))
-(trigger* (par {buffer {cons ?items}} {item-count ?count})
-          ;; FIXME: need to give up if it's full
-          (trigger {new-item ?item}
-                   {buffer {cons {car ?item} {cdr {cons ?items}}}}
-                   {+ (list ?count 1 {item-count})}))
+(trigger* {run-producer-consumer {buffer-size ?size}}
+          (new (buffer buffer-size item-count)
+               {buffer {nil}}
+               {constant {buffer-size size}}
+               {item-count 0}
 
-; consumer
-(trigger* (par {buffer {cons {car ?item} {cdr ?items}}} {item-count ?count})
-          {buffer ?items}
-          {- (list ?count 1 {item-count})})
+               ;; producer
+               (trigger* (par {buffer {nil}} {item-count 0})
+                         (trigger {new-item ?item}
+                                  {buffer {cons {car item} {cdr {nil}}}}
+                                  {item-count 1}))
+               (trigger* (par {buffer {cons ?items}}
+                              {item-count ?count}
+                              {buffer-size ?size})
+                         {< (list count size
+                                  (trigger {new-item ?item}
+                                           {buffer {cons {car item}
+                                                         {cdr {cons items}}}}
+                                           {+ (list count 1 {item-count})})
+                                  (par {buffer {cons items}}
+                                       {item-count count}))})
+
+               ;; consumer
+               (trigger* (par {buffer {cons {car ?item} {cdr ?items}}}
+                              {item-count ?count})
+                         {buffer ?items}
+                         {- (list ?count 1 {item-count})})))

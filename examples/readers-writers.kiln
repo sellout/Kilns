@@ -1,19 +1,25 @@
-{no-writers}
-{readers 0}
+(load "library/replication")
+(load "library/simple-components")
+{include-component "library/math"}
 
-;;; writer
-(trigger* (par {no-writers} {readers 0})
-          {readers 0}
-          ;; FIXME: This continuation isn't quite good enough, it fires when the
-          ;;        write message is matched, not when the operation is
-          ;;        complete.
-          (cont {write ...} {no-writers}))
+(trigger {run-readers-writers}
+         (new (no-writers readers)
+              {no-writers}
+              {readers 0}
 
-;;; reader
-(trigger* (par {no-writers} {readers ?count})
-          {+ (list count 1 {readers})}
-          {no-writers}
-          {read {message}}
-          (trigger (par {message} {readers ?count})
-                   {echo message}
-                   {- (list count 1 {readers})}))
+              ;; writer
+              (trigger* (par {no-writers} {readers 0})
+                        {readers 0}
+                        ;; FIXME: This continuation isn't quite good enough, it
+                        ;;        fires when the write message is matched, not
+                        ;;        when the operation is complete.
+                        (cont {write "message"} {no-writers}))
+
+              ;; reader
+              (trigger* (par {no-writers} {readers ?count})
+                        {+ (list count 1 {readers})}
+                        {no-writers}
+                        {read {message}}
+                        (trigger (par {message ?message} {readers ?count})
+                                 {echo message}
+                                 {- (list count 1 {readers})}))))

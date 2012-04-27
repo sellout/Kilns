@@ -1,16 +1,22 @@
-{free-seats 5}
+(load "library/replication")
+(load "library/simple-components")
+{include-component "library/math"}
 
-;;; barber
-(trigger* (par {customer-ready} {free-seats ?count})
-          {barber-ready}
-          {+ (list count 1 {free-seats})})
+(trigger* {run-sleeping-barber {seats ?seats}}
+          (new (free-seats customer-ready barber-ready)
+               {free-seats seats}
+               
+               ;; barber
+               (trigger* (par {customer-ready} {free-seats ?count})
+                         {barber-ready}
+                         {+ (list count 1 {free-seats})})
 
-;;; customer
-(trigger* {free-seats ?count}
-          {< (list 0 count
-                   (par {customer-ready}
-                        {- (list count 1 {free-seats})}
-                        (trigger {barber-ready}
-                                 {echo "Getting hair cut"}))
-                   (par {free-seats count}
-                        {echo "Left without haircut"}))})
+               ;; customer
+               (trigger* {free-seats ?count}
+                         {< (list 0 count
+                                  (par {customer-ready}
+                                       {- (list count 1 {free-seats})}
+                                       (trigger {barber-ready}
+                                                {echo "Getting hair cut"}))
+                                  (par {free-seats count}
+                                       {echo "Left without haircut"}))})))
