@@ -1,7 +1,7 @@
 (defpackage kell-calculus
   (:documentation "A direct model of the kell calculus.")
   ;; FIXME: shouldn't need threads here
-  (:use #:cl #:bordeaux-threads #:unify)
+  (:use #:cl #:bordeaux-threads #:unify #:quid-pro-quo)
   (:shadow #:substitute #:match)
   (:export #:definition #:define
            #:name #:process-variable #:identifier #:name-type
@@ -37,7 +37,7 @@
   (:documentation
    "A simple and direct implementation of the Kell calculus, suitable for
     testing the behavior of more advanced implementations.")
-  (:use #:closer-common-lisp #:bordeaux-threads #:unify
+  (:use #:closer-common-lisp #:bordeaux-threads #:unify #:quid-pro-quo
         #:kell-calculus)
   (:shadowing-import-from #:kell-calculus #:substitute #:match)
   (:shadow #:complement #:eval #:load #:read #:read-from-string)
@@ -66,5 +66,5 @@
            #:system-state #:dump-system-state #:lisp #:watch))
 
 (defpackage kilns-user
-  (:use #:kell-calculus #:kilns)
+  (:use #:kell-calculus #:kilns #:quid-pro-quo)
   (:shadowing-import-from #:kell-calculus #:substitute #:match))

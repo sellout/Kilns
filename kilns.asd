@@ -9,7 +9,7 @@
   :license "MIT"
   :author "Greg Pfeil <greg@technomadic.org>"
   :depends-on (bordeaux-threads cl-unification iolib.os closer-mop
-               iolib external-program) ; cl+ssl ironclad
+               iolib external-program quid-pro-quo) ; cl+ssl ironclad
   :pathname "src/"
   :components ((:file "package")
                (:module "kell-calculus"
