@@ -1,10 +1,10 @@
 (load "library/replication")
 (load "library/utilities")
 
-(trigger* {= (list ?proc1 ?proc2 ?true ?false) up}
-          (lisp (cl:if (kilns::match #.?proc1 #.?proc2)
-                       {component-out #.?true}
-                       {component-out #.?false})))
+(trigger* (up {= (list ?proc1 ?proc2 ?true ?false)})
+          (lisp (cl:if (kilns::match proc1 proc2)
+                       {component-out true}
+                       {component-out false})))
 
 #| FIXME: trying to figure out how to implement `=` without digging into the
           internals of the compiler. MATCH is used to define triggers, and so it
@@ -15,22 +15,28 @@
 ;; failed match?
 (load "library/sandbox")
 (trigger* {= (list ?proc1 ?proc2 ?true ?false) up}
-          {sandbox (list (par {comparison ?proc1}
-                              (trigger {comparison 'proc2}
-                                       {component-out ?true})
-                              (trigger {comparison ????}
-                                       {component-out ?false}))
+          {sandbox (list (par {comparison proc1}
+                              (trigger {comparison proc2}
+                                       {component-out true})
+                              (trigger {comparison ???}
+                                       {component-out false}))
                          {component-out})})
 
 ;; This approach does recursive equality, but how do we compare channel names
 ;; (and other primitives)?
-(trigger* {= (list null null ?true _) up}
-          {component-out ?true})
-(trigger* {= (list {?chan1 ?proc1} {?chan2 ?proc2} ?true ?false) up}
-          {component-local {= (list {?chan1} {?chan2}
-                                    {= (list ?proc1 ?proc2 ?true ?false)}
-                                    ?false)}})
+(trigger* (up {= (list null null ?true _) u})
+          {component-out true})
+(trigger* (up {= (list {?chan1 null} {?chan2 null} ?true ?false)})
+          {sandbox (list (par (trigger (par {chan1} {chan1})
+                                       {component-out true})
+                              (trigger (par {chan1} {(!= chan1)})
+                                       {component-out false}))
+                         {component-out}}))
+(trigger* (up {= (list {?chan1 ?proc1} {?chan2 ?proc2} ?true ?false)})
+          {component-local {= (list {chan1} {chan2}
+                                    {= (list proc1 proc2 true false)}
+                                    {component-out false})}})
 |#
 
-(trigger* {/= (list ?proc1 ?proc2 ?true ?false) up}
-          {component-local {= (list ?proc1 ?proc2 ?false ?true)}})
+(trigger* (up {/= (list ?proc1 ?proc2 ?true ?false)})
+          {component-local {= (list proc1 proc2 false true)}})

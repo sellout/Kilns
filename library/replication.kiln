@@ -1,27 +1,12 @@
 ;;; The Y combinator
-(def (Y process pattern u)
-  (cl:let ((y (cl:gensym "y")))
-    `(trigger (par ,pattern
-                   (message ',u (process-variable ',y)))
-              (par ,process
-                   (process-variable ',y)
-                   (message ',u (process-variable ',y))))))
-
-;;; A replicating trigger
-(def (trigger* pattern process)
-  (cl:let ((t (cl:gensym "t")))
-    `(new ,t
-          (par (Y ,process ,pattern ,t)
-               (message ',t (Y ,process ,pattern ,t))))))
-
-
-#| This is what this will hopefully look like with proper
-   abstractions/concretions
-;;; The Y combinator
 (define (Y ?process ?pattern {?u})
-  (trigger (par pattern {u ?y}) (par process y {u y})))
+  (trigger (par pattern {u ?y})
+    process
+    y
+    {u y}))
 
 ;;; A replicating trigger
 (define (trigger* ?pattern ?process)
-  (new t (par (Y process pattern t) {t (Y process pattern t)})))
-|#
+  (new t
+    (Y process pattern {t})
+    {t (Y process pattern {t})}))

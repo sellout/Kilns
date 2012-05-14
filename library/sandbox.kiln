@@ -4,10 +4,10 @@
 (load "library/utilities")
 
 (trigger* {sandbox (list ?temp-process {?final-response-channel})}
-          (new (sandbox response)
-               (par (trigger {response ?result down}
-                             (par (trigger [sandbox ?completed-process] null)
-                                  {final-response-channel ?result}))
-                    [sandbox (par (trigger {final-response-channel ?result down}
-                                           {response ?result})
-                                  [sandbox ?temp-process])])))
+  (new (sandbox response)
+    (trigger (down {response ?result})
+      (trigger [sandbox ?completed-process] null)
+      {final-response-channel result})
+    [sandbox (trigger (down {final-response-channel ?result})
+               {response result})
+             [sandbox temp-process]]))

@@ -9,10 +9,10 @@
 Rather than locking in the implementation for every print, each stream should
 have a semaphore message created along with it, so we can do
 
-(trigger* {read (list ?stream {?rc}) up}
+(trigger* (up {read (list ?stream {?rc})})
           (trigger {stream-semaphore stream}
                    (new token
-                        (par {token (lisp (kilns::read #.?stream))}
+                        (par {token (lisp (kilns::read ?stream))}
                              (trigger {token ?tok}
                                       (par {rc ?tok}
                                            {stream-semaphore stream}))))))
@@ -25,15 +25,15 @@ In general, the less the implementation has to do, the better. So now we don't
 need to lock.
 |#
 
-(trigger* {echo ?string up}
-          (lisp (kilns::printk "~a~%" #.?string) null))
+(trigger* (up {echo ?string})
+          (lisp (kilns::printk "~a~%" string) null))
 
-(trigger* {read {?rc} up} {rc (lisp (kilns::read))})
-(trigger* {read (list ?stream {?rc}) up} {rc (lisp (kilns::read #.?stream))})
+(trigger* (up {read {?rc}}) {rc (lisp (kilns::read))})
+(trigger* (up {read (list ?stream {?rc})}) {rc (lisp (kilns::read stream))})
 
-(trigger* {read-string {?rc} up} {rc (lisp (cl:read-line))})
+(trigger* (up {read-string {?rc}}) {rc (lisp (cl:read-line))})
 
 
-(trigger* {write ?process up} (lisp (cl::write #.?process)))
-(trigger* {write (list ?process ?stream) up}
-          (lisp (cl::write #.?process :stream #.?stream)))
+(trigger* (up {write ?process}) (lisp (cl:write process)))
+(trigger* (up {write (list ?process ?stream)})
+          (lisp (cl:write process :stream stream)))

@@ -3,61 +3,71 @@
 (load "library/replication")
 (load "library/sandbox")
 
-(def (List l-op g s r l cons nil)
-     `(trigger* {,l-op (list ?p {?k})}
-                (Lop ?p 'k ,g ,s ,r ,l ,cons ,nil)))
+(trigger* {List (list {?l-op} {?g} {?s} {?r} {?l} {?cons} {?nil})}
+  (trigger* {l-op (list ?p {?k})}
+    {Lop (list p {k} {g} {s} {r} {l} {cons} {nil})}))
 
-(def (Lop p k g s r l cons nil)
-     `(new k*
-           (trigger {,l ?x}
-                    (par {sandbox (list (par ,p
-                                             {,l ?x}
-                                             (create-list-operations ,g ,s ,r ,l ,cons ,nil)
-                                             (trigger (par {,k ?z} {,l ?x*})
-                                                      {k* (list ?z ?x*)}))
-                                        {k*})}
-                         (trigger {k* (list ?z ?x*)} (par {,k ?z} {,l ?x*}))))))
+(trigger* {Lop (list ?p {?k} {?g} {?s} {?r} {?l} {?cons} {?nil})}
+  (new k*
+    (trigger {l ?x}
+      {sandbox (list (par p
+                          {l x}
+                          {create-list-operations (list {g}
+                                                        {s}
+                                                        {r}
+                                                        {l}
+                                                        {cons}
+                                                        {nil})}
+                          (trigger (par {k ?z} {l ?x*})
+                            {k* (list z x*)}))
+                     {k*})}
+      (trigger {k* (list ?z ?x*)}
+        {k z}
+        {l x*}))))
 
-(def (create-list-operations g s r l cons nil)
-     `(par (Set ,s ,l ,cons)
-           (Get ,g ,l ,cons ,nil)
-           (Rem ,r ,l ,cons ,nil)))
+(trigger* {create-list-operations (list {?g} {?s} {?r} {?l} {?cons} {?nil})}
+  (par {Set (list {s} {l} {cons})}
+       {Get (list {g} {l} {cons} {nil})}
+       {Rem (list {r} {l} {cons} {nil})}))
 
-(def (Set s l cons)
-     `(trigger* (par {,s (list {?n} ?y ?z)} {,l ?x})
-                (par {,l {,cons (list {n ?y} ?x)}} ?z)))
+(trigger* {Set (list {?s} {?l} {?cons})}
+  (trigger* (par {s (list {?n} ?y ?z)} {l ?x})
+    {l {cons (list {n y} x)}}
+    z))
 
-(def (Get g l cons nil)
-     `(trigger* (par {,g (list {?n} {?k} ?x)} {,l ?xl})
-                (par (Get-i 'n 'k ?x ?xl ,cons ,nil) {,l ?xl})))
+(trigger* {Get (list {?g} {?l} {?cons} {?nil})}
+  (trigger* (par {g (list {?n} {?k} ?x)} {l ?xl})
+    {Get-i (list {n} {k} x xl {cons} {nil})}
+    {l xl}))
 
-(def (Get-i n k x x-l cons nil)
-     `(new g-i
-           (par (trigger* {g-i {,cons (list {,n ?y} ?z)}} {,k ?y})
-                (trigger* {g-i {,cons (list {(!= ,n) ?y} ?z)}} {g-i ?z})
-                (trigger* {g-i {,nil}} ,x)
-                {g-i ,x-l})))
+(trigger* {Get-i (list {?n} {?k} ?x ?x-l {?cons} {?nil})}
+  (new g-i
+    (trigger* {g-i {cons (list {n ?y} ?z)}}      {k y})
+    (trigger* {g-i {cons (list {(!= n) ?y} ?z)}} {g-i z})
+    (trigger* {g-i {nil}}                        x)
+    {g-i x-l}))
 
-(def (Rem r l cons nil)
-     `(trigger* (par {,r (list {?n} {?k} ?x)} {,l ?x-l})
-                (par (Rem-i 'n 'k ?x ?x-l ,l ,cons ,nil) {,l ?x-l})))
+(trigger* {Rem (list {?r} {?l} {?cons} {?nil})}
+  (trigger* (par {r (list {?n} {?k} ?x)} {l ?x-l})
+    (par {Rem-i (list {n} {k} x x-l {l} {cons} {nil})}
+         {l x-l})))
 
-(def (Rem-i n k x x-l l cons nil)
-     `(new (r-i rev)
-           (par (trigger* {r-i (list {,cons (list {,n ?y} ?z)} ?z*)}
-                          (par {,k ?y} {rev (list ?z ?z*)}))
-                (trigger* {r-i (list {,cons (list {(!= ,n ?m) ?y} ?z)} ?z*)}
-                          {r-i (list ?z {,cons (list {m ?y} ?z*)})})
-                (trigger* {r-i (list {,nil} ?z)}
-                          (par ,x {rev (list {,nil} ?z*)}))
-                (trigger* {rev (list ?z {,cons (list ,x ?z*)})}
-                          {rev (list {,cons (list ,x ?z)} ?z*)})
-                (trigger* {rev (list ?z {,nil})}
-                          {,l ?z})
-                {r-i (list ,x-l {,nil})})))
+(trigger* {Rem-i (list {?n} {?k} ?x ?x-l {?l} {?cons} {?nil})}
+  (new (r-i rev)
+    (trigger* {r-i (list {cons (list {n ?y} ?z)} ?z*)}
+      (par {k y} {rev (list z z*)}))
+    (trigger* {r-i (list {cons (list {(!= n ?m) ?y} ?z)} ?z*)}
+      {r-i (list z {cons (list {m y} z*)})})
+    (trigger* {r-i (list {nil} ?z)}
+      (par x {rev (list {nil} z*)}))
+    (trigger* {rev (list ?z {cons (list x ?z*)})}
+      {rev (list {cons (list x z)} z*)})
+    (trigger* {rev (list ?z {nil})}
+      {l z})
+    {r-i (list x-l {nil})}))
 
 (trigger* {new-list {?response-channel}}
-          (new (l-op g s r l cons nil)
-               (par (List l-op g s r l cons nil)
-                    {l {nil}}
-                    {?response-channel (list {l-op} {g} {s} {r})})))
+  (new (l-op g s r l cons nil)
+    {List (list {l-op} {g} {s} {r} {l} {cons} {nil})}
+    {l {nil}}
+    {response-channel (list {l-op} {g} {s} {r})}))

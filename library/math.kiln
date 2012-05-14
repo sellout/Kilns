@@ -5,55 +5,55 @@
 
 ;; primitives
 
-(trigger* {+ (list ?augend ?addend {?rc}) up}
-          (lisp (cl:let ((sum (cl:+ #.?augend #.?addend)))
-                  {component-out {#.?rc sum}})))
-(trigger* {- (list ?minuend ?subtrahend {?rc}) up}
-          (lisp (cl:let ((difference (cl:- #.?minuend #.?subtrahend)))
-                  {component-out {#.?rc difference}})))
-(trigger* {* (list ?multiplier ?multiplicand {?rc}) up}
-          (lisp (cl:let ((product (cl:* #.?multiplier #.?multiplicand)))
-                  {component-out {#.?rc product}})))
-(trigger* {/ (list ?dividend ?divisor {?rc}) up}
-          (lisp (cl:let ((quotient (cl:/ #.?dividend #.?divisor)))
-                  {component-out {#.?rc quotient}})))
-(trigger* {remainder (list ?number ?divisor {?rc}) up}
-          (lisp (cl:let ((remainder (cl:rem #.?number #.?divisor)))
-                  {component-out {#.?rc remainder}})))
+(trigger* (up {+ (list ?augend ?addend {?rc})})
+          (lisp (cl:let ((sum (cl:+ augend addend)))
+                  {component-out {rc sum}})))
+(trigger* (up {- (list ?minuend ?subtrahend {?rc})})
+          (lisp (cl:let ((difference (cl:- minuend subtrahend)))
+                  {component-out {rc difference}})))
+(trigger* (up {* (list ?multiplier ?multiplicand {?rc})})
+          (lisp (cl:let ((product (cl:* multiplier multiplicand)))
+                  {component-out {rc product}})))
+(trigger* (up {/ (list ?dividend ?divisor {?rc})})
+          (lisp (cl:let ((quotient (cl:/ dividend divisor)))
+                  {component-out {rc quotient}})))
+(trigger* (up {remainder (list ?number ?divisor {?rc})})
+          (lisp (cl:let ((remainder (cl:rem number divisor)))
+                  {component-out {rc remainder}})))
 
 ;; derived
 
-(trigger* {zerop (list ?number ?true ?false) up}
-          {= (list ?number 0 {component-out ?true} {component-out ?false})})
+(trigger* (up {zerop (list ?number ?true ?false)})
+          {= (list number 0 {component-out true} {component-out false})})
 
-(trigger* {plusp (list ?number ?true ?false) up}
-          {< (list 0 ?number {component-out ?true} {component-out ?false})})
+(trigger* (up {plusp (list ?number ?true ?false)})
+          {< (list 0 number {component-out true} {component-out false})})
 
-(trigger* {minusp (list ?number ?true ?false) up}
-          {< (list ?number 0 {component-out ?true} {component-out ?false})})
+(trigger* (up {minusp (list ?number ?true ?false)})
+          {< (list number 0 {component-out true} {component-out false})})
 
 
-(trigger* {modulus (list ?number ?divisor {?rc}) up}
+(trigger* (up {modulus (list ?number ?divisor {?rc})})
           (new rem
-               (par {component-local {remainder (list ?number ?divisor {rem})}}
+               (par {component-local {remainder (list number divisor {rem})}}
                     (trigger {rem ?remain up}
-                             {component-local {zerop (list ?remain
-                                                           {rc ?remain}
-                                                           {minusp (list ?divisor
-                                                                         {plusp (list ?number
-                                                                                      {+ (list ?remain ?divisor {rc})}
-                                                                                      {rc ?remain})}
-                                                                         {minusp (list ?number
-                                                                                       {+ (list ?remain ?divisor {rc})}
-                                                                                       {rc ?remain})})})}}))))
+                             {component-local {zerop (list remain
+                                                           {rc remain}
+                                                           {minusp (list divisor
+                                                                         {plusp (list number
+                                                                                      {+ (list remain divisor {rc})}
+                                                                                      {rc remain})}
+                                                                         {minusp (list number
+                                                                                       {+ (list remain divisor {rc})}
+                                                                                       {rc remain})})})}}))))
 
 (trigger* {evenp (list ?integer ?true ?false) up}
           (new bin
-               (par {component-local {modulus (list ?integer 2 {bin})}}
-                    (trigger {bin ?binary up}
-                             {= (list ?binary 2
-                                      {component-out ?true}
-                                      {component-out ?false})}))))
+               (par {component-local {modulus (list integer 2 {bin})}}
+                    (trigger (up {bin ?binary})
+                             {= (list binary 2
+                                      {component-out true}
+                                      {component-out false})}))))
 
 #|
 (trigger* {abs (list ?number {?rc})}

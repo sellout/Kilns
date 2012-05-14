@@ -1,10 +1,10 @@
 (load "library/replication")
 (load "library/utilities")
 
-(trigger* {string-concat (list ?a ?b {?rc}) up}
-          (lisp (cl:let ((result (cl:concatenate 'cl:string #.?a #.?b)))
-                  {component-out {#.?rc result}})))
+(trigger* (up {string-concat (list ?a ?b {?rc})})
+          (lisp (cl:let ((result (cl:concatenate 'cl:string a b)))
+                  {component-out {rc result}})))
 
-(trigger* {string-length (list ?str {?rc}) up}
-          (lisp (cl:let ((result (cl:length #.?str)))
-                  {component-out {#.?rc result}})))
+(trigger* (up {string-length (list ?str {?rc})})
+          (lisp (cl:let ((result (cl:length str)))
+                  {component-out {rc result}})))
