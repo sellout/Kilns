@@ -3,21 +3,22 @@
 (load "library/replication")
 (load "library/sandbox")
 
-(trigger* {List (list {?l-op} {?g} {?s} {?r} {?l} {?cons} {?nil})}
-  (trigger* {l-op (list ?p {?k})}
-    {Lop (list p {k} {g} {s} {r} {l} {cons} {nil})}))
+(trigger* {new-list {?response-channel}}
+  (new (l-op g s r l cons nil)
+    (List {l-op} {g} {s} {r} {l} {cons} {nil})
+    {l {nil}}
+    {response-channel (list {l-op} {g} {s} {r})}))
 
-(trigger* {Lop (list ?p {?k} {?g} {?s} {?r} {?l} {?cons} {?nil})}
+(define (List {?l-op} {?g} {?s} {?r} {?l} {?cons} {?nil})
+  (trigger* {l-op (list ?p {?k})}
+    (Lop p {k} {g} {s} {r} {l} {cons} {nil})))
+
+(define (Lop ?p {?k} {?g} {?s} {?r} {?l} {?cons} {?nil})
   (new k*
     (trigger {l ?x}
       {sandbox (list (par p
                           {l x}
-                          {create-list-operations (list {g}
-                                                        {s}
-                                                        {r}
-                                                        {l}
-                                                        {cons}
-                                                        {nil})}
+                          (create-list-operations {g} {s} {r} {l} {cons} {nil})
                           (trigger (par {k ?z} {l ?x*})
                             {k* (list z x*)}))
                      {k*})}
@@ -25,34 +26,34 @@
         {k z}
         {l x*}))))
 
-(trigger* {create-list-operations (list {?g} {?s} {?r} {?l} {?cons} {?nil})}
-  (par {Set (list {s} {l} {cons})}
-       {Get (list {g} {l} {cons} {nil})}
-       {Rem (list {r} {l} {cons} {nil})}))
+(define (create-list-operations {?g} {?s} {?r} {?l} {?cons} {?nil})
+  (Set {s} {l} {cons})
+  (Get {g} {l} {cons} {nil})
+  (Rem {r} {l} {cons} {nil}))
 
-(trigger* {Set (list {?s} {?l} {?cons})}
+(define (Set {?s} {?l} {?cons})
   (trigger* (par {s (list {?n} ?y ?z)} {l ?x})
-    {l {cons (list {n y} x)}}
-    z))
+    (par {l {cons (list {n y} x)}}
+         z)))
 
-(trigger* {Get (list {?g} {?l} {?cons} {?nil})}
+(define (Get {?g} {?l} {?cons} {?nil})
   (trigger* (par {g (list {?n} {?k} ?x)} {l ?xl})
-    {Get-i (list {n} {k} x xl {cons} {nil})}
-    {l xl}))
+    (par (Get-i {n} {k} x xl {cons} {nil})
+         {l xl})))
 
-(trigger* {Get-i (list {?n} {?k} ?x ?x-l {?cons} {?nil})}
+(define (Get-i {?n} {?k} ?x ?x-l {?cons} {?nil})
   (new g-i
     (trigger* {g-i {cons (list {n ?y} ?z)}}      {k y})
     (trigger* {g-i {cons (list {(!= n) ?y} ?z)}} {g-i z})
     (trigger* {g-i {nil}}                        x)
     {g-i x-l}))
 
-(trigger* {Rem (list {?r} {?l} {?cons} {?nil})}
+(define (Rem {?r} {?l} {?cons} {?nil})
   (trigger* (par {r (list {?n} {?k} ?x)} {l ?x-l})
-    (par {Rem-i (list {n} {k} x x-l {l} {cons} {nil})}
+    (par (Rem-i {n} {k} x x-l {l} {cons} {nil})
          {l x-l})))
 
-(trigger* {Rem-i (list {?n} {?k} ?x ?x-l {?l} {?cons} {?nil})}
+(define (Rem-i {?n} {?k} ?x ?x-l {?l} {?cons} {?nil})
   (new (r-i rev)
     (trigger* {r-i (list {cons (list {n ?y} ?z)} ?z*)}
       (par {k y} {rev (list z z*)}))
@@ -65,9 +66,3 @@
     (trigger* {rev (list ?z {nil})}
       {l z})
     {r-i (list x-l {nil})}))
-
-(trigger* {new-list {?response-channel}}
-  (new (l-op g s r l cons nil)
-    {List (list {l-op} {g} {s} {r} {l} {cons} {nil})}
-    {l {nil}}
-    {response-channel (list {l-op} {g} {s} {r})}))
