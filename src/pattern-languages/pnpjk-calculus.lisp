@@ -34,11 +34,6 @@
 (defmethod egal ((x name-variable) (y name-variable))
   (egal (name x) (name y)))
 
-(defmethod substitute ((name name-variable) mapping &optional ignored-vars)
-  (if (find (name name) ignored-vars)
-      name
-      (find-name-variable-value name mapping)))
-
 ;;; FIXME: currently, name variables and process variables can conflict. Do we
 ;;;        want to be able to have a namevar and procvar with the same name –
 ;;;        yes, this is important with nested triggers, where a deeper one might
@@ -72,13 +67,6 @@
   (declare (ignore agent))
   substitutions)
 
-(defmethod define-pattern-message
-    ((pattern-language pnpjk-calculus) name &rest argument)
-  (make-instance 'message
-                 :name name
-                 :argument (apply #'define-pattern-message-argument
-                                  pattern-language argument)))
-
 (defgeneric define-pattern-name-variable (pattern-language name)
   (:method ((pattern-language pnpjk-calculus) name)
     (make-instance 'name-variable :name name)))
@@ -94,28 +82,33 @@
                    :argument (apply #'define-pattern-message-argument
                                     pattern-language argument-forms))))
 
-(defgeneric define-pattern-message-argument
-    (pattern-language &rest argument-forms)
-  (:method ((pattern-language pnpjk-calculus) &rest argument-forms)
-    (if (null argument-forms)
-        +blank+
-        (reduce #'compose
-                (mapcar (lambda (process-form)
-                          (if (listp process-form)
-                              (case (car process-form)
-                                (process-variable (define-pattern-process-variable pattern-language
-                                                      (second process-form)))
-                                (par (mapcar (lambda (process-form)
-                                               (apply #'define-pattern-message
-                                                      pattern-language (cdr process-form)))
-                                             (cdr process-form)))
-                                (message (apply #'define-pattern-nested-message
-                                                pattern-language (cdr process-form))))
-                              (if (eq process-form '_)
-                                  +blank+
-                                  (error "Can not use ~A as a pattern form in ~A."
-                                         process-form pattern-language))))
-                        argument-forms)))))
+(defmethod define-pattern-message-argument :require
+    ((pattern-language pnpjk-calculus) &rest argument-forms)
+  (declare (ignore argument-forms))
+  t) ; just eliminate the requirement from the jk-calculus
+
+(defmethod define-pattern-message-argument
+    ((pattern-language pnpjk-calculus) &rest argument-forms)
+  (if (null argument-forms)
+      +blank+
+      (reduce #'compose
+              (mapcar (lambda (process-form)
+                        (if (listp process-form)
+                            (case (car process-form)
+                              (process-variable (define-pattern-process-variable pattern-language
+                                                    (second process-form)))
+                              (par (mapcar (lambda (process-form)
+                                             (apply #'define-pattern-message
+                                                    pattern-language (cdr process-form)))
+                                           (cdr process-form)))
+                              (message (apply #'define-pattern-nested-message
+                                              pattern-language (cdr process-form)))
+                              (otherwise (apply #'define-pattern-named-concretion
+                                                pattern-language process-form)))
+                            (if (eq process-form '_)
+                                +blank+
+                                process-form)))
+                      argument-forms))))
 
 ;;; For convenience, we write a␣x1, ⋯, xn␣ for a␣1␣x1␣ | ⋯ | n␣xn␣␣ where
 ;;; 1, ⋯, n only occur in these encodings.

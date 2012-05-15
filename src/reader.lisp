@@ -66,7 +66,7 @@
                  :pattern (define-pattern *current-pattern-language* pattern)
                  :process (define-parallel-composition processes)))
 
-(defun order-procs (&rest processes)
+(defun order-forms (&rest processes)
   "Works like the `,` sequencer defined in the paper, making parallel processes
    that are named by sequential integers."
   (let ((index 0))
@@ -75,22 +75,78 @@
                     `(message ,(incf index) ,process))
                   processes))))
 
+(defgeneric count-concretions (process)
+  (:documentation "This allows us to decide whether a particular object is a
+                   process or a pattern.")
+  (:method (process)
+    0)
+  (:method ((process concretion))
+    (1+ (count-concretions (messages process))))
+  (:method ((process message))
+    (+ (count-concretions (argument process))
+       (count-concretions (continuation process))))
+  (:method ((process kell))
+    (+ (count-concretions (state process))
+       (count-concretions (continuation process))))
+  (:method ((process parallel-composition))
+    (reduce #'+ (map-parallel-composition #'count-concretions process)))
+  (:method ((process trigger))
+    "If it has a trigger, it must be a process."
+    0)
+  (:method ((process restriction))
+    "If it has a restriction, it must be a process."
+    0)
+  (:method ((process pattern))
+    (+ (count-concretions (local-message-pattern process))
+       (count-concretions (up-message-pattern process))
+       (count-concretions (down-message-pattern process))
+       (count-concretions (kell-message-pattern process))
+       (count-concretions (named-concretions process)))))
+
+(defun order-procs (&rest processes)
+  "Works like the `,` sequencer defined in the paper, making parallel processes
+   that are named by sequential integers."
+  ;; TODO: This currently tries to parse as both a process and a pattern, and
+  ;;      (if both succeed) it chooses the one with fewer concretions (since
+  ;;       various special forms would be read as concretions in the wrong
+  ;;       context).
+  (let ((index 0))
+    (apply #'parallel-composition
+           (mapcar (lambda (process)
+                     (let ((new-proc (ignore-errors (eval process)))
+                           (new-patt (ignore-errors (define-pattern *current-pattern-language*
+                                                                    process)))
+                           (new-patt-component (ignore-errors (define-pattern-message-argument *current-pattern-language*
+                                                                  process))))
+                       (make-instance 'message
+                                      :name (incf index)
+                                      :argument (car (stable-sort (remove nil
+                                                                          (list new-proc new-patt-component new-patt))
+                                                                  #'<
+                                                                  :key #'count-concretions)))))
+                   processes))))
+
 (defun define-definition (pattern &rest processes)
   (destructuring-bind (name &rest parameters) pattern
-    (make-instance 'definition
-                   :name name
-                   :pattern (define-pattern *current-pattern-language*
-                                (apply #'order-procs
-                                       parameters))
-                   :process (define-parallel-composition processes))))
+    (setf (gethash name *global-definitions*)
+          (make-instance 'definition
+                         :name name
+                         :pattern (define-pattern *current-pattern-language*
+                                      (apply #'order-forms parameters))
+                         :process (define-parallel-composition processes))))
+  +null-process+)
 
 (defun define-named-concretion (name &rest arguments)
+  "Even though this is in a process, it could match a definition where it
+   expands into pattern position, so we try to patternize it if need be."
   (make-instance 'named-concretion
-                 :name name
-                 :messages (eval (apply #'order-procs arguments))))
+                 :name (if (listp name)
+                           (define-parallel-composition (list name))
+                           name)
+                 :messages (apply #'order-procs arguments)))
 
 (defun eval (form)
-  (if (listp form)
+  (if (consp form)
       (case (car form)
         (cont (let ((process (eval (second form))))
                 (setf (continuation process)
@@ -102,6 +158,8 @@
         (par (define-parallel-composition (cdr form)))
         (trigger (apply #'define-trigger (cdr form)))
         (define (apply #'define-definition (cdr form)))
+        ((process-variable name-variable)
+         (error "Not a valid process."))
         (otherwise (apply #'define-named-concretion form)))
       (if (and (not *reading-name-p*) (eq form 'null))
           +null-process+
@@ -128,27 +186,6 @@
        (read-preserving-whitespace stream eof-error-p eof-value)
        (read stream eof-error-p eof-value)))
    idx))
-
-;;; FIXME: for networking, load needs to be able to take a path to a subkell
-;;;        that represents what is to be run in the local instance. It should
-;;;        work as if the following (illegal) trigger were used:
-;;;            (trigger [path [to [correct [kell ?process]]]] ?process)
-(defun load (file-name
-             &key
-             (verbose *load-verbose*)
-             (print *load-print*)
-             (if-does-not-exist :error))
-  (declare (ignore if-does-not-exist verbose))
-  (let ((full-name (merge-pathnames file-name (make-pathname :type "kiln"))))
-    (with-open-file (stream full-name :external-format :utf-8)
-      (apply #'parallel-composition
-             (reverse (loop for value = (read stream nil)
-                        while value
-                        do (if print (print value) value)
-                        collecting value))))))
-
-(defmacro lisp (&rest forms)
-  `'(cl:progn ,@forms))
 
 (defun dev ()
   (in-package :kilns)

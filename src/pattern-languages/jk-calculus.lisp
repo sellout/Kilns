@@ -26,64 +26,75 @@
                   (up, down, local, or kell) it belongs to.")
   (:method ((pattern-language jk-calculus) form)
     (case (car form)
-      ((down up) (values (apply #'define-pattern-message
-                                pattern-language (cdr (second form)))
-                         (car form)))
-      (kell (apply #'define-pattern-kell pattern-language (cdr form)) 'kell)
-      (message (values (apply #'define-pattern-message
-                              pattern-language (cdr form))
-                       'local)))))
+      ((down up)
+       (let ((message (apply #'define-pattern-message
+                             pattern-language (cdr (second form)))))
+         (setf (continuation message) (car form))
+         message))
+      (kell (apply #'define-pattern-kell pattern-language (cdr form)))
+      (message (apply #'define-pattern-message pattern-language (cdr form))))))
 
 (defgeneric define-pattern-message (pattern-language name &rest argument)
   (:method ((pattern-language jk-calculus) name &rest argument)
-    (assert (= 1 (length argument)))
-    (assert (eq 'process-variable (caar argument)))
     (make-instance 'message
                    :name name
-                   :argument (define-pattern-process-variable pattern-language
-                                                              (second (car argument))))))
+                   :argument (apply #'define-pattern-message-argument
+                                    pattern-language argument))))
 
 (defgeneric define-pattern-kell (pattern-language name &rest state)
   (:method ((pattern-language jk-calculus) name &rest state)
-    (assert (= 1 (length state)))
-    (assert (eq 'process-variable (caar state)))
     (make-instance 'kell
                    :name name
-                   :state (define-pattern-process-variable pattern-language
-                                                           (second (car state))))))
+                   :state (apply #'define-pattern-message-argument
+                                 pattern-language state))))
 
 (defgeneric define-pattern-process-variable (pattern-language name)
   (:method ((pattern-language jk-calculus) name)
     (make-instance 'process-variable :name name)))
 
+(defgeneric define-pattern-message-argument
+    (pattern-language &rest argument-forms)
+  (:method-combination contract)
+  (:method :require ((pattern-language jk-calculus) &rest argument-forms)
+    (= (length argument-forms) 1))
+  (:method ((pattern-language jk-calculus) &rest argument-forms)
+    (let ((arg (car argument-forms)))
+      (if (listp arg)
+          (case (car arg)
+            (process-variable (define-pattern-process-variable pattern-language
+                                  (second arg)))
+            (otherwise (apply #'define-pattern-named-concretion
+                              pattern-language arg)))
+          arg))))
+
+;;; FIXME: This needs to accept _any_ combination of pattern forms, because we
+;;;        don't know where in the pattern each of the forms will occur until it
+;;;        is expanded.
+(defgeneric define-pattern-named-concretion
+    (pattern-language name &rest arguments)
+  (:method ((pattern-language jk-calculus) name &rest arguments)
+    (make-instance 'named-concretion
+                   :name name
+                   :messages (apply #'order-procs arguments))))
+
 (defmethod define-pattern ((pattern-language jk-calculus) pattern-form)
-  (let ((pattern (make-instance 'pattern)))
-    (if (listp pattern-form)
-        (flet ((add-process (process type)
-                 (case type
-                   (down (push process (down-message-pattern pattern)))
-                   (up (push process (up-message-pattern pattern)))
-                   (local (push process (local-message-pattern pattern)))
-                   (kell (push process (kell-message-pattern pattern))))))
-          (case (car pattern-form)
-            ((down up message kell)
-             (multiple-value-call #'add-process
-               (define-pattern-process pattern-language pattern-form)))
-            (par (mapc (lambda (pattern-process-form)
-                         (multiple-value-call #'add-process
-                           (define-pattern-process pattern-language
-                               pattern-process-form)))
-                       (cdr pattern-form)))
-            ((cont new trigger var define)
-             (error "~A is not a valid pattern form in ~A."
-                    pattern-form pattern-language))
-            (otherwise (apply #'define-named-concretion pattern-form))))
-        (error "Can not use ~A as a pattern form in ~A."
-               pattern-form pattern-language))
-    (when (< 1 (length (kell-message-pattern pattern)))
-      (error "Can only have 1 kell in a pattern in ~A. Invalid pattern: ~A."
-             pattern-language pattern))
-    pattern))
+  (if (listp pattern-form)
+      (case (car pattern-form)
+        ((down up message kell)
+         (define-pattern-process pattern-language pattern-form))
+        (par (apply #'parallel-composition
+                    (mapcar (lambda (pattern-process-form)
+                              (if (listp pattern-process-form)
+                                  (define-pattern-process pattern-language
+                                      pattern-process-form)
+                                  pattern-process-form))
+                            (cdr pattern-form))))
+        ((cont new trigger pattern-variable define)
+         (error "~A is not a valid pattern form in ~A."
+                pattern-form pattern-language))
+        (otherwise (apply #'define-pattern-named-concretion
+                          pattern-language pattern-form)))
+      pattern-form))
 
 ;;; The matching functions for jK patterns are defined inductively as follows:
 

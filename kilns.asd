@@ -15,13 +15,14 @@
                (:module "kell-calculus"
                         :depends-on ("package")
                         :components ((:file "definitions"
-                                            :depends-on ("labeled-transitions"))
+                                            :depends-on ("labeled-transitions"
+                                                         "processes"))
                                      (:file "identifiers"
                                             :depends-on ("labeled-transitions"))
                                      (:file "processes"
                                             :depends-on ("identifiers"))
                                      (:file "substitutions"
-                                            :depends-on ("processes"))
+                                            :depends-on ("patterns"))
                                      (:file "patterns"
                                             :depends-on ("restrictions"))
                                      (:file "restrictions"
@@ -43,11 +44,12 @@
                (:file "utilities" :depends-on ("package"))
                (:file "syntax" :depends-on ("package"))
                (:file "unification" :depends-on ("package" "kell-calculus"))
-               (:file "network"
-                      :depends-on ("package" "kell-calculus" "runtime"))
+               (:file "reader"
+                      :depends-on ("kell-calculus" "pattern-languages"))
                (:file "runtime"
-                      :depends-on ("syntax" "kell-calculus" "unification"))
-               (:file "reader" :depends-on ("runtime"))
+                      :depends-on ("syntax" "reader" "unification"))
+               (:file "network"
+                      :depends-on ("runtime"))
                (:file "debug" :depends-on ("reader")))
   :in-order-to ((test-op (load-op kilns-tests)))
   :perform (test-op :after (op c)

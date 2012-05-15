@@ -20,10 +20,19 @@
           null))
 
 (defclass named-concretion (concretion)
-  ((name :initarg :name :reader name)))
+  ((name :initform (error "need a name!") :initarg :name :reader name)))
 
 (defmethod print-object ((obj named-concretion) stream)
-  (format stream "(~A ~S)" (name obj) (messages obj)))
+  (format stream "(~A~{ ~S~})"
+          (name obj)
+          (mapcar #'argument
+                  (sort (copy-list (messages-in (messages obj))) #'<
+                        :key #'name))))
+
+(defmethod convert-process-to-pattern
+    ((process named-concretion) &optional (pattern (make-instance 'pattern)))
+  (push process (named-concretions pattern))
+  pattern)
 
 (defgeneric named-concretions-in (process)
   (:documentation "Retrieves a list of the triggers contained in the process.")
@@ -54,20 +63,41 @@
               can not be removed."
              process (state kell))))
 
+(defmethod compose (agent1 (agent2 definition))
+  (compose agent2 agent1))
+(defmethod compose ((agent1 definition) (agent2 definition))
+  (compose (compose (make-instance 'parallel-composition) agent1)
+           agent2))
+(defmethod compose ((agent1 definition) (agent2 process))
+  (compose (compose (make-instance 'parallel-composition) agent1)
+           agent2))
+(defmethod compose ((agent1 definition) (agent2 null-process))
+  agent1)
+(defmethod compose ((agent1 parallel-composition) (agent2 definition))
+  (make-instance 'parallel-composition
+                 :process-variables (process-variables agent1)
+                 :messages (messages agent1)
+                 :kells (kells agent1)
+                 :triggers (triggers agent1)
+                 :named-concretions (named-concretions agent1)
+                 :primitives (cons agent2 (primitives agent1))))
+
 (defmethod compose ((agent1 named-concretion) (agent2 process))
+  (compose (compose (make-instance 'parallel-composition) agent1)
+           agent2))
+(defmethod compose ((agent1 named-concretion) (agent2 named-concretion))
   (compose (compose (make-instance 'parallel-composition) agent1)
            agent2))
 (defmethod compose ((agent1 named-concretion) (agent2 null-process))
   agent1)
 (defmethod compose ((agent1 parallel-composition) (agent2 named-concretion))
-  (let ((pc (make-instance 'parallel-composition)))
-    (psetf (process-variables pc) (process-variables agent1)
-           (messages pc) (messages agent1)
-           (kells pc) (kells agent1)
-           (triggers pc) (triggers agent1)
-           (named-concretions pc) (cons agent2 (named-concretions agent1))
-           (primitives pc) (primitives agent1))
-    pc))
+  (make-instance 'parallel-composition
+                 :process-variables (process-variables agent1)
+                 :messages (messages agent1)
+                 :kells (kells agent1)
+                 :triggers (triggers agent1)
+                 :named-concretions (cons agent2 (named-concretions agent1))
+                 :primitives (primitives agent1)))
 
 (defmethod @ ((abstraction definition) (concretion named-concretion))
   (if (eq (name abstraction) (name concretion))
@@ -75,11 +105,32 @@
         (if substitutions
             (compose (substitute (process abstraction) substitutions)
                      (continuation concretion))
-            (compose abstraction concretion)))
+            (error "could not reduce ~A and ~A" abstraction concretion)
+            ;concretion
+            ))
       (compose abstraction concretion)))
+
+;; This is for the rare definition that is a function and not a definition.
+;; Think of these as additional special forms.
+(defmethod @ ((abstraction function) (concretion named-concretion))
+  (compose (funcall abstraction (messages concretion))
+           (continuation concretion)))
 
 (defmethod @ ((abstraction definition) (concretion concretion))
   (compose abstraction concretion))
 
 (defmethod @ ((abstraction pattern-abstraction) (concretion named-concretion))
   (compose abstraction concretion))
+
+(defmethod apply-restriction (local-name global-name (process named-concretion))
+  (if (member local-name (restricted-names process))
+      process
+      (make-instance 'named-concretion
+                     :name (name process)
+                     :restricted-names (restricted-names process)
+                     :messages (apply-restriction local-name
+                                                  global-name
+                                                  (messages process))
+                     :continuation (apply-restriction local-name
+                                                      global-name
+                                                      (continuation process)))))

@@ -2,12 +2,14 @@
 ;;; shorthand. You can write (list ?x ?y) and it will expand into
 ;;; (par {1 ?x} {2 ?y}).
 
+#|
 (def (list cl:&rest processes)
   `(cl:let ((index 0))
      (cl:apply #'parallel-composition
                (cl:mapcar (cl:lambda (process)
                             (message (cl:incf index) (kilns::eval process)))
                           ',processes))))
+|#
 
 #| FIXME: here is the start of an attempt to do this with less CL. The problems
           I see are: 1. we can't actually use ?index as a channel name and 2. it

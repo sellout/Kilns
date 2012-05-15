@@ -8,8 +8,32 @@
 (defvar *top-kell*)
 (defvar *local-kell*)
 
+(defun translate-form (form)
+  (if (typep form 'named-concretion)
+      (let ((new-form (expand-concretions form)))
+        (if (eq new-form form)
+            `(,(translate-form (name form))
+               ,@(mapcar (alexandria:compose #'translate-form
+                                             #'argument)
+                         (sort (copy-list (kell-calculus::messages-in (messages form)))
+                               #'<
+                               :key #'name)))
+            new-form))
+      form))
+
 (defvar *global-definitions* (make-hash-table :test #'eq)
   "The set of definitions that are available anywhere in the system.")
+(defmacro defglobal (name (&rest arguments) &body body)
+  "This allows us to add global built-ins to Kilns."
+  `(setf (gethash ',(intern (symbol-name name) :kilns-user)
+                  *global-definitions*)
+         (lambda (process)
+           (destructuring-bind (,@arguments)
+               (mapcar (alexandria:compose #'translate-form #'argument)
+                       (sort (copy-list (kell-calculus::messages-in process)) #'<
+                             :key #'name))
+             ,@body))))
+
 (defvar *delayed-concretions* (make-hash-table :test #'eq)
   "Concretions that are in matchable space, but for which there is not yet any
    definition to expand them. They need to be expanded as soon as such a
@@ -79,16 +103,16 @@
 
 (defun handle-error (c)
   (if *debugp*
-    (error c)
-    (printk "ERROR: ~a~%" c)))
+      (error c)
+      (printk "ERROR: ~a~%" c)))
 
 (defun run-kiln ()
   (loop do (handler-case (let ((event (pop-event)))
                            (if event
-                             (apply (car event) (cdr event))
-                             (with-lock-held (*dummy-wait-lock*)
-                               (condition-wait *new-events*
-                                               *dummy-wait-lock*))))
+                               (apply #'match-on event)
+                               (with-lock-held (*dummy-wait-lock*)
+                                 (condition-wait *new-events*
+                                                 *dummy-wait-lock*))))
              (kiln-error (c) (handle-error c)))))
 
 (defun start-kilns (count)
@@ -97,10 +121,14 @@
 
 (defgeneric collect-channel-names (process kell)
   (:documentation "This returns a list of events to add to the event queue.")
-  (:method ((process process-variable) (kell kell))
-    ;; FIXME: not good enough. Need to prevent it from getting into the kell.
-    (break "Can't have a free variable (~a) in an active kell (~a)."
-           process kell))
+  (:method-combination contract)
+  (:method :guarantee "returns a list of (process kell) lists" (process kell)
+     (declare (ignore process kell))
+     (and (= 1 (length (multiple-value-list (results))))
+          (every (lambda (list)
+                   (and (typep (first list) '(or message kell trigger))
+                        (typep (second list) 'kell)))
+                 (results))))
   (:method ((process parallel-composition) (kell kell))
     ;; FIXME: I don't think this ever gets called
     (apply #'append
@@ -110,11 +138,11 @@
   (:method ((process message) (kell kell))
     (let ((name (name process)))
       (push process (gethash name (messages kell)))
-      (list (list #'match-on process kell))))
+      (list (list process kell))))
   (:method ((process kell) (kell kell))
     (let ((name (name process)))
       (push process (gethash name (kells kell)))
-      (list (list #'match-on process kell))))
+      (list (list process kell))))
   (:method ((process pattern-abstraction) (kell kell))
     (mapc (lambda (pattern)
             (push process (gethash (name pattern) (local-patterns kell))))
@@ -128,7 +156,7 @@
     (mapc (lambda (pattern)
             (push process (gethash (name pattern) (kell-patterns kell))))
           (kell-message-pattern (pattern process)))
-    (list (list #'match-on process kell)))
+    (list (list process kell)))
   (:method ((process null-process) (kell kell))
     (declare (ignore kell))
     '()))
@@ -149,7 +177,10 @@
     (remove-process-from process kell)
     (add-process (sub-reduce process) kell)))
 
-(defgeneric add-process (process kell &optional watchp)
+(defun add-process (process kell &optional watchp)
+  (%add-process (expand-concretions process) kell watchp))
+
+(defgeneric %add-process (process kell &optional watchp)
   (:documentation "Pushes PROCESS onto the given KELL.")
   (:method :before ((process agent) kell &optional watchp)
     "Sometimes a process that was matched gets re-added (as in `trigger*`), so
@@ -185,6 +216,7 @@
          (*package* (find-package :kilns-user))
          (*readtable* *kilns-readtable*)
          (*local-kell* (when local-kell (intern local-kell))))
+    (ccl::def-standard-initial-binding *current-pattern-language* +fraktal+)
     (ccl::def-standard-initial-binding *package* (find-package :kilns-user))
     (ccl::def-standard-initial-binding *readtable* *kilns-readtable*)
     ;;(when use-network-p (start-kilns-listener port-number))
@@ -200,29 +232,32 @@
 
 (defgeneric real-toplevel (top-kell))
 
-(let ((current-kell))
-  (defun move-up ()
-    (setf current-kell (parent current-kell))
-    (values))
-  (defun move-down (kell-name)
-    (let ((new-kell (car (gethash kell-name (kells current-kell)))))
-      (if new-kell
-        (setf current-kell new-kell)
-        (error 'no-such-kell-error :name kell-name :container current-kell)))
-    (values))
-  (defun system-state ()
-    "Prints the current kell."
-    ;; TODO: It would be great to pretty-print this, but just setting
-    ;;       *PRINT-PRETTY* isn't enough.
-    (print current-kell)
-    (values))
-  (defmethod real-toplevel (top-kell)
-    (setf current-kell top-kell)
+(defmethod real-toplevel (top-kell)
+  (let ((current-kell top-kell))
+    (defglobal move-up ()
+      (setf current-kell (parent current-kell))
+      +null-process+)
+    (defglobal move-down (kell-name)
+      (let ((new-kell (car (gethash kell-name (kells current-kell)))))
+        (if new-kell
+            (setf current-kell new-kell)
+            (error 'no-such-kell-error
+                   :name kell-name :container current-kell)))
+      +null-process+)
+    (defglobal system-state ()
+      "Prints the current kell."
+      ;; TODO: It would be great to pretty-print this, but just setting
+      ;;       *PRINT-PRETTY* isn't enough.
+      (print current-kell)
+      +null-process+)
     (loop do
          (printk "~a> " (name current-kell))
          (handler-case (add-process (eval (read)) current-kell)
            (end-of-file () (return))
-           (kiln-error (c) (handle-error c))))))
+           (kiln-error (c) (handle-error c))))
+    (remhash 'kilns-user::move-up *global-definitions*)
+    (remhash 'kilns-user::move-down *global-definitions*)
+    (remhash 'kilns-user::system-state *global-definitions*)))
 
 (defgeneric remove-process (process)
   (:method ((process message))
@@ -262,7 +297,7 @@
 (defun trigger-process (trigger mapping watchp)
   "Activates process after substituting the process-variables in the trigger."
   (remove-process trigger)
-  (add-process (expand-concretions (substitute (process trigger) mapping))
+  (add-process (substitute (process trigger) mapping)
                (parent trigger)
                watchp))
 
@@ -271,15 +306,17 @@
   (add-process (continuation process) (parent process) (watchp process)))
 
 (defun execute-match (trigger processes substitutions)
-  (when (some #'watchp (cons trigger processes))
-    (log-watched-reaction trigger processes))
-  (setf (deadp trigger) t)
-  (mapc (lambda (process) (setf (deadp process) t)) processes)
-  (trigger-process trigger substitutions
-                   (some #'watchp (cons trigger processes)))
+  (let ((watchp (some #'watchp (cons trigger processes))))
+    (when watchp
+      (log-watched-reaction trigger processes))
+    (setf (deadp trigger) t)
+    (mapc (lambda (process) (setf (deadp process) t)) processes)
+    (trigger-process trigger substitutions watchp))
   (mapc #'activate-continuation processes))
 
 (defun find-kells-to-lock (trigger)
+  "Returns a list of kells whose lock must be acquired (in this order) before we
+   can attempt a match."
   (append (when (up-message-pattern (pattern trigger))
             (list (parent (parent trigger))))
           ;; always lock the current, because even if there isn't a local or
@@ -413,14 +450,14 @@
                         (sub-reduce (continuation process)))
                kell))
 
-(defmethod add-process ((process kell-abstraction) (kell kell) &optional watchp)
+(defmethod %add-process ((process kell-abstraction) (kell kell) &optional watchp)
   (declare (ignore watchp))
   (if (gethash (name process) (kells kell))
     (error 'duplicate-kell-name-error :name (name process))
     (progn
       (call-next-method)
       (activate-process (abstraction process) process))))
-(defmethod add-process ((process concretion) (kell kell) &optional watchp)
+(defmethod %add-process ((process concretion) (kell kell) &optional watchp)
   (setf (state kell) (compose (sub-reduce process) (state kell)))
   (when watchp (watch process))
   (activate-process process kell))
@@ -429,8 +466,17 @@
 ;;        process the concretion should be placed (although it's possible
 ;;        there's only one option for each process).
 (defun apply-definition (definition concretion)
-  (remove-process-from concretion (parent concretion))
-  (add-process (@ definition concretion) (parent concretion)))
+  ;; NOTE: We actually modify objects here, would be nice if we could do this functionally
+  (let ((parent (parent concretion))
+        (new-process (@ definition concretion)))
+    (remove-process-from concretion parent)
+    (typecase parent
+      (message (setf (argument parent) (compose new-process (argument parent))))
+      (kell (setf (state parent) (compose new-process (state parent))))
+      (parallel-composition (compose new-process parent)) ; FIXME: won't work
+      (trigger (setf (local-message-pattern (pattern parent))
+                     (append (kell-calculus::messages-in new-process)
+                             (local-message-pattern (pattern parent))))))))
 
 (defgeneric expand-concretions (process)
   (:documentation
@@ -439,18 +485,22 @@
     were no concretions) and a boolean indicating whether the process was
     altered. This can't just be done in add-/activate-process because we also
     need to do this for inactive processes that could be involved in a match.")
-  ;; (:method :guarantee "process hasn't changed if there was no expansion"
-  ;;          (process)
-  ;;   (multiple-value-bind (new-process contained-expansion-p) (results)
-  ;;     (implies contained-expansion-p (eq process new-process))))
+  (:method-combination contract)
+  (:method :guarantee "process hasn't changed if there was no expansion"
+           (process)
+    (multiple-value-bind (new-process contained-expansion-p) (results)
+      (not (eq contained-expansion-p (eq process new-process)))))
   (:method ((process named-concretion))
     (let ((definition (gethash (name process) *global-definitions*)))
       (if definition
-        (values (expand-concretions (@ definition process)) t)
-        (progn
-          (push process
-                (gethash (name process) *delayed-concretions*))
-          (values process nil)))))
+          (let ((new-process (@ definition process)))
+            (if (eq new-process process)
+                (values process nil)
+                (values (expand-concretions new-process) t)))
+          (progn
+            (push process
+                  (gethash (name process) *delayed-concretions*))
+            (values process nil)))))
   (:method (process)
     ;; FIXME: won't need this once we actually read everything as a real process
     (values process nil))
@@ -469,10 +519,10 @@
   (:method ((process parallel-composition))
     (let* ((contained-expansion-p nil)
            (new-processes
-            (map-parallel-composition (lambda (process)
+            (map-parallel-composition (lambda (sub-process)
                                         (multiple-value-bind (new-process
                                                               expandedp)
-                                            (expand-concretions process)
+                                            (expand-concretions sub-process)
                                           (when expandedp
                                             (setf contained-expansion-p t))
                                           new-process))
@@ -484,29 +534,78 @@
   (:method ((process kell))
     (multiple-value-bind (new-state contained-expansion-p)
         (expand-concretions (state process))
-      (values (when contained-expansion-p
-                (make-instance 'kell
-                               :name (name process)
-                               :state new-state
-                               :continuation (continuation process))
-                process)
+      (values (if contained-expansion-p
+                  (make-instance 'kell
+                                 :name (name process)
+                                 :state new-state
+                                 :continuation (continuation process))
+                  process)
               contained-expansion-p)))
   (:method ((process trigger))
+    ;; TODO: Don't expand anything here – the pattern gets expanded when the
+    ;;       trigger is activated, and the process is expanded when the trigger
+    ;;       matches.
     (multiple-value-bind (new-pattern contained-expansion-p)
         (expand-concretions (pattern process))
-      (values (when contained-expansion-p
-                (make-instance 'trigger
-                               :pattern new-pattern
-                               :process (process process))
-                process)
+      (values (if contained-expansion-p
+                  (make-instance 'trigger
+                                 :pattern new-pattern
+                                 :process (process process))
+                  process)
               contained-expansion-p)))
+  (:method ((process pattern))
+    (let ((contained-expansion-p nil))
+      (flet ((expand-subpattern (subpattern)
+               (multiple-value-bind (new-pattern expandedp)
+                   (expand-concretions subpattern)
+                 (when expandedp (setf contained-expansion-p t))
+                 new-pattern)))
+        (let ((new-patterns (mapcar #'expand-subpattern
+                                    (named-concretions process)))
+              (new-locals (mapcar #'expand-subpattern
+                                  (local-message-pattern process)))
+              (new-ups (mapcar #'expand-subpattern
+                               (up-message-pattern process)))
+              (new-downs (mapcar #'expand-subpattern
+                                 (down-message-pattern process)))
+              (new-kells (mapcar #'expand-subpattern
+                                 (kell-message-pattern process))))
+          (let ((new-kell-pattern (remove-if-not (alexandria:rcurry #'typep
+                                                                    'kell)
+                                                 new-patterns))
+                (new-messages (remove-if-not (alexandria:rcurry #'typep
+                                                                'message)
+                                             new-patterns))
+                (new-concretions (remove-if-not (alexandria:rcurry #'typep
+                                                                   'named-concretion)
+                                                new-patterns)))
+            (let ((new-local-pattern (remove-if-not (alexandria:rcurry #'typep 'null-process)
+                                                    new-messages
+                                                    :key #'continuation))
+                  (new-up-pattern (remove-if-not (alexandria:curry #'eq 'up)
+                                                    new-messages
+                                                    :key #'continuation))
+                  (new-down-pattern (remove-if-not (alexandria:curry #'eq 'down)
+                                                    new-messages
+                                                    :key #'continuation)))
+              (values (if contained-expansion-p
+                          (make-instance 'pattern
+                                         :local-message-pattern (append new-locals
+                                                                        new-local-pattern)
+                                         :up-message-pattern (append new-ups new-up-pattern)
+                                         :down-message-pattern (append new-downs new-down-pattern)
+                                         :kell-message-pattern (append new-kells new-kell-pattern)
+                                         :named-concretions new-concretions
+                                         :placeholders (placeholders process))
+                          process)
+                      contained-expansion-p)))))))
   (:method ((process restriction))
-    (values (expand-concretions (expand-restriction process))
+    (values (expand-concretions (sub-reduce process))
             t))
   (:method ((process definition))
     (values process nil)))
 
-(defmethod add-process ((process definition) (kell kell) &optional watchp)
+(defmethod %add-process ((process definition) (kell kell) &optional watchp)
   (setf (gethash (name process) *global-definitions*) process)
   (activate-process process kell))
 
@@ -514,7 +613,7 @@
   (mapc (alexandria:curry #'apply-definition process)
         (gethash (name process) *delayed-concretions*)))
 
-(defmethod add-process ((process named-concretion) (kell kell) &optional watchp)
+(defmethod %add-process ((process named-concretion) (kell kell) &optional watchp)
   (setf (parent process) kell
         (state kell) (compose process (state kell)))
   (when watchp (watch process))
@@ -526,3 +625,35 @@
     (when contained-expansion-p
       (remove-process-from process kell)
       (add-process expanded-process kell))))
+
+;;; Initialization
+
+(defglobal lisp (&rest processes)
+  (cl:eval `(progn ,@processes)))
+
+;;; FIXME: for networking, load needs to be able to take a path to a subkell
+;;;        that represents what is to be run in the local instance. It should
+;;;        work as if the following (illegal) trigger were used:
+;;;            (trigger [path [to [correct [kell ?process]]]] ?process)
+(defglobal load (file-name
+                 &key
+                 (verbose *load-verbose*)
+                 (print *load-print*)
+                 (if-does-not-exist :error))
+  (declare (ignore if-does-not-exist verbose))
+  (let ((full-name (merge-pathnames file-name (make-pathname :type "kiln"))))
+    (let ((processes (with-open-file (stream full-name
+                                                 :external-format :utf-8)
+                           (loop for value = (read stream nil)
+                              while value
+                              do (if print (print value) value)
+                              collecting value))))
+      (eval `(par ,@processes)))))
+
+(defglobal list (&rest processes)
+  (let ((index 0))
+    (apply #'parallel-composition
+           (mapcar (lambda (process)
+                     (make-instance 'message
+                                    :name (incf index) :argument process))
+                   processes))))

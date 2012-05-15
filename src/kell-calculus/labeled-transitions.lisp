@@ -107,9 +107,15 @@
   (format stream "(new ~s ~s)" (names obj) (abstraction obj)))
 
 (defclass pattern-abstraction (simple-abstraction)
-  ((pattern :initarg :pattern :reader pattern :type pattern)
+  ((pattern :reader pattern :type pattern)
    (process :initarg :process :reader process :type generic-process))
   (:documentation "(ξ)P"))
+
+(defmethod initialize-instance :after
+    ((instance pattern-abstraction) &key pattern &allow-other-keys)
+  (let ((pat (convert-process-to-pattern pattern)))
+    ;(break "converted ~A into ~A" pattern pat)
+    (setf (slot-value instance 'pattern) pat)))
 
 (defmethod print-object ((obj pattern-abstraction) stream)
   (format stream "((~s) ~s)" (pattern obj) (process obj)))

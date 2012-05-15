@@ -16,8 +16,8 @@
            #:match #:match-local #:match-down #:match-up #:match-kell
            #:bound-names #:free-names #:bound-variables #:free-variables
            #:channel-names
-           #:local-message-pattern #:down-message-pattern
-           #:up-message-pattern #:kell-message-pattern
+           #:local-message-pattern #:down-message-pattern #:placeholders
+           #:up-message-pattern #:kell-message-pattern #:named-concretions
            #:sub-reduce
            #:abstraction #:concretion #:agent
            #:restriction-abstraction #:pattern-abstraction
@@ -58,7 +58,7 @@
            #:name-variable
            #:+fraktal+ ; fraKtal pattern language
            ;; abbreviated syntax
-           #:par #:new
+           #:par #:new #:!=
            ;; networking
            #:defhost
            ;; interactive commands

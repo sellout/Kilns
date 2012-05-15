@@ -32,7 +32,9 @@
 
 (let ((files-to-load))
   (defmethod kilns::real-toplevel :before (top-kell)
-    (mapcar (lambda (file) (kilns::add-process `(kilns:load ,file) top-kell))
+    (mapcar (lambda (file)
+              (kilns::add-process (kilns:eval `(kilns-user::load ,file))
+                                  top-kell))
             files-to-load))
 
   (defun application-toplevel ()

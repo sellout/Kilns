@@ -53,7 +53,7 @@
     ((pattern-language fraktal) name &rest argument-forms)
   (make-instance 'message
                  :name (if (listp name)
-                           (case (car name)
+                           (ecase (car name)
                              (name-variable
                               (define-pattern-name-variable pattern-language
                                                             (second name)))
@@ -83,9 +83,14 @@
 
 ;; FIXME: This is fraktal-specific, but kind of digs a bit more into the
 ;;        internals than I'd like
-(defmethod substitute ((name mismatch) mapping &optional ignored-vars)
-    (setf (complement name) (substitute (complement name) mapping ignored-vars))
-    name)
+(defmethod substitute ((process mismatch) mapping &optional ignored-vars)
+  (multiple-value-bind (new-comp substitutedp)
+      (substitute (complement process) mapping ignored-vars))
+  (values (if substitutedp
+              (make-instance 'mismatch
+                             :complement new-comp :variable (variable process))
+              process)
+          substitutedp))
 
 (defmethod collect-bound-names ((pattern message))
   (typecase (name pattern)

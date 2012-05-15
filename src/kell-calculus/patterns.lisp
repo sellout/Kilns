@@ -36,15 +36,61 @@
    (up-message-pattern :initform nil :initarg :up-message-pattern :type list
                        :accessor up-message-pattern)
    (kell-message-pattern :initform nil :initarg :kell-message-pattern :type list
-                         :accessor kell-message-pattern)))
+                         :accessor kell-message-pattern)
+   ;;; These allow for patterns that haven't been fully expanded yet
+   (named-concretions :initform nil :initarg :named-concretions :type list
+                      :accessor named-concretions)
+   (placeholders :initform nil :initarg :placeholders :type list
+                 :accessor placeholders)))
+
+(defmethod initialize-instance :after ((instance pattern) &key &allow-other-keys)
+  (when (some (lambda (message)
+              (not (typep (continuation message) 'null-process)))
+            (local-message-pattern instance))
+    (break "messed up pattern! ~A" instance)))
 
 (defmethod print-object ((obj pattern) stream)
   (let ((patterns (append (local-message-pattern obj)
                           (down-message-pattern obj)
                           (up-message-pattern obj)
-                          (kell-message-pattern obj))))
+                          (kell-message-pattern obj)
+                          (named-concretions obj)
+                          (placeholders obj))))
     (format stream "~:[~{~a~}~;(par ~{~a~^ ~})~]"
             (< 1 (length patterns)) patterns)))
+
+(defgeneric convert-process-to-pattern (process &optional pattern)
+  (:method ((process pattern) &optional pattern)
+    (if pattern
+        (error "Can not use a pattern (~A) as a subpattern of ~A."
+               pattern process)
+        process))
+  (:method ((process parallel-composition)
+            &optional (pattern (make-instance 'pattern)))
+    (mapc (lambda (sub-process)
+            (convert-process-to-pattern sub-process pattern))
+          (append (messages process)
+                  (kells process)
+                  (named-concretions process)
+                  (primitives process)))
+    pattern)
+  (:method ((process message) &optional (pattern (make-instance 'pattern)))
+    ;; (unless (argument process) ; FIXME: should only happen with pnp-jK & FraKtal
+    ;;   (setf (argument process) kilns:_))
+    (case (continuation process)
+      (down (push process (down-message-pattern pattern)))
+      (up (push process (up-message-pattern pattern)))
+      (otherwise
+       (if (typep (continuation process) 'null-process)
+           (push process (local-message-pattern pattern))
+           (error "Invalid message continuation for pattern: ~A." (continuation process)))))
+    pattern)
+  (:method ((process kell) &optional (pattern (make-instance 'pattern)))
+    (push process (kell-message-pattern pattern))
+    pattern)
+  (:method ((process symbol) &optional (pattern (make-instance 'pattern)))
+    (push process (placeholders pattern))
+    pattern))
 
 ;;; – One can decide whether a pattern matches a given term. More precisely,
 ;;;   each pattern language is equipped with a decidable relation match, which
@@ -66,10 +112,23 @@
     combined-hash-table))
 
 (defgeneric match (pattern process &optional substitutions)
+  (:method :around
+      ((pattern pattern) process
+       &optional (substitutions (make-empty-environment)))
+    (declare (ignore process substitutions))
+    (if (or (named-concretions pattern)
+            (placeholders pattern))
+        (values nil nil)
+        (call-next-method)))
   (:method ((pattern pattern) (process list)
             &optional (substitutions (make-empty-environment)))
     (values (match-local (local-message-pattern pattern)
                          process
+                         substitutions)))
+  (:method ((pattern pattern) (process parallel-composition)
+            &optional (substitutions (make-empty-environment)))
+    (values (match-local (local-message-pattern pattern)
+                         (messages process)
                          substitutions)))
   (:method ((pattern pattern) (kell kell)
             &optional (substitutions (make-empty-environment)))
@@ -219,6 +278,7 @@
                   (down-message-pattern pattern)
                   (up-message-pattern pattern)
                   (kell-message-pattern pattern))
+          :initial-value ()
           :key #'free-names))
 
 (defgeneric bound-names (pattern)

@@ -155,7 +155,7 @@
                                    :remote-port (port kell)
                                    :keepalive t)))))
 
-(defmethod add-process ((process kell) (kell network-kell) &optional watchp)
+(defmethod %add-process ((process kell) (kell network-kell) &optional watchp)
   "When adding a kell to a network kell, it can be either the kell representing
    the current host, a kell representing a different host, or another level of
    network kell. This determines which one it should be and adds an appropriate
@@ -187,7 +187,7 @@
 ;;(defmethod activate-process ((process host-kell) (kell kell))
 ;;  (error "A host kell can not exist inside a local kell."))
   
-(defmethod add-process (process (kell host-kell) &optional watchp)
+(defmethod %add-process (process (kell host-kell) &optional watchp)
   (declare (ignore process watchp))
   (error "No processes can exist inside a host kell."))
 ;;(defmethod add-process ((process network-kell) (kell kell))
@@ -210,7 +210,7 @@
   null)
 
 ;;; Adding-processes to network kells
-(defmethod add-process ((process process) (kell network-kell) &optional watchp)
+(defmethod %add-process ((process process) (kell network-kell) &optional watchp)
   (declare (ignore watchp))
   (mapc (lambda (sk)
           ;; FIXME: should probably allow kells here

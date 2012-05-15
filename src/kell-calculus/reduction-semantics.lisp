@@ -42,23 +42,21 @@
     (map-process (lambda (proc) (apply-restriction local-name global-name proc))
                  process))
   (:method (local-name global-name (process pattern))
-    (make-instance 'pattern
-                   :local-message-pattern
-                   (mapcar (lambda (message)
-                             (apply-restriction local-name global-name message))
-                           (local-message-pattern process))
-                   :down-message-pattern
-                   (mapcar (lambda (message)
-                             (apply-restriction local-name global-name message))
-                           (down-message-pattern process))
-                   :up-message-pattern
-                   (mapcar (lambda (message)
-                             (apply-restriction local-name global-name message))
-                           (up-message-pattern process))
-                   :kell-message-pattern
-                   (mapcar (lambda (message)
-                             (apply-restriction local-name global-name message))
-                           (kell-message-pattern process))))
+    (flet ((apply-res (pattern)
+             (mapcar (lambda (message)
+                       (apply-restriction local-name global-name message))
+                     pattern)))
+      (make-instance 'pattern
+                     :local-message-pattern
+                     (apply-res (local-message-pattern process))
+                     :down-message-pattern
+                     (apply-res (down-message-pattern process))
+                     :up-message-pattern
+                     (apply-res (up-message-pattern process))
+                     :kell-message-pattern
+                     (apply-res (kell-message-pattern process))
+                     :named-concretions
+                     (apply-res (named-concretions process)))))
   (:method (local-name global-name (process restriction-abstraction))
     (make-instance (class-of process)
                    :names (names process)
@@ -93,25 +91,36 @@
                                                   global-name
                                                   (concretion process))))
   (:method (local-name global-name (process concretion))
-    (make-instance (class-of process)
-                   :restricted-names (restricted-names process)
-                   :messages (apply-restriction local-name
-                                                global-name
-                                                (messages process))
-                   :continuation (apply-restriction local-name
+    (if (member local-name (restricted-names process))
+        process
+        (make-instance (class-of process)
+                       :restricted-names (restricted-names process)
+                       :messages (apply-restriction local-name
                                                     global-name
-                                                    (continuation process)))))
+                                                    (messages process))
+                       :continuation (apply-restriction local-name
+                                                        global-name
+                                                        (continuation process))))))
 
 (defgeneric sub-reduce (process)
   (:documentation "The sub-reduction relation is defined to handle scope
                    extrusion of restriction out of kell boundaries.")
+  (:method-combination contract)
+  (:method :guarantee "process hasn't changed if there was no reduction"
+           (process)
+    (multiple-value-bind (new-process reducedp) (results)
+      (not (eq reducedp (eq process new-process)))))
   (:method (process)
-    process)
+    (values process nil))
   (:method ((process kell))
-    (make-instance 'kell
-                   :name (name process)
-                   :state (sub-reduce (state process))
-                   :continuation (continuation process)))
+    (multiple-value-bind (reduced-state reducedp) (sub-reduce (state process))
+      (values (if reducedp
+                  (make-instance 'kell
+                                 :name (name process)
+                                 :state reduced-state
+                                 :continuation (continuation process))
+                  process)
+              reducedp)))
   (:method ((process restriction-abstraction))
     (let ((abstraction (abstraction process)))
       (mapc (lambda (name)
@@ -120,24 +129,37 @@
                     ;;       at once, rather than one at a time
                     (apply-restriction name (unique-name name) abstraction)))
             (names process))
-      abstraction))
-  (:method ((restriction concretion))
-    (if (length (restricted-names restriction))
-        (let ((messages (messages restriction))
-              (continuation (continuation restriction)))
-          (mapc (lambda (name)
-                  (psetf messages
-                         (apply-restriction name (unique-name name) messages)
-                         continuation
-                         (apply-restriction name
-                                            (unique-name name)
-                                            continuation)))
-                (restricted-names restriction))
-          (make-instance (class-of restriction)
-                         :messages messages :continuation continuation))
-        restriction))
+      (values abstraction t)))
+  (:method ((process concretion))
+    (if (length (restricted-names process))
+        (values (let ((messages (messages process))
+                      (continuation (continuation process)))
+                  (mapc (lambda (name)
+                          (psetf messages
+                                 (apply-restriction name (unique-name name) messages)
+                                 continuation
+                                 (apply-restriction name
+                                                    (unique-name name)
+                                                    continuation)))
+                        (restricted-names process))
+                  (make-instance (class-of process)
+                                 :messages messages :continuation continuation))
+                t)
+        (values process nil)))
   (:method ((process parallel-composition))
-    (map-process #'sub-reduce process)))
+    (let* ((reducedp nil)
+           (new-processes
+            (map-parallel-composition (lambda (proc)
+                                        (multiple-value-bind (reduced-proc redp)
+                                            (sub-reduce proc)
+                                          (when redp
+                                            (setf reducedp t))
+                                          reduced-proc))
+                                      process)))
+      (values (if reducedp
+                  (apply #'parallel-composition new-processes)
+                  process)
+              reducedp))))
 
 #|
 (defun delta (local-messages)
