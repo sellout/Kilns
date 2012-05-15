@@ -629,7 +629,19 @@
 ;;; Initialization
 
 (defglobal lisp (&rest processes)
-  (cl:eval `(progn ,@processes)))
+  "Call back into the lisp from Kilns. Provides a SUBSTITUTE-VARIABLES macro
+   that allows us to pass lisp variables back to nested processes."
+  (cl:eval `(macrolet ((substitute-variables ((&rest variables) &body processes)
+                         `(let ((env (make-empty-environment)))
+                            ,@(mapcar (lambda (var)
+                                        `(unify (intern (format nil "?~a"
+                                                                ',var))
+                                                ,var
+                                                env))
+                                      variables)
+                            (substitute (parallel-composition ,@processes)
+                                        env))))
+              ,@processes)))
 
 ;;; FIXME: for networking, load needs to be able to take a path to a subkell
 ;;;        that represents what is to be run in the local instance. It should

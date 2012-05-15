@@ -63,7 +63,8 @@
            #:defhost
            ;; interactive commands
            #:load #:move-up #:move-down
-           #:system-state #:dump-system-state #:lisp #:watch))
+           #:system-state #:dump-system-state #:watch
+           #:lisp #:substitute-variables))
 
 (defpackage kilns-user
   (:use #:kell-calculus #:kilns #:quid-pro-quo)
