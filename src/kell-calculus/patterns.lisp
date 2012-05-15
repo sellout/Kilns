@@ -65,6 +65,10 @@
         (error "Can not use a pattern (~A) as a subpattern of ~A."
                pattern process)
         process))
+  (:method ((process null-process) &optional (pattern (make-instance 'pattern)))
+    "This is used when we hit definitions with no parameters. It shouldn't be
+     touched by any normal triggers."
+    pattern)
   (:method ((process parallel-composition)
             &optional (pattern (make-instance 'pattern)))
     (mapc (lambda (sub-process)
