@@ -14,13 +14,9 @@
 
 (defun read-process (type stream char)
   (let ((name (let ((*reading-name-p* t)) (read stream t))))
-    (destructuring-bind (&optional process continuation)
+    (destructuring-bind (&rest processes)
         (read-delimited-list (cdr (assoc char *paired-chars*)) stream t)
-      (if continuation
-          `(,type ,name ,process ,continuation)
-          (if process
-              `(,type ,name ,process)
-              `(,type ,name))))))
+      `(,type ,name ,@processes))))
 
 (defun variable-reader (stream char)
   (declare (ignore char))
