@@ -25,7 +25,7 @@
   (:documentation "Returns two values, the pattern process, and which category
                   (up, down, local, or kell) it belongs to.")
   (:method ((pattern-language jk-calculus) form)
-    (case (car form)
+    (ecase (car form)
       ((down up)
        (let ((message (apply #'define-pattern-message
                              pattern-language (cdr (second form)))))
