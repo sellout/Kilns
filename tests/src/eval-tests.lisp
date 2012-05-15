@@ -36,9 +36,13 @@
 (test should-evaluate-to-jk-pattern
   (let ((*current-pattern-language* +jk-calculus+))
     (is (kilns::egal (make-instance 'trigger
-                                    :pattern (make-instance 'pattern
-                                                            :local-message-pattern (list (make-instance 'message :name 'foo :argument (make-instance 'process-variable :name 'bar)))
-                                                            :down-message-pattern (list (make-instance 'message :name 'baz :argument (make-instance 'process-variable :name 'zab))))
+                                    :pattern (compose (make-instance 'message
+                                                                     :name 'foo
+                                                                     :argument (make-instance 'process-variable :name 'bar))
+                                                      (make-instance 'message
+                                                                     :name 'baz
+                                                                     :argument (make-instance 'process-variable :name 'zab)
+                                                                     :continuation 'down))
                                     :process (compose 'bar 'zab))
                      (eval '(trigger (par (message foo (process-variable bar))
                                           (down (message baz
@@ -48,9 +52,13 @@
 (test pnpjk-should-allow-jk-patterns
   (let ((*current-pattern-language* +pnpjk-calculus+))
     (is (kilns::egal (make-instance 'trigger
-                                    :pattern (make-instance 'pattern
-                                                            :local-message-pattern (list (make-instance 'message :name 'foo :argument (make-instance 'process-variable :name 'bar)))
-                                                            :down-message-pattern (list (make-instance 'message :name 'baz :argument (make-instance 'process-variable :name 'zab))))
+                                    :pattern (compose (make-instance 'message
+                                                                     :name 'foo
+                                                                     :argument (make-instance 'process-variable :name 'bar))
+                                                      (make-instance 'message
+                                                                     :name 'baz
+                                                                     :argument (make-instance 'process-variable :name 'zab)
+                                                                     :continuation 'down))
                                     :process (compose 'bar 'zab))
                      (eval '(trigger (par (message foo (process-variable bar))
                                           (down (message baz
@@ -60,9 +68,13 @@
 (test should-evaluate-to-pnpjk-pattern
   (let ((*current-pattern-language* +pnpjk-calculus+))
     (is (kilns::egal (make-instance 'trigger
-                                    :pattern (make-instance 'pattern
-                                                            :local-message-pattern (list (make-instance 'message :name 'foo :argument (make-instance 'process-variable :name 'bar)))
-                                                            :down-message-pattern (list (make-instance 'message :name 'baz :argument (make-instance 'message :name (make-instance 'name-variable :name 'zab) :argument +blank+))))
+                                    :pattern (compose (make-instance 'message
+                                                                     :name 'foo
+                                                                     :argument (make-instance 'process-variable :name 'bar))
+                                                      (make-instance 'message
+                                                                     :name 'baz
+                                                                     :argument (make-instance 'message :name (make-instance 'name-variable :name 'zab) :argument +blank+)
+                                                                     :continuation 'down))
                                     :process (compose 'bar
                                                       (make-instance 'message
                                                                      :name 'zab)))

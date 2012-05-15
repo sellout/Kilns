@@ -9,9 +9,13 @@
 (test should-reduce-to-process
   (let ((*current-pattern-language* +jk-calculus+))
     (is (match (eval '(par (message yes) (message sir)))
-          (@ (eval '(define (test1 (process-variable first)
-                                   (process-variable second))
-                      (par first second)))
+          (@ (make-instance 'definition
+                         :name 'test1
+                         :pattern (kilns::define-pattern *current-pattern-language*
+                                      (apply #'kilns::order-forms
+                                             '((process-variable first)
+                                               (process-variable second))))
+                         :process (kilns::define-parallel-composition '(first second)))
              (make-instance 'named-concretion
                             :name 'test1
                             :messages (list (eval '(message 1 (message yes)))
