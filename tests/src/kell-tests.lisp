@@ -18,8 +18,8 @@
                          :process (kilns::define-parallel-composition '(first second)))
              (make-instance 'named-concretion
                             :name 'test1
-                            :messages (list (eval '(message 1 (message yes)))
-                                            (eval '(message 2 (message sir))))))))))
+                            :messages (eval '(par (message 1 (message yes))
+                                                  (message 2 (message sir))))))))))
 
 (test should-not-reduce-to-process
   (let ((*current-pattern-language* +jk-calculus+))
@@ -29,8 +29,8 @@
                             (par first second)))
                    (make-instance 'named-concretion
                                   :name 'nope
-                                  :messages (list (eval '(message 1 (message yes)))
-                                                  (eval '(message 2 (message sir))))))))))
+                                  :messages (eval '(par (message 1 (message yes))
+                                                        (message 2 (message sir))))))))))
 
 (test should-not-reduce-to-process-with-pattern-abstraction
   (is-false (match (eval '(par (message yes) (message sir)))
@@ -42,8 +42,8 @@
                                 :process (eval '(par first second)))
                  (make-instance 'named-concretion
                                 :name 'nope
-                                :messages (list (eval '(message 1 (message yes)))
-                                                (eval '(message 2 (message sir)))))))))
+                                :messages (eval '(par (message 1 (message yes))
+                                                      (message 2 (message sir)))))))))
 
 (test should-not-reduce-to-process-with-concretion
   (let ((*current-pattern-language* +jk-calculus+))
@@ -52,8 +52,8 @@
                                    (process-variable second))
                             first second))
                    (make-instance 'concretion
-                                  :messages (list (eval '(message 1 (message yes)))
-                                                  (eval '(message 2 (message sir))))))))))
+                                  :messages (eval '(par (message 1 (message yes))
+                                                        (message 2 (message sir))))))))))
 
 (test should-assume-null-message-continuation
   (let ((process (eval '(message test (message test)))))
@@ -87,12 +87,12 @@
   (let* ((concretion-process (eval '(message concreted)))
          (concretion (make-instance 'concretion
                                     :restricted-names '(x)
-                                    :messages (list (eval '(message matching)))
+                                    :messages (eval '(message matching))
                                     :continuation concretion-process))
          (process (eval '(message test)))
          (result (make-instance 'concretion
                                 :restricted-names '(x)
-                                :messages (list (eval '(message matching)))
+                                :messages (eval '(message matching))
                                 :continuation (compose concretion-process
                                                        process))))
     (is (match (compose concretion process) result))
@@ -101,16 +101,16 @@
 (test should-compose-concretions
   (let ((a (make-instance 'concretion
                           :restricted-names '(x)
-                          :messages (list (eval '(message matching)))
+                          :messages (eval '(message matching))
                           :continuation (eval '(message que))))
         (b (make-instance 'concretion
                           :restricted-names '(y)
-                          :messages (list (eval '(message match2)))
+                          :messages (eval '(message match2))
                           :continuation (eval '(message pasa)))))
     (is (match (make-instance 'concretion
                               :restricted-names '(x y)
-                              :messages (list (eval '(message matching))
-                                              (eval '(message match2)))
+                              :messages (eval '(par (message matching)
+                                                    (message match2)))
                               :continuation (eval '(par (message que)
                                                         (message pasa))))
                (compose a b)))))
@@ -122,8 +122,8 @@
                                             '(message param (process-variable x)))
                                :process (eval 'x))
                 (make-instance 'concretion
-                               :messages (list (eval '(message param
-                                                               (message test)))))))))
+                               :messages (eval '(message param
+                                                         (message test))))))))
 
 (test should-suspend-application
   (let ((pattern-abstraction
@@ -133,7 +133,7 @@
                         :process (eval 'x)))
         (concretion
          (make-instance 'concretion
-                        :messages (list (eval '(message not-param (message test)))))))
+                        :messages (eval '(message not-param (message test))))))
     (is (match (@ pattern-abstraction concretion)
                (make-instance 'application-abstraction
                               :abstraction pattern-abstraction

@@ -152,7 +152,7 @@
       (values)
       (make-instance 'concretion
         :restricted-names (append (restricted-names agent1) (restricted-names agent2))
-        :messages (append (messages agent1) (messages agent2))
+        :messages (compose (messages agent1) (messages agent2))
         :continuation (compose (continuation agent1) (continuation agent2))))))
 
 (defgeneric @ (agent1 agent2)
