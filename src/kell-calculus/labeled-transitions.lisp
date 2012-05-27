@@ -9,7 +9,7 @@
 
 (deftype generic-process ()
   "This allows us to use various primitives as processes."
-  `(or agent string number list symbol))
+  `(or agent string number symbol))
 
 (deftype generic-abstraction ()
   "This allows us to use various primitives as processes."
