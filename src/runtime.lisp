@@ -95,7 +95,7 @@
 
   (defun remove-events-for-kell (kell)
     (with-lock-held (lock)
-      (setf *event-queue* (delete kell *event-queue* :key #'third)))))
+      (setf *event-queue* (delete kell *event-queue* :key #'second)))))
 
 (defparameter *debugp* nil
   "If T, errors will dump you to the debugger (although you still need to do
@@ -428,7 +428,7 @@
 (defmethod collect-channel-names ((process kell-abstraction) (kell kell))
   (let ((name (name process)))
     (push process (gethash name (kells kell)))
-    (list (list #'match-on process kell))))
+    (list (list process kell))))
 (defmethod collect-channel-names ((process concretion) (kell kell))
   ;;; FIXME: should make sure (names process) is empty, or something
   (append (collect-channel-names (messages process) kell)
