@@ -146,12 +146,8 @@
         :messages (messages agent1)
         :continuation (compose (continuation agent1) agent2))))
   (:method ((agent1 concretion) (agent2 concretion))
-    (if (or (intersection (restricted-names agent1)
-                          (union (kilns::mappend #'free-names (messages agent2))
-                                 (free-names (continuation agent2))))
-            (intersection (restricted-names agent2)
-                          (union (kilns::mappend #'free-names (messages agent1))
-                                 (free-names (continuation agent1)))))
+    (if (or (intersection (restricted-names agent1) (free-names agent2))
+            (intersection (restricted-names agent2) (free-names agent1)))
       ;;; FIXME: What to do when the intersection isn't null?
       (values)
       (make-instance 'concretion
