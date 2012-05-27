@@ -67,5 +67,4 @@
            #:lisp #:substitute-variables))
 
 (defpackage kilns-user
-  (:use #:kell-calculus #:kilns #:quid-pro-quo)
-  (:shadowing-import-from #:kell-calculus #:substitute #:match))
+  (:use #:kell-calculus #:kilns))
