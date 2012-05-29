@@ -41,13 +41,31 @@
    (named-concretions :initform nil :initarg :named-concretions :type list
                       :accessor named-concretions)
    (placeholders :initform nil :initarg :placeholders :type list
-                 :accessor placeholders)))
-
-(defmethod initialize-instance :after ((instance pattern) &key &allow-other-keys)
-  (when (some (lambda (message)
-              (not (typep (continuation message) 'null-process)))
-            (local-message-pattern instance))
-    (break "messed up pattern! ~A" instance)))
+                 :accessor placeholders))
+  (:metaclass contracted-class)
+  (:invariants (lambda (instance)
+                 "no duplicate variables"
+                 (let ((bv (bound-variables instance)))
+                   (equal bv (remove-duplicates bv :key #'name))))
+               (lambda (instance)
+                 "local messages are properly categorized"
+                 (every (lambda (message)
+                          (eq (continuation message) +null-process+))
+                        (local-message-pattern instance)))
+               (lambda (instance)
+                 "up messages are properly categorized"
+                 (every (lambda (message)
+                          (eq (continuation message) 'up))
+                        (up-message-pattern instance)))
+               (lambda (instance)
+                 "down messages are properly categorized"
+                 (every (lambda (message)
+                          (eq (continuation message) 'down))
+                        (down-message-pattern instance)))
+               (lambda (instance)
+                 "kell messages are properly categorized"
+                 (every (alexandria:rcurry #'typep 'kell)
+                        (kell-message-pattern instance)))))
 
 (defmethod print-object ((obj pattern) stream)
   (let ((patterns (append (local-message-pattern obj)
