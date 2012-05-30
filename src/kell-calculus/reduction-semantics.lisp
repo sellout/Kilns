@@ -8,14 +8,20 @@
 (defgeneric apply-restriction (local-name global-name process)
   (:documentation "Replaces all instances of a restricted name with a globally-
                    unique name.")
-  (:method :around (local-name global-name process)
-    (declare (ignorable global-name)) ; FIXME: not really, but CCL complains
-    (if (find local-name (free-names process))
-        (call-next-method)
-        process))
   (:method (local-name global-name process)
     (declare (ignore local-name global-name))
     process)
+  (:method (local-name global-name (process symbol))
+    (if (eq process local-name)
+        (values global-name t)
+        (values process nil)))
+  (:method (local-name global-name (process process-variable))
+    (multiple-value-bind (new-name replacedp)
+        (apply-restriction local-name global-name (name process))
+      (values (if replacedp
+                  (make-instance 'process-variable :name new-name)
+                  process)
+              replacedp)))
   (:method (local-name global-name (process message))
     (make-instance 'message
                    :name (if (eql (name process) local-name)
@@ -56,7 +62,9 @@
                      :kell-message-pattern
                      (apply-res (kell-message-pattern process))
                      :named-concretions
-                     (apply-res (named-concretions process)))))
+                     (apply-res (named-concretions process))
+                     :placeholders
+                     (apply-res (placeholders process)))))
   (:method (local-name global-name (process restriction-abstraction))
     (make-instance (class-of process)
                    :names (names process)
@@ -94,6 +102,18 @@
     (if (member local-name (restricted-names process))
         process
         (make-instance (class-of process)
+                       :restricted-names (restricted-names process)
+                       :messages (apply-restriction local-name
+                                                    global-name
+                                                    (messages process))
+                       :continuation (apply-restriction local-name
+                                                        global-name
+                                                        (continuation process)))))
+  (:method (local-name global-name (process named-concretion))
+    (if (member local-name (restricted-names process))
+        process
+        (make-instance (class-of process)
+                       :name (name process)
                        :restricted-names (restricted-names process)
                        :messages (apply-restriction local-name
                                                     global-name

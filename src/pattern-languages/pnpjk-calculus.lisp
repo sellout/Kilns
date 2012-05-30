@@ -45,6 +45,15 @@
      &key &allow-other-keys)
   (unify (intern (format nil "?~a" (name pattern))) agent substitutions))
 
+(defmethod kell-calculus::apply-restriction
+    (local-names global-names (process name-variable))
+  (multiple-value-bind (new-name replacedp)
+      (kell-calculus::apply-restriction local-names global-names (name process))
+    (values (if replacedp
+                (make-instance 'name-variable :name new-name)
+                process)
+            replacedp)))
+
 (defun find-name-variable-value (variable &optional env errorp)
   (find-variable-value (intern (format nil "?~a" (name variable))) env errorp))
 
