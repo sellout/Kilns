@@ -85,13 +85,18 @@
    (named-concretions :initarg :named-concretions :initform nil
                       :reader named-concretions)
    (primitives :initarg :primitives :initform nil :type list :reader primitives
-               :documentation "This contains lists, strings, numbers, etc., but
-                               also restrictions and any other type of process
-                               that doesn't need to be singled out."))
+               :documentation "This contains generic processes (strings,
+                               numbers, restrictions, etc. that don't need to be
+                               singled out."))
   (:documentation
    "A parallel composition is an unordered set of processes. We flatten nested
     compositions and split them up based on their type. This makes for quicker
-    access in the way we usually deal with them."))
+    access in the way we usually deal with them.")
+  (:metaclass contracted-class)
+  (:invariants (lambda (instance)
+                 "all processes are of type GENERIC-PROCESS"
+                 (every (alexandria:rcurry #'typep 'generic-process)
+                        (primitives instance)))))
 
 (defmethod print-object ((obj parallel-composition) stream)
   (format stream "(par~{ ~s~})"
