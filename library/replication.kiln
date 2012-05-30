@@ -1,9 +1,10 @@
 ;;; The Y combinator
 (define (Y ?process ?pattern {?u})
-  (trigger (par pattern {u ?y})
-    process
-    y
-    {u y}))
+  (new y ;; TODO: once definitions are localized, move this outside the define.
+    (trigger (par pattern {u ?y})
+      process
+      y
+      {u y})))
 
 ;;; A replicating trigger
 (define (trigger* ?pattern ?process)
