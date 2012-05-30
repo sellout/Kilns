@@ -377,54 +377,6 @@
 ;;;       abstractions and concretions. They should be integrated with
 ;;;       the ones above once we start actually using them.
 
-(defmethod apply-restriction
-           (local-name global-name (process kell-abstraction)
-            &optional (expandp t))
-  (make-instance (class-of process)
-    :name (if (eql (name process) local-name)
-            global-name
-            (name process))
-    :abstraction (apply-restriction local-name
-                                    global-name
-                                    (abstraction process)
-                                    expandp)
-    :continuation (apply-restriction local-name
-                                     global-name
-                                     (continuation process)
-                                     expandp)))
-(defmethod apply-restriction
-           (local-name global-name (process application-abstraction)
-            &optional (expandp t))
-  (make-instance (class-of process)
-    :abstraction (apply-restriction local-name
-                                    global-name
-                                    (abstraction process)
-                                    expandp)
-    :concretion (apply-restriction local-name
-                                   global-name
-                                   (concretion process)
-                                   expandp)))
-(defmethod apply-restriction
-           (local-name global-name (process concretion)
-            &optional (expandp t))
-  (if expandp
-    (apply-restriction local-name
-                       global-name
-                       (sub-reduce process)
-                       expandp)
-    (if (find local-name (restricted-names process))
-      process
-      (make-instance (class-of process)
-        :restricted-names (restricted-names process)
-        :messages (apply-restriction local-name
-                                     global-name
-                                     (messages process)
-                                     expandp)
-        :continuation (apply-restriction local-name
-                                      global-name
-                                      (continuation process)
-                                      expandp)))))
-
 (defmethod collect-channel-names ((process kell-abstraction) (kell kell))
   (let ((name (name process)))
     (push process (gethash name (kells kell)))
