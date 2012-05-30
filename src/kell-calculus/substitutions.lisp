@@ -140,12 +140,12 @@
   (:method ((process restriction-abstraction) mapping &optional ignored-vars)
     ;;; FIXME: these names should only be added to ignored NAME vars, but we
     ;;;        currently don't distinguish
-    (let ((ignored-vars (append (names process) ignored-vars)))
-      (multiple-value-bind (new-abstraction substitutedp)
-          (substitute (abstraction process) mapping ignored-vars)
-        (values (if substitutedp
-                    (make-instance (class-of process)
-                                   :names (names process)
-                                   :abstraction new-abstraction)
-                    process)
-                substitutedp)))))
+    (multiple-value-bind (new-abstraction substitutedp)
+        (substitute (abstraction process) mapping
+                    (append (names process) ignored-vars))
+      (values (if substitutedp
+                  (make-instance (class-of process)
+                                 :names (names process)
+                                 :abstraction new-abstraction)
+                  process)
+              substitutedp))))
