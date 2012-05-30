@@ -39,15 +39,19 @@
     ))
 
 (defclass mismatch (name-type)
-  ((complement :initarg :complement :accessor complement)
-   (variable :initarg :variable :reader variable)))
+  ((complement :initarg :complement :accessor complement :type name)
+   (variable :initarg :variable :reader variable :type (or null name-variable))))
 
 (defmethod print-object ((obj mismatch) stream)
   (format stream "(!= ~a~@[ ~a~])" (complement obj) (variable obj)))
 
 (defgeneric define-mismatch (pattern-language complement &optional variable)
   (:method ((pattern-language fraktal) complement &optional variable)
-    (make-instance 'mismatch :complement complement :variable variable)))
+    (make-instance 'mismatch
+                   :complement complement
+                   :variable (when variable
+                               (define-pattern-name-variable pattern-language
+                                                             (second variable))))))
 
 (defmethod define-pattern-nested-message
     ((pattern-language fraktal) name &rest argument-forms)
@@ -85,12 +89,12 @@
 ;;        internals than I'd like
 (defmethod substitute ((process mismatch) mapping &optional ignored-vars)
   (multiple-value-bind (new-comp substitutedp)
-      (substitute (complement process) mapping ignored-vars))
-  (values (if substitutedp
-              (make-instance 'mismatch
-                             :complement new-comp :variable (variable process))
-              process)
-          substitutedp))
+      (substitute (complement process) mapping ignored-vars)
+    (values (if substitutedp
+                (make-instance 'mismatch
+                               :complement new-comp :variable (variable process))
+                process)
+            substitutedp)))
 
 (defmethod collect-bound-names ((pattern message))
   (typecase (name pattern)
