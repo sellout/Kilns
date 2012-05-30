@@ -4,34 +4,34 @@
 #| FIXME: if we had true pi-style replication, this would work. However, we only
           create the replicated message after the existing one has matched, so
           we need two separate triggers, as done in the next test down.
-{test-result (par {should {replicate-message}}
-                  {test (par (! {test {a}})
-                             (trigger* (par {test ?x} {test ?y})
-                                       {rc (par ?x ?y)}))}
-                  {expected-result {rc (par {a} {a})}})}
+{test-result {should {replicate-message}}
+             {test (! {test {a}})
+                   (trigger* (par {test ?x} {test ?y})
+                     {rc x y})}
+             {expected-result {rc {a} {a}}}}
 |#
 
-{test-result (par {should {replicate-message}}
-                  {test (par (! {test {a}})
-                             (trigger* {test ?x} {test2 'x})
-                             (trigger (par {test2 ?x} {test2 ?y})
-                                      {rc (par 'x 'y)}))}
-                  {expected-result {rc (par {a} {a})}})}
+{test-result {should {replicate-message}}
+             {test (! {test {a}})
+                   (trigger* {test ?x} {test2 x})
+                   (trigger (par {test2 ?x} {test2 ?y})
+                     {rc x y})}
+             {expected-result {rc {a} {a}}}}
 
-{test-result (par {should {replicate-trigger}}
-                  {test (par {test {a}}
-                             {test {b}}
-                             (! (trigger {test ?x} {test2 'x}))
-                             (trigger (par {test2 ?x} {test2 ?y})
-                                      {rc (par 'x 'y)}))}
-                  {expected-result {rc (par {a} {b})}})}
+{test-result {should {replicate-trigger}}
+             {test {test {a}}
+                   {test {b}}
+                   (! (trigger {test ?x} {test2 x}))
+                   (trigger (par {test2 ?x} {test2 ?y})
+                     {rc x y})}
+             {expected-result {rc {a} {b}}}}
 
-{test-result (par {should {choose-one}}
-                  {test (par (+ (cont {a ?x} 'x)
-                                (cont {b ?y} 'y))
-                             {a {foo}}
-                             {b {bar}}
-                             (trigger (par {foo} {b {bar}}) {rc {success}})
-                             (trigger (par {a {foo}} {bar}) {rc {success}})
-                             (trigger (par {foo} {bar}) {rc {both-matched}}))}
-                  {expected-result {rc {success}}})}
+{test-result {should {choose-one}}
+             {test (+ (cont {a ?x} x)
+                      (cont {b ?y} y))
+                   {a {foo}}
+                   {b {bar}}
+                   (trigger (par {foo} {b {bar}}) {rc {success}})
+                   (trigger (par {a {foo}} {bar}) {rc {success}})
+                   (trigger (par {foo} {bar}) {rc {both-matched}})}
+             {expected-result {rc {success}}}}

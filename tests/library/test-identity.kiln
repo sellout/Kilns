@@ -1,19 +1,19 @@
 (load "library/test-framework")
 
-{test-result (par {should {match}}
-                  {test (par (load "library/simple-components")
-                             {include-component "library/identity"}
-                             {= (list {this (list {is} (par {a} {test}))}
-                                      {this (list {is} (par {a} {test}))}
-                                      {rc {t}}
-                                      {rc {f}})})}
-                  {expected-result {rc {t}}})}
+{test-result {should {match}}
+             {test (load "library/simple-components")
+                   {include-component "library/identity"}
+                   {= (list {this (list {is} (par {a} {test}))}
+                            {this (list {is} (par {a} {test}))}
+                            {rc {t}}
+                            {rc {f}})}}
+             {expected-result {rc {t}}}}
 
-{test-result (par {should {not-match}}
-                  {test (par (load "library/simple-components")
-                             {include-component "library/identity"}
-                             {= (list {this (list {is} {not} (par {a} {test}))}
-                                      {this (list {is} (par {a} {test}))}
-                                      {rc {t}}
-                                      {rc {f}})})}
-                  {expected-result {rc {f}}})}
+{test-result {should {not-match}}
+             {test (load "library/simple-components")
+                   {include-component "library/identity"}
+                   {= (list {this (list {is} {not} (par {a} {test}))}
+                            {this (list {is} (par {a} {test}))}
+                            {rc {t}}
+                            {rc {f}})}}
+             {expected-result {rc {f}}}}

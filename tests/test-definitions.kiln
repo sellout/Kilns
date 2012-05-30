@@ -2,16 +2,14 @@
 
 ;;; FIXME: can't restrict definitions to within tests
 
+#|
 (def (test1 a) `,a)
-(define (test2 {?a}) {a {yep}})
-
-{test-result (par {should {handle-macro-def}}
-                  {test (test1 {rc})}
-                  {expected-result {rc}})}
-
-#| FIXME: The problem here is that `test2` ends up being handled by the lisp
-          evaluator, which has no knowledge of our definitions
-{test-result (par {should {handle-definition}}
-                  {test (test2 {rc})}
-                  {expected-result {rc {yep}}})}
+{test-result {should {handle-macro-def}}
+             {test (test1 {rc})}
+             {expected-result {rc}}}
 |#
+
+{test-result {should {handle-definition}}
+             {test (define (test2 {?a}) {a {yep}})
+                   (test2 {rc})}
+             {expected-result {rc {yep}}}}

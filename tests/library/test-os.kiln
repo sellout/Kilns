@@ -3,15 +3,13 @@
 ;;; FIXME: these load new copies of the OS system, and do extra work to use
 ;;;        them. Not the best approach.
 
-{test-result (par {should {get-system-time}}
-                  {test (par (load "library/os/posix")
-                             (trigger (down {rc ?x}) {rc 'x})
-                             [host (par
-                                    (load "library/simple-components")
-                                    {include-component "library/ordering"}
-                                    (trigger* {os ?message up} 'message)
-                                    {os {time {got-time}}}
-                                    (trigger {got-time ?time}
-                                             {<= (list 3524182123 'time
-                                                       {rc {t}} {rc {f}})}))])}
-                  {expected-result {rc {t}}})}
+{test-result {should {get-system-time}}
+             {test (load "library/os/posix")
+                   (trigger (down {rc ?x}) {rc x})
+                   [host (load "library/simple-components")
+                         {include-component "library/ordering"}
+                         (trigger* (up {os ?message}) message)
+                         {os {time {got-time}}}
+                         (trigger {got-time ?time}
+                           {<= (list 3524182123 time {rc {t}} {rc {f}})})]}
+             {expected-result {rc {t}}}}

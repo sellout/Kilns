@@ -3,20 +3,20 @@
 ;;; FIXME: have to include the component in each test, since the test is run
 ;;;        inside a sandbox
 
-{test-result (par {should {add}}
-                  {test (par (load "library/simple-components")
-                             {include-component "library/math"}
-                             {+ (list 2 4 {rc})})}
-                  {expected-result {rc 6}})}
+{test-result {should {add}}
+             {test (load "library/simple-components")
+                   {include-component "library/math"}
+                   {+ (list 2 4 {rc})}}
+             {expected-result {rc 6}}}
 
-{test-result (par {should {remainder}}
-                  {test (par (load "library/simple-components")
-                             {include-component "library/math"}
-                             {remainder (list 7 3 {rc})})}
-                  {expected-result {rc 1}})}
+{test-result {should {remainder}}
+             {test (load "library/simple-components")
+                   {include-component "library/math"}
+                   {remainder (list 7 3 {rc})}}
+             {expected-result {rc 1}}}
 
-{test-result (par {should {modulus}}
-                  {test (par (load "library/simple-components")
-                             {include-component "library/math"}
-                             {modulus (list 7 3 {rc})})}
-                  {expected-result {rc 1}})}
+{test-result {should {modulus}}
+             {test (load "library/simple-components")
+                   {include-component "library/math"}
+                   {modulus (list 7 3 {rc})}}
+             {expected-result {rc 1}}}

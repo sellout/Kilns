@@ -1,19 +1,15 @@
 (load "library/test-framework")
 
-;;; FIXME: Currently using process variables requires quoting the symbols. This
-;;;        is not correct, but at least works for the time being.
+{test-result {should {use-existing-process-variable}}
+             {test {test-use {use}}
+                   {use {use}}
+                   (trigger {test-use ?y}
+                     (trigger {use y} {should-be-use y}))}
+             {expected-result {should-be-use {use}}}}
 
-{test-result (par {should {use-existing-process-variable}}
-                  {test (par {test-use {use}}
-                             {use {use}}
-                             (trigger {test-use ?y}
-                                      (trigger {use 'y} {should-be-use 'y})))}
-                  {expected-result {should-be-use {use}}})}
-
-{test-result (par {should {shadow-existing-process-variable}}
-                  {test (par {test-shadow {use}}
-                             {shadow {shadow}}
-                             (trigger {test-shadow ?y}
-                                      (trigger {shadow ?y}
-                                               {should-be-shadow 'y})))}
-                  {expected-result {should-be-shadow {shadow}}})}
+{test-result {should {shadow-existing-process-variable}}
+             {test {test-shadow {use}}
+                   {shadow {shadow}}
+                   (trigger {test-shadow ?y}
+                     (trigger {shadow ?y} {should-be-shadow y}))}
+             {expected-result {should-be-shadow {shadow}}}}
