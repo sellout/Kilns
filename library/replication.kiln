@@ -1,10 +1,9 @@
 ;;; The Y combinator
 (define (Y ?process ?pattern {?u})
-  ;; FIXME: need a way to uniqify variables
-  (trigger (par pattern {u ?y-iueoa})
+  (trigger (par pattern {u ?y})
            process
-           y-iueoa
-           {u y-iueoa}))
+           y
+           {u y}))
 
 ;;; A replicating trigger
 (define (trigger* ?pattern ?process)
