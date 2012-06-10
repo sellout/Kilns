@@ -114,11 +114,10 @@
 (defmethod initialize-instance :after
     ((instance pattern-abstraction) &key pattern &allow-other-keys)
   (let ((pat (convert-process-to-pattern pattern)))
-    ;(break "converted ~A into ~A" pattern pat)
     (setf (slot-value instance 'pattern) pat)))
 
 (defmethod print-object ((obj pattern-abstraction) stream)
-  (format stream "((~s) ~s)" (pattern obj) (process obj)))
+  (format stream "(~s ~s)" (pattern obj) (process obj)))
 
 (defclass simple-application-abstraction
     (simple-abstraction application-abstraction)
