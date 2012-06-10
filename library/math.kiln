@@ -36,7 +36,7 @@
 (trigger* (up {modulus (list ?number ?divisor {?rc})})
           (new rem
                (par {component-local {remainder (list number divisor {rem})}}
-                    (trigger {rem ?remain up}
+                    (trigger (up {rem ?remain})
                              {component-local {zerop (list remain
                                                            {rc remain}
                                                            {minusp (list divisor
@@ -47,7 +47,7 @@
                                                                                        {+ (list remain divisor {rc})}
                                                                                        {rc remain})})})}}))))
 
-(trigger* {evenp (list ?integer ?true ?false) up}
+(trigger* (up {evenp (list ?integer ?true ?false)})
           (new bin
                (par {component-local {modulus (list integer 2 {bin})}}
                     (trigger (up {bin ?binary})
@@ -56,7 +56,7 @@
                                       {component-out false})}))))
 
 #|
-(trigger* {abs (list ?number {?rc})}
+(trigger* (up {abs (list ?number {?rc})})
           {complexp (list ?number
                           (new (part pow sum)
                                (par {realpart (list ?number {part})}
@@ -72,22 +72,22 @@
                                         {- (list ?number {rc})}
                                         {rc ?number})})})
 
-(trigger* {conjugate (list ?complex {?rc})}
+(trigger* (up {conjugate (list ?complex {?rc})})
           (par {realpart (list ?complex {real})}
                {imagpart (list ?complex {imag})}
                (trigger {imag ?real} {- (list ?real {ima})})
                (trigger (par {real ?r} {ima ?i}) {complex (list ?r ?i {rc})})))
 
-;;(trigger* {least-common-multiple (list ?a ?b {?rc})}
+;;(trigger* (up {least-common-multiple (list ?a ?b {?rc})}))
 
-(trigger* {signum (list ?number {?rc})}
+(trigger* (up {signum (list ?number {?rc})})
           {zerop (list ?number
                        {rc ?number}
                        (new ab
                             (par {abs (list ?number {ab})}
                                  (trigger {ab ?val} {/ ?number ?val}))))})
 
-(trigger* {tan (list ?number {?rc})}
+(trigger* (up {tan (list ?number {?rc})})
           (new (s c)
                (par {sin ?number {s}}
                     {cos ?number {c}}
