@@ -5,6 +5,20 @@
 ;;; calculus with a simple pattern language. We call this calculus jK. The
 ;;; patterns in jK are defined by the following grammar:
 
+(defclass binding (name-type process)
+  ((variable :initform (error "bindings need a variable") :initarg :variable
+             :reader variable :type variable))
+  (:metaclass contracted-class))
+
+(defmethod print-object ((obj binding) stream)
+  (format stream "?~s" (variable obj)))
+
+(defmethod unify
+    ((pattern binding) agent
+     &optional (substitutions (make-empty-environment))
+     &key &allow-other-keys)
+  (unify (variable pattern) agent substitutions))
+
 (defclass jk-calculus (pattern-language)
   ())
 
@@ -37,20 +51,20 @@
 (defgeneric define-pattern-message (pattern-language name &rest argument)
   (:method ((pattern-language jk-calculus) name &rest argument)
     (make-instance 'message
-                   :name name
+                   :name (define-name name)
                    :argument (apply #'define-pattern-message-argument
                                     pattern-language argument))))
 
 (defgeneric define-pattern-kell (pattern-language name &rest state)
   (:method ((pattern-language jk-calculus) name &rest state)
     (make-instance 'kell
-                   :name name
+                   :name (define-name name)
                    :state (apply #'define-pattern-message-argument
                                  pattern-language state))))
 
 (defgeneric define-pattern-process-variable (pattern-language name)
   (:method ((pattern-language jk-calculus) name)
-    (make-instance 'process-variable :name name)))
+    (make-instance 'binding :variable (make-instance 'process-variable :label name))))
 
 (defgeneric define-pattern-message-argument
     (pattern-language &rest argument-forms)
@@ -157,8 +171,11 @@
   '())
 
 (defmethod bound-variables ((pattern pattern))
-  (append (mapcar #'argument
+  (append (mapcar (alexandria:compose #'variable #'argument)
                   (append (local-message-pattern pattern)
                           (down-message-pattern pattern)
-                          (up-message-pattern pattern)))
-          (mapcar #'state (kell-message-pattern pattern))))
+                          (up-message-pattern pattern)
+                          (mapcar (alexandria:compose #'messages-in #'messages)
+                                  (named-concretions pattern))))
+          (mapcar (alexandria:compose #'variable #'state)
+                  (kell-message-pattern pattern))))

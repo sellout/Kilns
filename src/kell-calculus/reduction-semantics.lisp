@@ -11,22 +11,15 @@
   (:method (local-name global-name process)
     (declare (ignore local-name global-name))
     process)
-  (:method (local-name global-name (process symbol))
+  (:method (local-name global-name (process name))
     (if (eq process local-name)
         (values global-name t)
         (values process nil)))
-  (:method (local-name global-name (process process-variable))
-    (multiple-value-bind (new-name replacedp)
-        (apply-restriction local-name global-name (name process))
-      (values (if replacedp
-                  (make-instance 'process-variable :name new-name)
-                  process)
-              replacedp)))
   (:method (local-name global-name (process message))
     (make-instance 'message
-                   :name (if (eql (name process) local-name)
-                             global-name
-                             (name process))
+                   :name (apply-restriction local-name
+                                            global-name
+                                            (name process))
                    :argument (apply-restriction local-name
                                                 global-name
                                                 (argument process))
@@ -35,9 +28,9 @@
                                                     (continuation process))))
   (:method (local-name global-name (process kell))
     (make-instance 'kell
-                   :name (if (eql (name process) local-name)
-                             global-name
-                             (name process))
+                   :name (apply-restriction local-name
+                                            global-name
+                                            (name process))
                    :state (apply-restriction local-name
                                              global-name
                                              (state process))
@@ -81,9 +74,9 @@
                                                (process process))))
   (:method (local-name global-name (process kell-abstraction))
     (make-instance (class-of process)
-                   :name (if (eql (name process) local-name)
-                             global-name
-                             (name process))
+                   :name (apply-restriction local-name
+                                            global-name
+                                            (name process))
                    :abstraction (apply-restriction local-name
                                                    global-name
                                                    (abstraction process))
@@ -99,28 +92,26 @@
                                                   global-name
                                                   (concretion process))))
   (:method (local-name global-name (process concretion))
-    (if (member local-name (restricted-names process))
-        process
-        (make-instance (class-of process)
-                       :restricted-names (restricted-names process)
-                       :messages (apply-restriction local-name
+    (make-instance (class-of process)
+                   :restricted-names (restricted-names process)
+                   :messages (apply-restriction local-name
+                                                global-name
+                                                (messages process))
+                   :continuation (apply-restriction local-name
                                                     global-name
-                                                    (messages process))
-                       :continuation (apply-restriction local-name
-                                                        global-name
-                                                        (continuation process)))))
+                                                    (continuation process))))
   (:method (local-name global-name (process named-concretion))
-    (if (member local-name (restricted-names process))
-        process
-        (make-instance (class-of process)
-                       :name (name process)
-                       :restricted-names (restricted-names process)
-                       :messages (apply-restriction local-name
+    (make-instance (class-of process)
+                   :name (name process)
+                   :restricted-names (restricted-names process)
+                   :messages (messages process)
+                   :continuation (apply-restriction local-name
                                                     global-name
-                                                    (messages process))
-                       :continuation (apply-restriction local-name
-                                                        global-name
-                                                        (continuation process))))))
+                                                    (continuation process))
+                   :lexical-names (mapcar (alexandria:curry #'cl:substitute global-name local-name)
+                                          (lexical-names process))
+                   :lexical-placeholders (lexical-placeholders process)
+                   :suspended-values (suspended-values process))))
 
 (defgeneric sub-reduce (process)
   (:documentation "The sub-reduction relation is defined to handle scope
@@ -147,7 +138,7 @@
               (setf abstraction
                     ;; TODO: apply-restriction should handle all names
                     ;;       at once, rather than one at a time
-                    (apply-restriction name (unique-name name) abstraction)))
+                    (apply-restriction name (extrude-scope name) abstraction)))
             (names process))
       (values abstraction t)))
   (:method ((process concretion))
@@ -155,12 +146,13 @@
         (values (let ((messages (messages process))
                       (continuation (continuation process)))
                   (mapc (lambda (name)
-                          (psetf messages
-                                 (apply-restriction name (unique-name name) messages)
-                                 continuation
-                                 (apply-restriction name
-                                                    (unique-name name)
-                                                    continuation)))
+                          (let ((global-name (extrude-scope name)))
+                            (psetf messages
+                                   (apply-restriction name global-name messages)
+                                   continuation
+                                   (apply-restriction name
+                                                      global-name
+                                                      continuation))))
                         (restricted-names process))
                   (make-instance (class-of process)
                                  :messages messages :continuation continuation))

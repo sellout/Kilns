@@ -7,7 +7,8 @@
     ((pattern process-variable) agent
      &optional (substitutions (make-empty-environment))
      &key &allow-other-keys)
-  (unify (intern (format nil "?~a" (name pattern))) agent substitutions))
+  (unify (intern (format nil "?~a" (kell-calculus::label pattern)))
+         agent substitutions))
 
 (defmethod unify
     ((pattern kell) (agent kell)
@@ -71,15 +72,18 @@
   (unify (car (kell-message-pattern pattern)) agent substitutions))
 
 ;; NOTE: FIND-VARIABLE-VALUE isn't generic, so we use a different name
-(defun find-symbol-value (variable &optional env errorp)
-  (find-variable-value (intern (format nil "?~a" variable)) env errorp))
-(defun find-process-variable-value (variable &optional env errorp)
-  (find-variable-value (intern (format nil "?~a" (name variable))) env errorp))
+(defun find-identifier-value (variable &optional env errorp)
+  (find-variable-value (intern (format nil "?~a"
+                                       (kell-calculus::label variable)))
+                       env errorp))
 
 ;;; It turns out that occurs-in-p is used to make sure that variables don't
 ;;; match things that contain the same variable - but we don't care, that's
 ;;; fine in our calculus.
 (defmethod unify::occurs-in-p ((var symbol) (pat agent) env)
+  (declare (ignore env))
+  nil)
+(defmethod unify::occurs-in-p ((var symbol) (pat identifier) env)
   (declare (ignore env))
   nil)
 

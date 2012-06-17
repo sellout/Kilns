@@ -9,7 +9,6 @@
   (princ "null" stream))
 
 (defvar +null-process+ (make-instance 'null-process))
-(defvar null +null-process+) ; FIXME: remove this var
 
 (defclass trigger (process pattern-abstraction)
   ())
@@ -24,7 +23,8 @@
   (format stream "(new ~a ~s)" (names obj) (abstraction obj)))
 
 (defclass message (process)
-  ((name :initarg :name :accessor name :type name)
+  ((name :initform (error "name is required") :initarg :name :accessor name
+         :type generic-name)
    (argument :initarg :argument :initform +null-process+ :type generic-process
              :accessor argument
              :documentation
@@ -46,13 +46,15 @@
           (continuation obj)))
 
 (defclass kell (process)
-  ((name :initarg :name :accessor name :type name)
+  ((name :initform (error "name is required") :initarg :name :accessor name
+         :type generic-name)
    (state :initarg :state :initform +null-process+ :type generic-process
           :accessor state)
    (continuation :initarg :continuation :initform +null-process+
                  :type generic-process :accessor continuation)
    ;; implementation details
    (lock :reader lock)
+   (activep :initform nil :accessor activep)
    ;; while each trigger pattern contains a multiset of typed patterns, we keep
    ;; them aggregated here in a hash-table mapping the channel-name to the
    ;; trigger that they are a part of. This makes the matching much easier, but
@@ -151,7 +153,7 @@
     (let ((state (state kell)))
       (setf (state kell)
             (typecase state
-              (message null)
+              (message +null-process+)
               (parallel-composition
                (apply #'parallel-composition
                       (remove process
@@ -160,7 +162,7 @@
     (let ((state (state kell)))
       (setf (state kell)
             (typecase state
-              (kell null)
+              (kell +null-process+)
               (parallel-composition
                (apply #'parallel-composition
                       (remove process
@@ -169,7 +171,7 @@
     (let ((state (state kell)))
       (setf (state kell)
             (typecase state
-              (trigger null)
+              (trigger +null-process+)
               (parallel-composition
                (apply #'parallel-composition
                       (remove process
@@ -182,7 +184,7 @@
                (apply #'parallel-composition
                       (remove process
                               (map-parallel-composition #'identity state))))
-              (t null))))))
+              (t +null-process+))))))
 
 (defgeneric process-variables-in (process)
   (:documentation
@@ -309,13 +311,3 @@
                  :triggers (cons process-b (triggers process-a))
                  :named-concretions (named-concretions process-a)
                  :primitives (primitives process-a)))
-
-(defun null-name ()
-  (break "nil name!"))
-
-(defmethod initialize-instance :after
-    ((instance message) &key name &allow-other-keys)
-  (when (null name)
-    (null-name)))
-
-(trace :before :backtrace null-name)

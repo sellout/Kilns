@@ -32,21 +32,128 @@
          (set-egal (up-message-pattern x) (up-message-pattern y))
          (set-egal (kell-message-pattern x) (kell-message-pattern y)))))
 
+(defclass global-name (name)
+  ((id :initform nil :initarg :id :reader id :type (or null integer))
+   (thread :initform nil :initarg :thread :reader thread :type (or null integer))
+   (host :initform nil :initarg :host :reader host :type (or null))))
+
+(defmethod print-object ((obj global-name) stream)
+  (if *debugp*
+      (format stream "«~S~@[-~D~]~@[/~D~]»" (label obj) (thread obj) (id obj))
+      (format stream "~S" (label obj))))
+
+(defmethod unify
+    ((pattern global-name) (agent global-name)
+     &optional (substitutions (make-empty-environment)) &key &allow-other-keys)
+  (if (or (eq pattern agent)
+          (and (eql (label pattern) (label agent))
+               (eql (id pattern) (id agent))
+               (eql (thread pattern) (thread agent))
+               (eql (host pattern) (host agent))))
+      substitutions
+      (error 'unification-failure
+             :format-control "Could not unify the name ~A with the name ~A"
+             :format-arguments (list pattern agent))))
+
+(defclass restricted-name (name)
+  ())
+
+(defmethod print-object ((obj restricted-name) stream)
+  (format stream (if *debugp* "⟦~S⟧" "~S") (label obj)))
+
+(defmethod unify
+    ((pattern restricted-name) (agent restricted-name)
+     &optional (substitutions (make-empty-environment)) &key &allow-other-keys)
+  (if (eq pattern agent)
+      substitutions
+      (error 'unification-failure
+             :format-control "Could not unify the name ~A with the name ~A"
+             :format-arguments (list pattern agent))))
+
+(defvar *id-counter* 0) ; thread-local
+
+(defmethod extrude-scope ((name restricted-name))
+  "Converts a restricted name into a globally-unique name."
+  (make-instance 'global-name
+                 :label (label name)
+                 :id (setf *id-counter* (1+ *id-counter*))
+                 :thread (ccl::process-tcr (current-thread))))
+
+(defvar *global-names* ()
+  "This only holds truly global names, not ones that have been extruded from
+   restricted names.")
+
+(defvar *restricted-names* ()
+  "This is a list of lists of restricted names. Each list represents one scoping
+   level.")
+
+(defvar *process-variables* ()
+  "This is a list of lists of process-variables. Each list represents one
+   scoping level.")
+
+(defun find-name (label restricted-names)
+  (loop for scope in restricted-names
+     for name = (find label scope :key #'label)
+     until name
+     finally (return name)))
+
+(defun find-or-add-global-name (label)
+  (or (find label *global-names* :key #'label)
+      (let ((new-name (make-instance 'global-name :label label)))
+        (push new-name *global-names*)
+        new-name)))
+
+(defun find-process-variable (label process-variables)
+  (or (loop for scope in process-variables
+         for pv = (find label scope :key #'label)
+         until pv
+         finally (return pv))
+      (if kell-calculus::*force-resolution-p*
+          label
+          (error 'no-such-variable-error :name label))))
+
+(defvar *reading-name-p* nil)
+(defvar *reading-concretion-p* nil)
+
 (defgeneric define-pattern (pattern-language pattern)
   (:documentation "This needs to be defined for each pattern language. It
-                   determines how the patterns are interpreted."))
+                   determines how the patterns are interpreted.")
+  (:method-combination contract)
+  (:method :guarantee (pattern-language pattern)
+     (declare (ignore pattern-language pattern))
+     (= 3 (length (multiple-value-list (results)))))
+  (:method :around (pattern-language pattern)
+     ;; FIXME: this is a workaround since define-pattern-* currently aren’t
+     ;;        collecting their variables for us.
+     (let* ((proc (call-next-method))
+            (pat (kell-calculus::convert-process-to-pattern proc)))
+       (values proc
+               (bound-names pat)
+               (bound-variables pat)))))
+
+(defun define-name (label)
+  "Returns either a name object or a bare symbol. The symbol indicates "
+  (or (find-name label *restricted-names*)
+      (if *reading-concretion-p*
+          label
+          (find-or-add-global-name label))))
+
+(defun define-placeholder (label)
+  (if *reading-concretion-p*
+      label
+      (find-process-variable label *process-variables*)))
 
 (defun define-kell
     (name &rest state)
   (make-instance 'kell
-                 :name (eval name)
+                 :name (let ((*reading-name-p* t)) (eval name))
                  :state (if state
                             (define-parallel-composition state)
                             +null-process+)))
 
 (defun define-message (name &rest argument)
   (make-instance 'message
-                 :name (eval name)
+                 :name (let ((*reading-name-p* t)) (eval name))
                  :argument (if argument
                                (define-parallel-composition argument)
                                +null-process+)))
@@ -55,16 +162,21 @@
   (reduce #'compose (mapcar #'eval processes) :initial-value +null-process+))
 
 (defun define-restriction (names &rest processes)
-  (make-instance 'restriction
-                 :names (if (listp names)
-                            (mapcar #'eval names)
-                            (list (eval names)))
-                 :abstraction (define-parallel-composition processes)))
+  (let ((names (mapcar (alexandria:curry #'make-instance 'restricted-name :label)
+                       (if (listp names) names (list names)))))
+    (make-instance 'restriction
+                   :names names
+                   :abstraction (let ((*restricted-names* (cons names *restricted-names*)))
+                                  (define-parallel-composition processes)))))
 
 (defun define-trigger (pattern &rest processes)
-  (make-instance 'trigger
-                 :pattern (define-pattern *current-pattern-language* pattern)
-                 :process (define-parallel-composition processes)))
+  (multiple-value-bind (pattern name-variables process-variables)
+      (define-pattern *current-pattern-language* pattern)
+    (make-instance 'trigger
+                   :pattern pattern
+                   :process (let ((*restricted-names* (cons name-variables *restricted-names*))
+                                  (*process-variables* (cons process-variables *process-variables*)))
+                              (define-parallel-composition processes)))))
 
 (defun order-forms (&rest processes)
   "Works like the `,` sequencer defined in the paper, making parallel processes
@@ -79,6 +191,7 @@
   (:documentation "This allows us to decide whether a particular object is a
                    process or a pattern.")
   (:method (process)
+    (declare (ignore process))
     0)
   (:method ((process concretion))
     (1+ (count-concretions (messages process))))
@@ -119,7 +232,7 @@
                            (new-patt-component (ignore-errors (define-pattern-message-argument *current-pattern-language*
                                                                   process))))
                        (make-instance 'message
-                                      :name (incf index)
+                                      :name (find-or-add-global-name (incf index))
                                       :argument (car (stable-sort (remove nil
                                                                           (list new-proc new-patt-component new-patt))
                                                                   #'<
@@ -128,42 +241,63 @@
 
 (defun define-definition (pattern &rest processes)
   (destructuring-bind (name &rest parameters) pattern
-    (setf (gethash name *global-definitions*)
-          (make-instance 'definition
-                         :name name
-                         :pattern (define-pattern *current-pattern-language*
-                                      (apply #'order-forms parameters))
-                         :process (define-parallel-composition processes))))
+    (multiple-value-bind (pattern name-variables process-variables)
+        (define-pattern *current-pattern-language*
+                        (apply #'order-forms parameters))
+      (setf (gethash name *global-definitions*)
+            (make-instance 'definition
+                           :name name
+                           :pattern pattern
+                           :process (let ((*restricted-names* (cons name-variables *restricted-names*))
+                                          (*process-variables* (cons process-variables *process-variables*)))
+                                      (define-parallel-composition processes))))))
   +null-process+)
 
 (defun define-named-concretion (name &rest arguments)
   "Even though this is in a process, it could match a definition where it
    expands into pattern position, so we try to patternize it if need be."
-  (make-instance 'named-concretion
-                 :name (if (listp name)
-                           (define-parallel-composition (list name))
-                           name)
-                 :messages (apply #'order-procs arguments)))
+  (apply #'make-instance
+         'named-concretion
+         :name (if (listp name)
+                   (define-parallel-composition (list name))
+                   name)
+         ;;  NB  We clear lexical scope because the expansion might
+         ;;      introduce new names in between.
+         :messages (let ((*reading-concretion-p* t)
+                         (*restricted-names* ())
+                         (*process-variables* ()))
+                     (apply #'order-procs arguments))
+         (unless *reading-concretion-p*
+           (list :lexical-names *restricted-names*
+                 :lexical-placeholders *process-variables*))))
 
-(defun eval (form)
-  (if (consp form)
-      (case (car form)
-        (cont (let ((process (eval (second form))))
-                (setf (continuation process)
-                      (define-parallel-composition (cddr form)))
-                process))
-        (kell (apply #'define-kell (cdr form)))
-        (message (apply #'define-message (cdr form)))
-        (new (apply #'define-restriction (cdr form)))
-        (par (define-parallel-composition (cdr form)))
-        (trigger (apply #'define-trigger (cdr form)))
-        (define (apply #'define-definition (cdr form)))
-        ((process-variable name-variable)
-         (error "Not a valid process."))
-        (otherwise (apply #'define-named-concretion form)))
-      (if (and (not *reading-name-p*) (eq form 'null))
-          +null-process+
-          form)))
+(defgeneric eval (form)
+  (:method ((form cons))
+    (case (car form)
+      (cont (let ((process (eval (second form))))
+              (setf (continuation process)
+                    (define-parallel-composition (cddr form)))
+              process))
+      (kell (apply #'define-kell (cdr form)))
+      (message (apply #'define-message (cdr form)))
+      (new (apply #'define-restriction (cdr form)))
+      (par (define-parallel-composition (cdr form)))
+      (trigger (apply #'define-trigger (cdr form)))
+      (define (apply #'define-definition (cdr form)))
+      ((process-variable name-variable) (error "Not a valid process."))
+      (otherwise (apply #'define-named-concretion form))))
+  (:method ((form symbol))
+    (if *reading-name-p*
+        (define-name form)
+        (if (eq form 'null)
+            +null-process+
+            (define-placeholder form))))
+  (:method ((form integer))
+    (if *reading-name-p*
+        (define-name form)
+        form))
+  (:method (form)
+    form))
 
 (defun read (&rest read-args)
   (let* ((*readtable* kilns::*kilns-readtable*)
@@ -171,7 +305,7 @@
          (*read-eval* nil)
          (value (apply #'cl:read read-args)))
     (case value
-      (null null)
+      (null +null-process+)
       (otherwise value))))
 
 (defun read-from-string (string &optional (eof-error-p t) eof-value

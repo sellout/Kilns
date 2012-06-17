@@ -25,6 +25,7 @@
            #:names #:restricted-names #:continuation #:messages
            #:@
            ;; FIXME: shouldn't export, maybe keep in separate package
+           #:label #:extrude-scope
            #:named-concretion
            #:parent #:deadp #:lock #:map-parallel-composition #:map-process
            #:find-process-variable-value
@@ -66,7 +67,9 @@
            ;; interactive commands
            #:load #:move-up #:move-down
            #:system-state #:dump-system-state #:watch
-           #:lisp #:substitute-variables))
+           #:lisp #:substitute-variables
+           ;; other
+           #:global-name #:restricted-name))
 
 (defpackage kilns-user
   (:use #:kell-calculus #:kilns))

@@ -20,7 +20,7 @@
 
 ;;; In this pattern language, the special pattern _ matches anything.
 
-(defclass name-variable (name-type)
+(defclass name-variable (name-type variable)
   ((name :initarg :name :type symbol :reader name))
   (:documentation
    "These only exist in “potential” processes. When a trigger is triggered, we
@@ -29,7 +29,7 @@
     by a more local variable with the same name."))
 
 (defmethod print-object ((obj name-variable) stream)
-  (format stream "?~s" (name obj)))
+  (format stream "~s" (label obj)))
 
 (defmethod egal ((x name-variable) (y name-variable))
   (egal (name x) (name y)))
@@ -43,19 +43,8 @@
     ((pattern name-variable) agent
      &optional (substitutions (make-empty-environment))
      &key &allow-other-keys)
-  (unify (intern (format nil "?~a" (name pattern))) agent substitutions))
-
-(defmethod kell-calculus::apply-restriction
-    (local-names global-names (process name-variable))
-  (multiple-value-bind (new-name replacedp)
-      (kell-calculus::apply-restriction local-names global-names (name process))
-    (values (if replacedp
-                (make-instance 'name-variable :name new-name)
-                process)
-            replacedp)))
-
-(defun find-name-variable-value (variable &optional env errorp)
-  (find-variable-value (intern (format nil "?~a" (name variable))) env errorp))
+  (unify (intern (format nil "?~a" (label pattern)))
+         agent substitutions))
 
 (defclass blank (process)
   ())
@@ -78,7 +67,7 @@
 
 (defgeneric define-pattern-name-variable (pattern-language name)
   (:method ((pattern-language pnpjk-calculus) name)
-    (make-instance 'name-variable :name name)))
+    (make-instance 'binding :variable (make-instance 'name-variable :label name))))
 
 (defgeneric define-pattern-nested-message
     (pattern-language name &rest argument-forms)
@@ -106,10 +95,11 @@
                             (case (car process-form)
                               (process-variable (define-pattern-process-variable pattern-language
                                                     (second process-form)))
-                              (par (mapcar (lambda (process-form)
-                                             (apply #'define-pattern-message
-                                                    pattern-language (cdr process-form)))
-                                           (cdr process-form)))
+                              (par (apply #'parallel-composition
+                                          (mapcar (lambda (process-form)
+                                                    (apply #'define-pattern-message
+                                                           pattern-language (cdr process-form)))
+                                                  (cdr process-form))))
                               (message (apply #'define-pattern-nested-message
                                               pattern-language (cdr process-form)))
                               (otherwise (apply #'define-pattern-named-concretion
@@ -165,7 +155,7 @@
             &optional (substitutions (make-empty-environment)))
     (declare (ignore process))
     substitutions)
-  (:method ((pattern process-variable) process
+  (:method ((pattern binding) process
             &optional (substitutions (make-empty-environment)))
     (unify pattern process substitutions))
   (:method ((pattern process) process
@@ -173,7 +163,7 @@
     (match pattern process substitutions))
   (:method ((pattern message) (process message)
             &optional (substitutions (make-empty-environment)))
-    (if (typep (name pattern) 'name-variable)
+    (if (typep (name pattern) 'binding)
       (recursive-match (argument pattern) (argument process)
                        (unify (name pattern) (name process) substitutions))
       (match pattern process substitutions))))
@@ -183,34 +173,41 @@
     (declare (ignore pattern))
     '())
   (:method ((pattern message))
-    (if (typep (name pattern) 'name-variable)
-      (cons (name pattern) (collect-bound-names (argument pattern)))
-      (collect-bound-names (argument pattern))))
+    (let ((name (name pattern)))
+      (if (typep name 'binding)
+          (cons (variable name) (collect-bound-names (argument pattern)))
+          (collect-bound-names (argument pattern)))))
   (:method ((pattern parallel-composition))
-    (mapcan #'collect-bound-names (messages pattern))))
+    (mapcan #'collect-bound-names (messages pattern)))
+  (:method ((pattern named-concretion))
+    (collect-bound-names (messages pattern))))
 
 (defmethod bound-names :around ((pattern pattern))
   (mapcan #'collect-bound-names
           (append (local-message-pattern pattern)
                   (down-message-pattern pattern)
-                  (up-message-pattern pattern))))
+                  (up-message-pattern pattern)
+                  (named-concretions pattern))))
 
 (defgeneric collect-bound-variables (pattern)
   (:method (pattern)
     (declare (ignore pattern))
     nil)
-  (:method ((pattern process-variable))
-    (list pattern))
+  (:method ((pattern binding))
+    (list (variable pattern)))
   (:method ((pattern message))
     (collect-bound-variables (argument pattern)))
   (:method ((pattern kell))
-    (list (state pattern)))
+    (list (variable (state pattern))))
   (:method ((pattern parallel-composition))
-    (mapcan #'collect-bound-variables (messages pattern))))
+    (mapcan #'collect-bound-variables (messages pattern)))
+  (:method ((pattern named-concretion))
+    (collect-bound-variables (messages pattern))))
 
 (defmethod bound-variables :around ((pattern pattern))
   (mapcan #'collect-bound-variables
           (append (local-message-pattern pattern)
                   (down-message-pattern pattern)
                   (up-message-pattern pattern)
-                  (kell-message-pattern pattern))))
+                  (kell-message-pattern pattern)
+                  (named-concretions pattern))))

@@ -8,30 +8,36 @@
 (defvar *top-kell*)
 (defvar *local-kell*)
 
+(defun get-ordered-parameters (process)
+  (mapcar (alexandria:compose #'translate-form #'argument)
+          (sort (copy-list (kell-calculus::messages-in process))
+                #'<
+                :key (alexandria:compose #'label #'name))))
+
 (defun translate-form (form)
   (if (typep form 'named-concretion)
       (let ((new-form (expand-concretions form)))
         (if (eq new-form form)
             `(,(translate-form (name form))
-               ,@(mapcar (alexandria:compose #'translate-form
-                                             #'argument)
-                         (sort (copy-list (kell-calculus::messages-in (messages form)))
-                               #'<
-                               :key #'name)))
+               ,@(get-ordered-parameters (messages form)))
             new-form))
       form))
 
 (defvar *global-definitions* (make-hash-table :test #'eq)
   "The set of definitions that are available anywhere in the system.")
-(defmacro defglobal (name (&rest arguments) &body body)
+
+(defmacro defglobal (name (&rest arguments) aggro-expand &body body)
   "This allows us to add global built-ins to Kilns."
   `(setf (gethash ',(intern (symbol-name name) :kilns-user)
                   *global-definitions*)
-         (lambda (process)
+         (lambda (concretion)
            (destructuring-bind (,@arguments)
-               (mapcar (alexandria:compose #'translate-form #'argument)
-                       (sort (copy-list (kell-calculus::messages-in process)) #'<
-                             :key #'name))
+               (get-ordered-parameters (let ((kell-calculus::*force-resolution-p* ,aggro-expand))
+                                         (kell-calculus::resolve-placeholders
+                                          (messages concretion)
+                                          (kell-calculus::lexical-names concretion)
+                                          (kell-calculus::lexical-placeholders concretion)
+                                          (kell-calculus::suspended-values concretion))))
              ,@body))))
 
 (defvar *delayed-concretions* (make-hash-table :test #'eq)
@@ -59,6 +65,12 @@
              (format stream "No kell named ~a within ~a."
                      (slot-value condition 'name)
                      (slot-value condition 'container)))))
+
+(define-condition no-such-variable-error (kiln-error)
+  ((name :initarg :name))
+  (:report (lambda (condition stream)
+             (format stream "No variable named ~a in the current scope."
+                     (slot-value condition 'name)))))
 
 (let ((lock (make-lock "print-lock")))
   (defun printk (&rest arguments)
@@ -246,17 +258,17 @@
   (let ((current-kell top-kell)
         (*package* (find-package :kilns-user))
         (*readtable* *kilns-readtable*))
-    (defglobal move-up ()
+    (defglobal move-up () nil
       (setf current-kell (parent current-kell))
       +null-process+)
-    (defglobal move-down (kell-name)
+    (defglobal move-down (kell-name) nil
       (let ((new-kell (car (gethash kell-name (kells current-kell)))))
         (if new-kell
             (setf current-kell new-kell)
             (error 'no-such-kell-error
                    :name kell-name :container current-kell)))
       +null-process+)
-    (defglobal system-state ()
+    (defglobal system-state () nil
       "Prints the current kell."
       ;; TODO: It would be great to pretty-print this, but just setting
       ;;       *PRINT-PRETTY* isn't enough.
@@ -444,14 +456,20 @@
 
 (defgeneric expand-concretions (process)
   (:documentation
-   "Expands any accessible concretions in the given process and returns two
+   "In addition to regular contexts and execution contexts, we also
+    have matching contexts (noted M) that specify where concretions
+    must be expanded to prevent blocking a match.
+
+        M ::= · | M▹P | νa.M | (P|M) | a[M].P | a⟨M⟩.P
+
+    Expands any accessible concretions in the given process and returns two
     values the expanded process (possibly the same as the argument if there
     were no concretions) and a boolean indicating whether the process was
     altered. This can't just be done in add-/activate-process because we also
     need to do this for inactive processes that could be involved in a match.")
   (:method-combination contract)
   (:method :guarantee "process hasn't changed if there was no expansion"
-           (process)
+      (process)
     (multiple-value-bind (new-process contained-expansion-p) (results)
       (not (eq contained-expansion-p (eq process new-process)))))
   (:method ((process named-concretion))
@@ -592,7 +610,7 @@
 
 ;;; Initialization
 
-(defglobal lisp (&rest processes)
+(defglobal lisp (&rest processes) t
   "Call back into the lisp from Kilns. Provides a SUBSTITUTE-VARIABLES macro
    that allows us to pass lisp variables back to nested processes."
   (cl:eval `(macrolet ((substitute-variables ((&rest variables) &body processes)
@@ -615,7 +633,7 @@
                  &key
                  (verbose *load-verbose*)
                  (print *load-print*)
-                 (if-does-not-exist :error))
+                 (if-does-not-exist :error)) nil
   (declare (ignore if-does-not-exist verbose))
   (let ((full-name (merge-pathnames file-name (make-pathname :type "kiln"))))
     (let ((processes (with-open-file (stream full-name
@@ -626,10 +644,11 @@
                               collecting value))))
       (eval `(par ,@processes)))))
 
-(defglobal list (&rest processes)
+(defglobal list (&rest processes) nil
   (let ((index 0))
     (apply #'parallel-composition
            (mapcar (lambda (process)
                      (make-instance 'message
-                                    :name (incf index) :argument process))
+                                    :name (find-or-add-global-name (incf index))
+                                    :argument process))
                    processes))))

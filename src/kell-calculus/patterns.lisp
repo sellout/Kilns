@@ -46,7 +46,7 @@
   (:invariants (lambda (instance)
                  "no duplicate variables"
                  (let ((bv (bound-variables instance)))
-                   (equal bv (remove-duplicates bv :key #'name))))
+                   (equal bv (remove-duplicates bv :key #'label))))
                (lambda (instance)
                  "local messages are properly categorized"
                  (every (lambda (message)
@@ -113,6 +113,53 @@
   (:method ((process symbol) &optional (pattern (make-instance 'pattern)))
     (push process (placeholders pattern))
     pattern))
+
+(defmethod resolve-placeholders ((process pattern) lexical-names lexical-processes suspended-values)
+  (let ((resolvedp nil))
+    (flet ((res-place (processes)
+             (let* ((resp nil)
+                    (new-patt (mapcar (lambda (proc)
+                                        (multiple-value-bind (new-proc rp)
+                                            (resolve-placeholders proc
+                                                                  lexical-names
+                                                                  lexical-processes
+                                                                  suspended-values)
+                                          (when rp (setf resp t))
+                                          new-proc))
+                                      processes)))
+               (if resp
+                   (progn
+                     (setf resolvedp t)
+                     new-patt)
+                   processes))))
+      (let ((new-local-pattern (res-place (local-message-pattern process)))
+            (new-up-pattern (res-place (up-message-pattern process)))
+            (new-down-pattern (res-place (down-message-pattern process)))
+            (new-kell-pattern (res-place (kell-message-pattern process)))
+            (new-named-concretions (res-place (named-concretions process)))
+            (expanded-placeholders (res-place (placeholders process))))
+        (values (if resolvedp
+                    (let ((new-placeholders nil))
+                      (mapc (lambda (old-placeholder)
+                              (typecase old-placeholder
+                                (message (case (continuation old-placeholder)
+                                           (up (push old-placeholder new-up-pattern))
+                                           (down (push old-placeholder new-down-pattern))
+                                           (otherwise (push old-placeholder new-local-pattern))))
+                                (kell (push old-placeholder new-kell-pattern))
+                                (named-concretion (push old-placeholder new-named-concretions))
+                                (t (push old-placeholder new-placeholders))))
+                            expanded-placeholders)
+                      (make-instance 'pattern
+                                     :local-message-pattern new-local-pattern
+                                     :up-message-pattern new-up-pattern
+                                     :down-message-pattern new-down-pattern
+                                     :kell-message-pattern new-kell-pattern
+                                     :named-concretions new-named-concretions
+                                     :placeholders new-placeholders))
+                    process)
+                resolvedp)))))
+;; (trace resolve-placeholders)
 
 ;;; – One can decide whether a pattern matches a given term. More precisely,
 ;;;   each pattern language is equipped with a decidable relation match, which

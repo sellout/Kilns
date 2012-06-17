@@ -73,9 +73,9 @@
 (defmethod recursive-match ((pattern message) (process message)
                             &optional (substitutions (make-empty-environment)))
   (typecase (name pattern)
-    (name-variable (recursive-match (argument pattern) (argument process)
-                                    (unify (name pattern) (name process)
-                                           substitutions)))
+    (binding (recursive-match (argument pattern) (argument process)
+                              (unify (name pattern) (name process)
+                                     substitutions)))
     (mismatch (let ((name (name pattern)))
                 (when (not (eql (complement name) (name process)))
                   (recursive-match (argument pattern) (argument process)
@@ -87,21 +87,23 @@
 
 ;; FIXME: This is fraktal-specific, but kind of digs a bit more into the
 ;;        internals than I'd like
-(defmethod substitute ((process mismatch) mapping &optional ignored-vars)
+(defmethod substitute ((process mismatch) mapping)
   (multiple-value-bind (new-comp substitutedp)
-      (substitute (complement process) mapping ignored-vars)
+      (substitute (complement process) mapping)
     (values (if substitutedp
                 (make-instance 'mismatch
-                               :complement new-comp :variable (variable process))
+                               :complement new-comp
+                               :variable (variable process))
                 process)
             substitutedp)))
 
 (defmethod collect-bound-names ((pattern message))
-  (typecase (name pattern)
-    (name-variable (cons (name pattern)
-                         (collect-bound-names (argument pattern))))
-    (mismatch (if (variable (name pattern))
-                  (cons (variable (name pattern))
-                        (collect-bound-names (argument pattern)))
-                  (collect-bound-names (argument pattern))))
-    (otherwise (collect-bound-names (argument pattern)))))
+  (let ((name (name pattern)))
+    (typecase name
+      (binding (cons (variable name)
+                     (collect-bound-names (argument pattern))))
+      (mismatch (if (variable name)
+                    (cons (variable name)
+                          (collect-bound-names (argument pattern)))
+                    (collect-bound-names (argument pattern))))
+      (otherwise (collect-bound-names (argument pattern))))))
