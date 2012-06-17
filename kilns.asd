@@ -9,7 +9,8 @@
   :license "MIT"
   :author "Greg Pfeil <greg@technomadic.org>"
   :depends-on (bordeaux-threads cl-unification iolib.os closer-mop
-               iolib external-program quid-pro-quo) ; cl+ssl ironclad
+               iolib external-program quid-pro-quo ; cl+ssl ironclad
+               hunchentoot cl-json) ; for analytics
   :pathname "src/"
   :components ((:file "package")
                (:module "kell-calculus"
@@ -50,7 +51,8 @@
                       :depends-on ("syntax" "reader" "unification"))
                (:file "network"
                       :depends-on ("runtime"))
-               (:file "debug" :depends-on ("reader")))
+               (:file "debug" :depends-on ("reader"))
+               (:file "analytics" :depends-on ("runtime")))
   :in-order-to ((test-op (load-op kilns-tests)))
   :perform (test-op :after (op c)
                     (funcall (intern "RUN!" :kilns-tests)

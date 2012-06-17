@@ -352,7 +352,10 @@
 (defun select-matching-pattern (patterns live-process)
   (dolist (trigger patterns)
     (let ((locked-kells (find-kells-to-lock trigger)))
-      (mapc (lambda (kell) (acquire-lock (lock kell) t)) locked-kells)
+      (mapc (lambda (kell)
+              (acquire-lock (lock kell) t)
+              (setf (kell-calculus::activep kell) t))
+            locked-kells)
       (unwind-protect
           (if (deadp live-process)
             (return nil)
@@ -362,7 +365,10 @@
                 (when processes
                   (execute-match trigger processes substitutions)
                   (return t)))))
-        (mapc (lambda (kell) (release-lock (lock kell))) locked-kells)))))
+        (mapc (lambda (kell)
+                (setf (kell-calculus::activep kell) nil)
+                (release-lock (lock kell)))
+              locked-kells)))))
 
 (defun find-triggers-matching-message (name kell)
   "Collect down-patterns from parent kell, up-patterns from subkells, and local-

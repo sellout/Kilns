@@ -47,6 +47,7 @@
                    (asdf:component-version (asdf:find-system :kilns)))
            (com.dvlsoft.clon:exit)))
     (setf files-to-load (com.dvlsoft.clon:remainder))
+    (kilns::start-event-source 20359)
     (kilns:run-toplevel
      :cpu-count (com.dvlsoft.clon:getopt :long-name "cpu-count")
      :local-kell (com.dvlsoft.clon:getopt :long-name "kell")
