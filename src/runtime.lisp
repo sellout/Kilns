@@ -207,33 +207,45 @@
   (princ "How many CPUs/cores are in your computer? ")
   (read))
 
-(defun toplevel (&key cpu-count local-kell port-number)
+(defun start (&key cpu-count local-kell port-number)
   (unless cpu-count (setf cpu-count (get-cpu-count)))
-  (let* ((use-network-p (or local-kell port-number))
-         (*current-pattern-language* +fraktal+)
-         (*top-kell* (make-instance (if use-network-p 'network-kell 'kell)
-                                    :name (gensym "TOP")))
-         (*package* (find-package :kilns-user))
-         (*readtable* *kilns-readtable*)
-         (*local-kell* (when local-kell (intern local-kell))))
+  (let* ((use-network-p (or local-kell port-number)))
+    (setf *current-pattern-language* +fraktal+
+          *top-kell* (make-instance (if use-network-p 'network-kell 'kell)
+                                    :name (make-instance 'global-name
+                                                         :label 'top))
+          *local-kell* (when local-kell (intern local-kell)))
     (ccl::def-standard-initial-binding *current-pattern-language* +fraktal+)
     (ccl::def-standard-initial-binding *package* (find-package :kilns-user))
     (ccl::def-standard-initial-binding *readtable* *kilns-readtable*)
     ;;(when use-network-p (start-kilns-listener port-number))
-    (let ((kilns (start-kilns cpu-count)))
-      ;; dummy kell for now, to handle locking and other places we refer to
-      ;; parents
-      (setf  (parent *top-kell*)
-             (make-instance 'network-kell
-                            :name (gensym "OUTSIDE") :state *top-kell*))
-      (unwind-protect (real-toplevel *top-kell*)
-        (mapc #'destroy-thread kilns)
-        (clear-events)))))
+    ;; dummy kell for now, to handle locking and other places we refer to
+    ;; parents
+    (setf  (parent *top-kell*)
+           (make-instance 'network-kell
+                          :name (make-instance 'global-name :label 'outside)
+                          :state *top-kell*)))
+  (start-kilns cpu-count))
 
-(defgeneric real-toplevel (top-kell))
+(defun stop (kilns)
+  (makunbound '*top-kell*)
+  (mapc #'destroy-thread kilns)
+  (clear-events))
 
-(defmethod real-toplevel (top-kell)
-  (let ((current-kell top-kell))
+(defun run-toplevel (&rest keys &key cpu-count local-kell port-number)
+  (let ((kilns))
+    (unwind-protect
+         (progn
+           (setf kilns (apply #'start keys))
+           (toplevel))
+      (stop kilns))))
+
+(defgeneric toplevel (&optional top-kell))
+
+(defmethod toplevel (&optional (top-kell *top-kell*))
+  (let ((current-kell top-kell)
+        (*package* (find-package :kilns-user))
+        (*readtable* *kilns-readtable*))
     (defglobal move-up ()
       (setf current-kell (parent current-kell))
       +null-process+)

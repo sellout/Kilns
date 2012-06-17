@@ -61,6 +61,8 @@
            #:par #:new #:!=
            ;; networking
            #:defhost
+           ;; running
+           #:start #:stop #:toplevel #:run-toplevel
            ;; interactive commands
            #:load #:move-up #:move-down
            #:system-state #:dump-system-state #:watch

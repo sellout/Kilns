@@ -31,7 +31,7 @@
                          on."))
 
 (let ((files-to-load))
-  (defmethod kilns::real-toplevel :before (top-kell)
+  (defmethod kilns:toplevel :before (&optional (top-kell kilns::*top-kell*))
     (mapcar (lambda (file)
               (kilns::add-process (kilns:eval `(kilns-user::load ,file))
                                   top-kell))
@@ -47,9 +47,10 @@
                    (asdf:component-version (asdf:find-system :kilns)))
            (com.dvlsoft.clon:exit)))
     (setf files-to-load (com.dvlsoft.clon:remainder))
-    (kilns::toplevel :cpu-count (com.dvlsoft.clon:getopt :long-name "cpu-count")
-                     :local-kell (com.dvlsoft.clon:getopt :long-name "kell")
-                     :port-number (com.dvlsoft.clon:getopt :long-name "port"))))
+    (kilns:run-toplevel
+     :cpu-count (com.dvlsoft.clon:getopt :long-name "cpu-count")
+     :local-kell (com.dvlsoft.clon:getopt :long-name "kell")
+     :port-number (com.dvlsoft.clon:getopt :long-name "port"))))
 
 ;;(ccl:save-application "kilns.dylib" :native t)
 (com.dvlsoft.clon:dump "kilns" application-toplevel)
