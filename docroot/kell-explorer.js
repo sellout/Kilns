@@ -87,6 +87,7 @@ function init () {
     rgraph = new $jit.RGraph({ 'injectInto': 'kells', 
                                width: 1000,
                                height: 600,
+                               levelDistance: 50,
                                Navigation: {  
                                    enable: true,  
                                    panning: true,  
