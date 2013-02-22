@@ -64,7 +64,8 @@
 
 (defgeneric define-pattern-process-variable (pattern-language name)
   (:method ((pattern-language jk-calculus) name)
-    (make-instance 'binding :variable (make-instance 'process-variable :label name))))
+    (make-instance 'binding
+                   :variable (make-instance 'process-variable :label name))))
 
 (defgeneric define-pattern-message-argument
     (pattern-language &rest argument-forms)

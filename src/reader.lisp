@@ -230,7 +230,7 @@
                            (new-patt (ignore-errors (define-pattern *current-pattern-language*
                                                                     process)))
                            (new-patt-component (ignore-errors (define-pattern-message-argument *current-pattern-language*
-                                                                  process))))
+                                                                                               process))))
                        (make-instance 'message
                                       :name (find-or-add-global-name (incf index))
                                       :argument (car (stable-sort (remove nil
