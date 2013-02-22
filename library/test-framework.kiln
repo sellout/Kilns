@@ -1,6 +1,8 @@
 (load "library/sandbox")
 (load "library/replication")
-(load "library/association-lists")
+;; TODO: re-add association-list version, once it's useful and doesn't just
+;;       clutter up the state.
+;; (load "library/association-lists")
 
 (load "library/simple-components")
 {include-component "library/identity"}
@@ -12,8 +14,8 @@
 ;;; determined.
 
 (new (outcomes show-result)
-  {new-list {outcomes}}
-  (trigger {outcomes (list {?l} {?get} {?set} {?rem})}
+  ;; {new-list {outcomes}}
+  ;; (trigger {outcomes (list {?l} {?get} {?set} {?rem})}
     (trigger* {test-result {should {?name}}
                            {test ?test}
                            {expected-result {?channel ?result}}}
@@ -24,14 +26,19 @@
                        {rc})}
         (trigger {rc ?test-result}
           {= (list {channel result} test-result
-                   {l (list {set (list {name} {success}
-                                       {show-result {name {success}}})}
-                            {show-result})}
-                   {l (list {set (list {name}
-                                       {failure {expected {channel result}}
-                                                {got test-result}}
-                                       {show-result {name {failure {expected {channel result}}
-                                                                   {got test-result}}}})}
-                            {show-result})})}))))
+                   {show-result {name {success}}}
+                   {show-result {name {failure {expected {channel result}}
+                                               {got test-result}}}}
+                   ;; {l (list {set (list {name} {success}
+                   ;;                     {show-result {name {success}}})}
+                   ;;          {show-result})}
+                   ;; {l (list {set (list {name}
+                   ;;                     {failure {expected {channel result}}
+                   ;;                              {got test-result}}
+                   ;;                     {show-result {name {failure {expected {channel result}}
+                   ;;                                                 {got test-result}}}})}
+                   ;;          {show-result})}
+                   )})))
+           ;; )
   (trigger* {show-result ?result}
     {echo result}))
