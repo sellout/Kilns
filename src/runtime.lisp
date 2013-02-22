@@ -69,7 +69,7 @@
 (define-condition no-such-variable-error (kiln-error)
   ((name :initarg :name))
   (:report (lambda (condition stream)
-             (format stream "No variable named ~a in the current scope."
+             (format stream "No process variable named ~a in the current scope."
                      (slot-value condition 'name)))))
 
 (let ((lock (make-lock "print-lock")))
