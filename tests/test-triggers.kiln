@@ -3,6 +3,7 @@
 {test-result {should {use-existing-process-variable}}
              {test {test-use {use}}
                    {use {use}}
+                   {use {shadow}}
                    (trigger {test-use ?y}
                      (trigger {use y} {should-be-use y}))}
              {expected-result {should-be-use {use}}}}
