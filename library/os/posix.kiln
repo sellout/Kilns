@@ -9,18 +9,18 @@
 (load "library/replication")
 (load "library/utilities")
 
-;;; FIXME: top-kell needs a (trigger* {os ?message up} 'message) for responses
+;;; FIXME: top-kell needs a (trigger* (up {os ?message}) message) for responses
 ;;;        to end up back in the correct kell
 
 (load "library/os/environment-variables")
 
 (new (os-in os-out)
-     (par (trigger* {os ?message down} {os-in 'message})
-          (trigger* {os-out ?message down} {os 'message})
+     (par (trigger* (down {os ?message}) {os-in message})
+          (trigger* (down {os-out ?message}) {os message})
 
-          [os (par (trigger* {os-in ?message up} 'message)
-                   (trigger* {component-out ?message down} {os-out 'message})
-                   (trigger* {component-local ?message down} 'message)
+          [os (par (trigger* (up {os-in ?message}) message)
+                   (trigger* (down {component-out ?message}) {os-out message})
+                   (trigger* (down {component-local ?message}) message)
                    [os (par ;;(load "library/os/signals") ;; NOTE: maybe unnecessary?
 
                             ;; POSIX APIs
@@ -34,8 +34,8 @@
 
                             ;; this should be in (load "library/os/processes")
                             (trigger* {exec (list ?command ?arguments {?process})}
-                                      {process (lisp (external-program:start #.?command
-                                                                             #.?arguments
+                                      {process (lisp (external-program:start command
+                                                                             arguments
                                                                              :input :stream
                                                                              :output :stream
                                                                              :error :stream))}))])]))
@@ -67,11 +67,11 @@
 ;;; prevent this.
 #| 
 [outside (new (top environment os)
-              (par [top (trigger* {os ?message up} 'message) ; os responses
-                        (trigger {environment {PATH ?value} up} ...) ; getvar
+              (par [top (trigger* (up {os ?message}) message) ; os responses
+                        (trigger (up {environment {PATH ?value}}) ...) ; getvar
                         {environment {PATH "..."}} ; setvar
                         {os ...})] ; os calls
                    {environment {PATH "..."}} ; etc.
-                   (trigger {environment {?var ?value} down} ...)
+                   (trigger (down {environment {?var ?value}}) ...)
                    [os ...]))]
 |#

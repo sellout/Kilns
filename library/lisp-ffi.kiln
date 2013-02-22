@@ -7,16 +7,17 @@
 ;;; This is a bit hacky for now, to just fill in the patterns I tend to use
 
 ;; A simple lisp-boolean tester
-(trigger* {if (list ?test ?true ?false) up}
-          {= (list cl:nil (lisp '#.?test)
-                   {component-out ?false} {component-out ?true})})
+(trigger* (up {if (list ?test ?true ?false)})
+          {= (list cl:nil (lisp 'test)
+                   {component-out false} {component-out true})})
 
 ;; Sends each item in the list over `cons`, then performs `done`
-(trigger* {items-from-list (list ?list {?cons} ?done) up}
+(trigger* (up {items-from-list (list ?list {?cons} ?done)})
           {component-out (lisp (cl:apply #'parallel-composition
                                          (cl:mapcar (cl:lambda (item)
-                                                      (message '#.?cons item))
-                                                    '#.?list)))
+                                                      (substitute-variables (item)
+                                                        {cons item}))
+                                                    'list)))
                          ?done})
 
 #| FIXME: this is a Kilnsier version of items-from-list, but we evaluate lists
@@ -24,10 +25,10 @@
           undefined var errors
 
 ;; sends each item in a list over `cons`, then sends `nil` when finished
-(trigger* {items-from-list (list ?list {?cons} {?nil}) up}
-          {component-local {if (list ?list
-                                     {cons (lisp (cl:car #.?list))
-                                           {items-from-list (list (lisp (cl:cdr #.?list))
+(trigger* (up {items-from-list (list ?list {?cons} {?nil})})
+          {component-local {if (list list
+                                     {cons (lisp (cl:car list))
+                                           {items-from-list (list (lisp (cl:cdr list))
                                                                   {cons} {nil})}}
                                      {nil})}})
 |#

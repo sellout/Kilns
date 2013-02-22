@@ -4,13 +4,13 @@
 {include-component "library/ordering"}
 
 (trigger* {read-byte (list ?stream {?rc})}
-          {rc (lisp (cl:read-byte #.?stream))})
+          {rc (lisp (cl:read-byte stream))})
 
 ;; FIXME: need to have an associative array to do lookups for each encoding
 (trigger* {character-for-codepoint (list ?codepoint {ascii} {?rc})}
           {>= (list ?codepoint 128
                     {rc {error}}
-                    {rc (lisp (cl:code-char #.?codepoint))})})
+                    {rc (lisp (cl:code-char codepoint))})})
 
 (trigger* {read-char (list ?stream ?encoding {?rc})}
           (new byte
@@ -25,13 +25,13 @@
           {read-char (list (par {object ?stream} {encoding ?enc}) {rc})})
 
 (trigger* {open (par {pathname ?path} {direction ?dir} {stream {?rc}})}
-          {rc {object (lisp (cl:open #.?path
-                                     :direction #.?direction
+          {rc {object (lisp (cl:open path
+                                     :direction direction
                                      :element-type 'cl:unsigned-byte))}})
 (trigger* {open (par {pathname ?path} {direction ?dir} {encoding ?enc}
                      {stream {?rc}})}
-          {rc (par {object (lisp (cl:open #.?path
-                                          :direction #.?direction
+          {rc (par {object (lisp (cl:open path
+                                          :direction direction
                                           :element-type 'cl:character))}
                    {encoding ?enc})})
 
