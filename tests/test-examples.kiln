@@ -4,6 +4,8 @@
 ;;; NOTE: Normally I would just (load "examples/...") in each test, however most
 ;;;       examples want to print a result, and we want to capture the result
 ;;;       instead. So these are copied from the examples instead.
+;;;       But ... once printing happens the correct way (passing messages up
+;;;       through the kells), we can intercept and inspect the output.
 
 ;;; helloworld.kiln
 {test-result {should {be-hello-world}}
