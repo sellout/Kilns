@@ -206,7 +206,8 @@
     (when watchp (watch process))
     (activate-process process kell))
   (:method ((process parallel-composition) (kell kell) &optional watchp)
-    (map-process (alexandria:rcurry #'add-process kell watchp) process))
+    (map-parallel-composition (alexandria:rcurry #'add-process kell watchp)
+                              process))
   (:method ((process kell) (kell kell) &optional watchp)
     (declare (ignorable watchp)) ; FIXME: not really, but CCL complains
     (if (gethash (name process) (kells kell))
