@@ -159,7 +159,7 @@
                                +null-process+)))
 
 (defun define-parallel-composition (processes)
-  (reduce #'compose (mapcar #'eval processes) :initial-value +null-process+))
+  (apply #'parallel-composition (mapcar #'eval processes)))
 
 (defun define-restriction (names &rest processes)
   (let ((names (mapcar (alexandria:curry #'make-instance 'restricted-name :label)
