@@ -11,6 +11,7 @@
 
 (load "kilns.asd")
 (ql:quickload "kilns" :verbose nil)
+(asdf:load-system :kilns.analytics :force t :verbose nil)
 (ql:quickload "com.dvlsoft.clon" :verbose nil)
 
 (com.dvlsoft.clon:defsynopsis (:postfix "FILES...")

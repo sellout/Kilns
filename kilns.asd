@@ -51,12 +51,16 @@
                       :depends-on ("syntax" "reader" "unification"))
                (:file "network"
                       :depends-on ("runtime"))
-               (:file "debug" :depends-on ("reader"))
-               (:file "analytics" :depends-on ("runtime")))
+               (:file "debug" :depends-on ("reader")))
   :in-order-to ((test-op (load-op kilns-tests)))
   :perform (test-op :after (op c)
                     (funcall (intern "RUN!" :kilns-tests)
                              (intern "KILNS" :kilns-tests))))
+
+(defsystem kilns.analytics
+  :depends-on (kilns hunchentoot cl-json)
+  :pathname "src/"
+  :components ((:file "analytics")))
 
 (defsystem kilns-tests
     :depends-on (kilns fiveam)

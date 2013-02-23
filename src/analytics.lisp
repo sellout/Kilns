@@ -1,8 +1,5 @@
 (in-package #:kilns)
 
-;;#.(ql:quickload "hunchentoot")
-;;#.(ql:quickload "cl-json")
-
 (defun start-event-source (&optional (port 8080))
   (let ((acceptor (make-instance 'hunchentoot:easy-acceptor
                                  :port port
@@ -12,11 +9,18 @@
     (hunchentoot:start acceptor))
   (hunchentoot:define-easy-handler (get-kells :uri "/current-kells") ()
     (setf (hunchentoot:content-type*) "application/json")
-    (kell-svg)))
+    (kell-svg))
+  (hunchentoot:define-easy-handler (get-kell-count :uri "/kell-count") ()
+    (setf (hunchentoot:content-type*) "application/json")
+    (kell-count)))
 
 (defun kell-svg ()
   (with-output-to-string (json)
     (json:encode-json (collect-kell-info *top-kell*) json)))
+
+(defun kell-count ()
+  (with-output-to-string (json)
+    (json:encode-json (count-subkells *top-kell*) json)))
 
 (defun unique-label (obj)
   (let ((name (name obj)))
@@ -31,7 +35,8 @@
 (defun collect-kell-info (kell)
   (list (cons :id (unique-id kell))
         (cons :name (unique-label kell))
-        (cons :children (mapcar #'collect-kell-info (kell-calculus::kells-in (state kell))))
+        (cons :children (mapcar #'collect-kell-info
+                                (kell-calculus::kells-in (state kell))))
         (cons :data (list (cons :size (length (append (kell-calculus::process-variables-in (state kell))
                                                       (kell-calculus::messages-in (state kell))
                                                       ;; (kell-calculus::kells-in (state kell))
@@ -40,3 +45,7 @@
                                                       (kell-calculus::primitives-in (state kell)))))
                           (cons :active (kell-calculus::activep kell))
                           (cons :repl (zerop (random 10)))))))
+
+(defun count-subkells (kell)
+  (reduce #'+ (kell-calculus::kells-in (state kell))
+          :initial-value 1 :key #'count-subkells))
