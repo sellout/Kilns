@@ -53,5 +53,7 @@
      :local-kell (com.dvlsoft.clon:getopt :long-name "kell")
      :port-number (com.dvlsoft.clon:getopt :long-name "port"))))
 
-;;(ccl:save-application "kilns.dylib" :native t)
+;;; NOTE: Use the first of these lines to build a profilable library, and the
+;;;       second to build an executable.
+;; (ccl:save-application "kilns.dylib" :native t)
 (com.dvlsoft.clon:dump "kilns" application-toplevel)
