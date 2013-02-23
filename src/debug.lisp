@@ -78,7 +78,7 @@
   (:method ((process process))
     (setf (watchp process) t))
   (:method ((process parallel-composition))
-    (kell-calculus::map-process #'watch process))
+    (kell-calculus::map-parallel-composition #'watch process))
   (:method ((process restriction))
     (watch (abstraction process))))
 
