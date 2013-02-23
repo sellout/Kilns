@@ -107,14 +107,16 @@
 (defun parallel-composition (&rest processes)
   (reduce #'compose processes :initial-value +null-process+))
 
+(defun processes-in (pc)
+  (append (messages pc)
+          (triggers pc)
+          (named-concretions pc)
+          (kells pc)
+          (process-variables pc)
+          (primitives pc)))
+
 (defun map-parallel-composition (fn pc)
-  (mapcar fn
-          (append (process-variables pc)
-                  (messages pc)
-                  (kells pc)
-                  (triggers pc)
-                  (named-concretions pc)
-                  (primitives pc))))
+  (mapcar fn (processes-in pc)))
 
 ;;; FIXME: replace all instances of MAP-PARALLEL-COMPOSITION with this
 (defun map-process (fn process)
@@ -122,11 +124,11 @@
    parallel-composition) and returns a new process as a result."
   (apply #'parallel-composition
          (mapcar fn
-                 (append (process-variables-in process)
-                         (messages-in process)
-                         (kells-in process)
+                 (append (messages-in process)
                          (triggers-in process)
                          (named-concretions-in process)
+                         (kells-in process)
+                         (process-variables-in process)
                          (primitives-in process)))))
 
 (defmethod (setf parent) (value (process parallel-composition))
@@ -147,7 +149,7 @@
     (let ((state (state kell)))
       (typecase state
         (parallel-composition
-         (member process (map-parallel-composition #'identity state)))
+         (member process (processes-in state)))
         (t (eq process state)))))
   (:method ((process message) (kell kell))
     (let ((state (state kell)))
@@ -156,8 +158,7 @@
               (message +null-process+)
               (parallel-composition
                (apply #'parallel-composition
-                      (remove process
-                              (map-parallel-composition #'identity state))))))))
+                      (remove process (processes-in state))))))))
   (:method ((process kell) (kell kell))
     (let ((state (state kell)))
       (setf (state kell)
@@ -165,8 +166,7 @@
               (kell +null-process+)
               (parallel-composition
                (apply #'parallel-composition
-                      (remove process
-                              (map-parallel-composition #'identity state))))))))
+                      (remove process (processes-in state))))))))
   (:method ((process trigger) (kell kell))
     (let ((state (state kell)))
       (setf (state kell)
@@ -174,16 +174,14 @@
               (trigger +null-process+)
               (parallel-composition
                (apply #'parallel-composition
-                      (remove process
-                              (map-parallel-composition #'identity state))))))))
+                      (remove process (processes-in state))))))))
   (:method (process (kell kell))
     (let ((state (state kell)))
       (setf (state kell)
             (typecase state
               (parallel-composition
                (apply #'parallel-composition
-                      (remove process
-                              (map-parallel-composition #'identity state))))
+                      (remove process (processes-in state))))
               (t +null-process+))))))
 
 (defgeneric process-variables-in (process)
