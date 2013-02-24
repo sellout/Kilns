@@ -7,9 +7,14 @@
                           still exist in the event queue. This ensures we don't
                           waste time trying to match it again.")))
 
+;;; NB: These types are currently necessary because we use non-kilns objects in
+;;;     various places. Many should become unnecessary (eg, strings, once we
+;;;     have a native string library). However, it might be harder to get rid
+;;;     of, say, lists, since the lisp FFI needs to deal with them.
+
 (deftype generic-process ()
   "This allows us to use various primitives as processes."
-  `(or agent string number symbol))
+  `(or agent string number symbol list))
 
 (deftype generic-abstraction ()
   "This allows us to use various primitives as processes."
