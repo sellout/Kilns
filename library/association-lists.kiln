@@ -59,7 +59,7 @@
       (par {k y} {rev (list z z*)}))
     (trigger* {r-i (list {cons (list {(!= n ?m) ?y} ?z)} ?z*)}
       {r-i (list z {cons (list {m y} z*)})})
-    (trigger* {r-i (list {nil} ?z)}
+    (trigger* {r-i (list {nil} ?z*)}
       (par x {rev (list {nil} z*)}))
     (trigger* {rev (list ?z {cons (list x ?z*)})}
       {rev (list {cons (list x z)} z*)})
