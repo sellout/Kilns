@@ -9,13 +9,8 @@
 (test should-reduce-to-process
   (let ((*current-pattern-language* +jk-calculus+))
     (is (match (eval '(par (message yes) (message sir)))
-          (@ (make-instance 'definition
-                         :name 'test1
-                         :pattern (kilns::define-pattern *current-pattern-language*
-                                      (apply #'kilns::order-forms
-                                             '((process-variable first)
-                                               (process-variable second))))
-                         :process (kilns::define-parallel-composition '(first second)))
+          (@ (eval '(define (test1 (process-variable first) (process-variable second))
+                      first second))
              (make-instance 'named-concretion
                             :name 'test1
                             :messages (eval '(par (message 1 (message yes))
@@ -26,7 +21,7 @@
     (is-false (match (eval '(par (message yes) (message sir)))
                 (@ (eval '(define (test2 (process-variable first)
                                          (process-variable second))
-                            (par first second)))
+                            first second))
                    (make-instance 'named-concretion
                                   :name 'nope
                                   :messages (eval '(par (message 1 (message yes))
@@ -82,8 +77,8 @@
                                 :concretion (make-instance
                                              'concretion
                                              :continuation process))))
-    (is (match (compose pattern-abstraction process) result))
-    (is (match (compose process pattern-abstraction) result))))
+    (is (match result (compose pattern-abstraction process)))
+    (is (match result (compose process pattern-abstraction)))))
 
 (test should-compose-concretion-and-process
   (let* ((concretion-process (eval '(message concreted)))
