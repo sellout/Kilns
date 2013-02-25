@@ -8,18 +8,18 @@
 
 (test should-evaluate-to-message
   (is (kilns::egal (make-instance 'message
-                            :name 'foo
-                            :argument (compose (make-instance 'message
-                                                              :name 'bar)
-                                               (make-instance 'message
-                                                              :name 'baz)))
-             (eval '(message foo (par (message bar) (message baz)))))))
+                                  :name (make-instance 'global-name :label 'foo)
+                                  :argument (compose (make-instance 'message
+                                                                    :name (make-instance 'global-name :label 'bar))
+                                                     (make-instance 'message
+                                                                    :name (make-instance 'global-name :label 'baz))))
+                   (eval '(message foo (par (message bar) (message baz)))))))
 
 (test should-evaluate-to-kell
   (is (kilns::egal (make-instance 'kell
-                            :name 'foo
-                            :state (compose (make-instance 'kell :name 'bar)
-                                            (make-instance 'kell :name 'baz)))
+                            :name (make-instance 'global-name :label 'foo)
+                            :state (compose (make-instance 'kell :name (make-instance 'global-name :label 'bar))
+                                            (make-instance 'kell :name (make-instance 'global-name :label 'baz))))
              (eval '(kell foo (par (kell bar) (kell baz)))))))
 
 (test should-evaluate-to-restriction
@@ -30,20 +30,27 @@
                                                                  :argument (make-instance 'message
                                                                                           :name 'y))
                                                   (make-instance 'message
-                                                                 :name 'z)))
+                                                                 :name (make-instance 'global-name :label 'z))))
                    (eval '(new (x y) (message x (message y)) (message z))))))
 
 (test should-evaluate-to-jk-pattern
   (let ((*current-pattern-language* +jk-calculus+))
     (is (kilns::egal (make-instance 'trigger
                                     :pattern (compose (make-instance 'message
-                                                                     :name 'foo
-                                                                     :argument (make-instance 'process-variable :name 'bar))
+                                                                     :name (make-instance 'global-name :label 'foo)
+                                                                     :argument (make-instance 'kilns::binding
+                                                                                              :variable (make-instance 'process-variable
+                                                                                                                       :label 'bar)))
                                                       (make-instance 'message
-                                                                     :name 'baz
-                                                                     :argument (make-instance 'process-variable :name 'zab)
+                                                                     :name (make-instance 'global-name :label 'baz)
+                                                                     :argument (make-instance 'kilns::binding
+                                                                                              :variable (make-instance 'process-variable
+                                                                                                                       :label 'zab))
                                                                      :continuation 'down))
-                                    :process (compose 'bar 'zab))
+                                    :process (compose (make-instance 'process-variable
+                                                                     :label 'bar)
+                                                      (make-instance 'process-variable
+                                                                     :label 'zab)))
                      (eval '(trigger (par (message foo (process-variable bar))
                                           (down (message baz
                                                          (process-variable zab))))
@@ -53,13 +60,20 @@
   (let ((*current-pattern-language* +pnpjk-calculus+))
     (is (kilns::egal (make-instance 'trigger
                                     :pattern (compose (make-instance 'message
-                                                                     :name 'foo
-                                                                     :argument (make-instance 'process-variable :name 'bar))
+                                                                     :name (make-instance 'global-name :label 'foo)
+                                                                     :argument (make-instance 'kilns::binding
+                                                                                              :variable (make-instance 'process-variable
+                                                                                                                       :label 'bar)))
                                                       (make-instance 'message
-                                                                     :name 'baz
-                                                                     :argument (make-instance 'process-variable :name 'zab)
+                                                                     :name (make-instance 'global-name :label 'baz)
+                                                                     :argument (make-instance 'kilns::binding
+                                                                                              :variable (make-instance 'process-variable
+                                                                                                                       :label 'zab))
                                                                      :continuation 'down))
-                                    :process (compose 'bar 'zab))
+                                    :process (compose (make-instance 'process-variable
+                                                                     :label 'bar)
+                                                      (make-instance 'process-variable
+                                                                     :label 'zab)))
                      (eval '(trigger (par (message foo (process-variable bar))
                                           (down (message baz
                                                          (process-variable zab))))
@@ -69,15 +83,23 @@
   (let ((*current-pattern-language* +pnpjk-calculus+))
     (is (kilns::egal (make-instance 'trigger
                                     :pattern (compose (make-instance 'message
-                                                                     :name 'foo
-                                                                     :argument (make-instance 'process-variable :name 'bar))
+                                                                     :name (make-instance 'global-name :label 'foo)
+                                                                     :argument (make-instance 'kilns::binding
+                                                                                              :variable (make-instance 'process-variable
+                                                                                                                       :label 'bar)))
                                                       (make-instance 'message
-                                                                     :name 'baz
-                                                                     :argument (make-instance 'message :name (make-instance 'name-variable :name 'zab) :argument +blank+)
+                                                                     :name (make-instance 'global-name :label 'baz)
+                                                                     :argument (make-instance 'message
+                                                                                              :name (make-instance 'kilns::binding
+                                                                                                                   :variable (make-instance 'name-variable
+                                                                                                                                            :label 'zab))
+                                                                                              :argument +blank+)
                                                                      :continuation 'down))
-                                    :process (compose 'bar
+                                    :process (compose (make-instance 'process-variable
+                                                                     :label 'bar)
                                                       (make-instance 'message
-                                                                     :name 'zab)))
+                                                                     :name (make-instance 'name-variable
+                                                                                          :label 'zab))))
                      (eval '(trigger (par (message foo (process-variable bar))
                                           (down (message baz
                                                          (message (name-variable zab)))))

@@ -11,11 +11,11 @@
              (eval (kilns::read-from-string "null")))))
 
 (test should-read-empty-message
-  (is (match (eval '(message test))
+  (is (match (eval '(message kilns-user::test))
              (eval (kilns::read-from-string "{test}")))))
 
 (test should-read-empty-kell
-  (is (match (eval '(kell test null))
+  (is (match (eval '(kell kilns-user::test null))
              (eval (kilns::read-from-string "[test null]")))))
 
 #|

@@ -33,17 +33,18 @@
                                                         (message 2 (message sir))))))))))
 
 (test should-not-reduce-to-process-with-pattern-abstraction
-  (is-false (match (eval '(par (message yes) (message sir)))
-              (@ (make-instance 'pattern-abstraction
-                                :pattern 
-                                (kilns::define-pattern +jk-calculus+
-                                    '(par (message 1 (process-variable first))
-                                          (message 2 (process-variable second))))
-                                :process (eval '(par first second)))
-                 (make-instance 'named-concretion
-                                :name 'nope
-                                :messages (eval '(par (message 1 (message yes))
-                                                      (message 2 (message sir)))))))))
+  (let ((*current-pattern-language* +jk-calculus+))
+    (is-false (match (eval '(par (message yes) (message sir)))
+                (@ (make-instance 'pattern-abstraction
+                                  :pattern 
+                                  (kilns::define-pattern *current-pattern-language*
+                                      '(par (message 1 (process-variable first))
+                                        (message 2 (process-variable second))))
+                                  :process (eval '(par first second)))
+                   (make-instance 'named-concretion
+                                  :name 'nope
+                                  :messages (eval '(par (message 1 (message yes))
+                                                    (message 2 (message sir))))))))))
 
 (test should-not-reduce-to-process-with-concretion
   (let ((*current-pattern-language* +jk-calculus+))
@@ -69,11 +70,12 @@
     (is (match +null-process+ (continuation process)))))
 
 (test should-compose-abstraction-and-process
-  (let* ((pattern-abstraction
-          (make-instance 'pattern-abstraction
-                         :pattern (kilns::define-pattern +jk-calculus+
-                                      '(message param (process-variable x)))
-                         :process (eval 'x)))
+  (let* ((*current-pattern-language* +jk-calculus+)
+         (pattern-abstraction
+           (make-instance 'pattern-abstraction
+                          :pattern (kilns::define-pattern *current-pattern-language*
+                                       '(message param (process-variable x)))
+                          :process (eval 'x)))
          (process (eval '(message test)))
          (result (make-instance 'application-abstraction
                                 :abstraction pattern-abstraction
@@ -116,21 +118,23 @@
                (compose a b)))))
 
 (test should-apply-abstraction
-  (is (match (eval '(message test))
-             (@ (make-instance 'pattern-abstraction
-                               :pattern (kilns::define-pattern +jk-calculus+
-                                            '(message param (process-variable x)))
-                               :process (eval 'x))
-                (make-instance 'concretion
-                               :messages (eval '(message param
-                                                         (message test))))))))
+  (let ((*current-pattern-language* +jk-calculus+))
+    (is (match (eval '(message test))
+               (@ (make-instance 'pattern-abstraction
+                                 :pattern (kilns::define-pattern *current-pattern-language*
+                                              '(message param (process-variable x)))
+                                 :process (eval 'x))
+                  (make-instance 'concretion
+                                 :messages (eval '(message param
+                                                   (message test)))))))))
 
 (test should-suspend-application
-  (let ((pattern-abstraction
-         (make-instance 'pattern-abstraction
-                        :pattern (kilns::define-pattern +jk-calculus+
-                                            '(message param (process-variable x)))
-                        :process (eval 'x)))
+  (let* ((*current-pattern-language* +jk-calculus+)
+         (pattern-abstraction
+           (make-instance 'pattern-abstraction
+                          :pattern (kilns::define-pattern *current-pattern-language*
+                                       '(message param (process-variable x)))
+                          :process (eval 'x)))
         (concretion
          (make-instance 'concretion
                         :messages (eval '(message not-param (message test))))))
