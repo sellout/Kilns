@@ -87,9 +87,9 @@
 
 ;; FIXME: This is fraktal-specific, but kind of digs a bit more into the
 ;;        internals than I'd like
-(defmethod substitute ((process mismatch) mapping)
+(defmethod substitute ((process mismatch) mapping &optional ignored-vars)
   (multiple-value-bind (new-comp substitutedp)
-      (substitute (complement process) mapping)
+      (substitute (complement process) mapping ignored-vars)
     (values (if substitutedp
                 (make-instance 'mismatch
                                :complement new-comp
