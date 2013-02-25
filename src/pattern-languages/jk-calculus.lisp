@@ -13,6 +13,9 @@
 (defmethod print-object ((obj binding) stream)
   (format stream "?~s" (variable obj)))
 
+(defmethod egal ((x binding) (y binding))
+  (egal (variable x) (variable y)))
+
 (defmethod unify
     ((pattern binding) agent
      &optional (substitutions (make-empty-environment))
@@ -33,7 +36,7 @@
     ))
 
 (defmethod egal ((x process-variable) (y process-variable))
-  (egal (name x) (name y)))
+  (egal (label x) (label y)))
 
 (defgeneric define-pattern-process (pattern-language form)
   (:documentation "Returns two values, the pattern process, and which category

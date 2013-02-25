@@ -32,7 +32,7 @@
   (format stream "~s" (label obj)))
 
 (defmethod egal ((x name-variable) (y name-variable))
-  (egal (name x) (name y)))
+  (egal (label x) (label y)))
 
 ;;; FIXME: currently, name variables and process variables can conflict. Do we
 ;;;        want to be able to have a namevar and procvar with the same name –
