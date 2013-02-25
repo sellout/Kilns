@@ -106,7 +106,7 @@
                                                 pattern-language process-form)))
                             (if (eq process-form '_)
                                 +blank+
-                                process-form)))
+                                (define-placeholder process-form))))
                       argument-forms))))
 
 ;;; For convenience, we write a␣x1, ⋯, xn␣ for a␣1␣x1␣ | ⋯ | n␣xn␣␣ where

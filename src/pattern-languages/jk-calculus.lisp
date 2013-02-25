@@ -83,7 +83,7 @@
                                   (second arg)))
             (otherwise (apply #'define-pattern-named-concretion
                               pattern-language arg)))
-          arg))))
+          (define-placeholder arg)))))
 
 ;;; FIXME: This needs to accept _any_ combination of pattern forms, because we
 ;;;        don't know where in the pattern each of the forms will occur until it
