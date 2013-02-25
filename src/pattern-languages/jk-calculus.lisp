@@ -177,7 +177,9 @@
                   (append (local-message-pattern pattern)
                           (down-message-pattern pattern)
                           (up-message-pattern pattern)
-                          (mapcar (alexandria:compose #'messages-in #'messages)
+                          (mapcar (alexandria:compose
+                                   #'kell-calculus::messages-in
+                                   #'messages)
                                   (named-concretions pattern))))
           (mapcar (alexandria:compose #'variable #'state)
                   (kell-message-pattern pattern))))
