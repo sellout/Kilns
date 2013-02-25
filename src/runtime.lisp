@@ -229,7 +229,7 @@
                                     :name (make-instance 'global-name
                                                          :label 'top))
           *local-kell* (when local-kell (intern local-kell)))
-    (ccl::def-standard-initial-binding *current-pattern-language* +fraktal+)
+    (ccl::def-standard-initial-binding *current-pattern-language* +lax-fraktal+)
     (ccl::def-standard-initial-binding *package* (find-package :kilns-user))
     (ccl::def-standard-initial-binding *readtable* *kilns-readtable*)
     ;;(when use-network-p (start-kilns-listener port-number))
