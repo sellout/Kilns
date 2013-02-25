@@ -183,8 +183,7 @@
   (:method ((pattern-language pnpjk-calculus) (pattern named-concretion))
     (collect-bound-names pattern-language (messages pattern))))
 
-(defmethod bound-names :around
-    ((pattern-language pnpjk-calculus) (pattern pattern))
+(defmethod bound-names ((pattern-language pnpjk-calculus) (pattern pattern))
   (mapcan (alexandria:curry #'collect-bound-names pattern-language)
           (append (local-message-pattern pattern)
                   (down-message-pattern pattern)
