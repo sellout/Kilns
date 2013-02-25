@@ -168,10 +168,11 @@
 ;;; One can notice that the rules LOCAL, OUT, IN, and KELL correspond to the
 ;;; four kinds of actions discussed in Section 2.
 
-(defmethod bound-names ((pattern pattern))
+(defmethod bound-names ((pattern-language jk-calculus) (pattern pattern))
+  (declare (ignore pattern-language))
   '())
 
-(defmethod bound-variables ((pattern pattern))
+(defmethod bound-variables ((pattern-language jk-calculus) (pattern pattern))
   (append (mapcar (alexandria:compose #'variable #'argument)
                   (append (local-message-pattern pattern)
                           (down-message-pattern pattern)

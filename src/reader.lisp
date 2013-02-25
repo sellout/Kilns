@@ -128,8 +128,8 @@
      (let* ((proc (call-next-method))
             (pat (kell-calculus::convert-process-to-pattern proc)))
        (values proc
-               (bound-names pat)
-               (bound-variables pat)))))
+               (bound-names pattern-language pat)
+               (bound-variables pattern-language pat)))))
 
 (defun define-name (label)
   "Returns either a name object or a bare symbol. The symbol indicates "

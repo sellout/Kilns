@@ -97,13 +97,14 @@
                 process)
             substitutedp)))
 
-(defmethod collect-bound-names ((pattern message))
+(defmethod collect-bound-names ((pattern-language fraktal) (pattern message))
   (let ((name (name pattern)))
     (typecase name
       (binding (cons (variable name)
-                     (collect-bound-names (argument pattern))))
+                     (collect-bound-names pattern-language (argument pattern))))
       (mismatch (if (variable name)
                     (cons (variable name)
-                          (collect-bound-names (argument pattern)))
-                    (collect-bound-names (argument pattern))))
-      (otherwise (collect-bound-names (argument pattern))))))
+                          (collect-bound-names pattern-language
+                                               (argument pattern)))
+                    (collect-bound-names pattern-language (argument pattern))))
+      (otherwise (collect-bound-names pattern-language (argument pattern))))))

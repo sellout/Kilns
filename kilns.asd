@@ -41,7 +41,9 @@
                                      (:file "pnpjk-calculus"
                                             :depends-on ("jk-calculus"))
                                      (:file "fraktal"
-                                            :depends-on ("pnpjk-calculus"))))
+                                            :depends-on ("pnpjk-calculus"))
+                                     (:file "lax-fraktal"
+                                            :depends-on ("fraktal"))))
                (:file "utilities" :depends-on ("package"))
                (:file "syntax" :depends-on ("package"))
                (:file "unification" :depends-on ("package" "kell-calculus"))

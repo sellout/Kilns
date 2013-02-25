@@ -45,7 +45,8 @@
   (:metaclass contracted-class)
   (:invariants (lambda (instance)
                  "no duplicate variables"
-                 (let ((bv (bound-variables instance)))
+                 (let ((bv (bound-variables *current-pattern-language*
+                                            instance)))
                    (equal bv (remove-duplicates bv :key #'label))))
                (lambda (instance)
                  "local messages are properly categorized"
@@ -350,11 +351,11 @@
           :initial-value ()
           :key #'free-names))
 
-(defgeneric bound-names (pattern)
+(defgeneric bound-names (pattern-language pattern)
   (:documentation
    "This returns a list of all channel-names that are bound by the given pattern."))
 
-(defgeneric bound-variables (pattern)
+(defgeneric bound-variables (pattern-language pattern)
   (:documentation
    "This returns a list of all process-variables that are bound by the given
     pattern."))
@@ -385,5 +386,7 @@
 (defmethod structurally-congruent ((left pattern) (right pattern))
   (and (set= (free-names left) (free-names right))
        (set= (channel-names left) (channel-names right))
-       (set= (union (bound-names left) (bound-variables left))
-             (union (bound-names right) (bound-variables right)))))
+       (set= (union (bound-names *current-pattern-language* left)
+                    (bound-variables *current-pattern-language* left))
+             (union (bound-names *current-pattern-language* right)
+                    (bound-variables *current-pattern-language* right)))))

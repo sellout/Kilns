@@ -224,7 +224,7 @@
 (defun start (&key cpu-count local-kell port-number)
   (unless cpu-count (setf cpu-count (get-cpu-count)))
   (let* ((use-network-p (or local-kell port-number)))
-    (setf *current-pattern-language* +fraktal+
+    (setf *current-pattern-language* +lax-fraktal+
           *top-kell* (make-instance (if use-network-p 'network-kell 'kell)
                                     :name (make-instance 'global-name
                                                          :label 'top))
