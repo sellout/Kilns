@@ -63,12 +63,12 @@
                               (case (length (map-parallel-composition
                                              #'identity
                                              (state kell)))
-                                (0 (setf (state kell) null))
+                                (0 (setf (state kell) +null-process+))
                                 (1 (setf (state kell)
                                          (car (map-parallel-composition
                                                #'identity
                                                (state kell)))))))
-        (t (setf (state kell) null)))
+        (t (setf (state kell) +null-process+)))
       (error "The (restriction) process ~a is not contained in ~a, and thus ~
               can not be removed."
              process (state kell))))
