@@ -52,8 +52,11 @@
 
 (defgeneric egal (x y)
   (:documentation "Henry Baker's EGAL, applied to Kilns.")
+  (:method :around (x y)
+    (or (eq x y) (call-next-method)))
   (:method (x y)
-    (eq x y))
+    (declare (ignore x y))
+    nil)
   (:method ((x symbol) (y symbol))
     (equal (symbol-name x) (symbol-name y)))
   (:method ((x global-name) (y global-name))
