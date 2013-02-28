@@ -15,33 +15,32 @@
 ;; (load "library/os/environment-variables")
 
 (new (os-in os-out)
-     (par (trigger* (down {os ?message}) {os-in message})
-          (trigger* (down {os-out ?message}) {os message})
+  (trigger* (down {os ?message}) {os-in message})
+  (trigger* (down {os-out ?message}) {os message})
 
-          [os (par (trigger* (up {os-in ?message}) message)
-                   (trigger* (down {component-out ?message}) {os-out message})
-                   (trigger* (down {component-local ?message}) message)
-                   [os (par ;;(load "library/os/signals") ;; NOTE: maybe unnecessary?
+  [os (trigger* (up {os-in ?message}) message)
+      (trigger* (down {component-out ?message}) {os-out message})
+      (trigger* (down {component-local ?message}) message)
+      [os ;;(load "library/os/signals") ;; NOTE: maybe unnecessary?
 
-                            ;; POSIX APIs
-                            ;;(load "library/os/sockets")
-                            (load "library/os/streams")
-                            ;;(load "library/os/IPC")
-                            (load "library/os/time")
+          ;; POSIX APIs
+          ;;(load "library/os/sockets")
+          (load "library/os/streams")
+          ;;(load "library/os/IPC")
+          (load "library/os/time")
 
-                            ;; additional APIs
-                            ;;(load "library/os/filesystem")
+          ;; additional APIs
+          ;;(load "library/os/filesystem")
 
-                            ;; this should be in (load "library/os/processes")
-                            (trigger* {exec (list ?command ?arguments {?process})}
-                               (lisp (let ((result (external-program:start command
-                                                                           arguments
-                                                                           :input :stream
-                                                                           :output :stream
-                                                                           :error :stream)))
-                                       (substitute-variables (result)
-                                         {process result})))))])]))
-
+          ;; this should be in (load "library/os/processes")
+          (trigger* {exec (list ?command ?arguments {?process})}
+            (lisp (let ((result (external-program:start command
+                                                        arguments
+                                                        :input :stream
+                                                        :output :stream
+                                                        :error :stream)))
+                    (substitute-variables (result)
+                      {process result}))))]])
 
 ;;; The FFI can be used in two ways – one is to access things "outside" of
 ;;; Kilns – sockets, filesystems, etc. These interfaces live in a kell parallel
