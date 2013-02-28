@@ -12,7 +12,7 @@
 ;;; FIXME: top-kell needs a (trigger* (up {os ?message}) message) for responses
 ;;;        to end up back in the correct kell
 
-(load "library/os/environment-variables")
+;; (load "library/os/environment-variables")
 
 (new (os-in os-out)
      (par (trigger* (down {os ?message}) {os-in message})
