@@ -225,7 +225,7 @@
   (unless cpu-count (setf cpu-count (get-cpu-count)))
   (let* ((use-network-p (or local-kell port-number)))
     (setf *current-pattern-language* +lax-fraktal+
-          *top-kell* (make-instance (if use-network-p 'network-kell 'kell)
+          *top-kell* (make-instance 'kell
                                     :name (make-instance 'global-name
                                                          :label 'top))
           *local-kell* (when local-kell (intern local-kell)))
@@ -233,12 +233,24 @@
     (ccl::def-standard-initial-binding *package* (find-package :kilns-user))
     (ccl::def-standard-initial-binding *readtable* *kilns-readtable*)
     ;;(when use-network-p (start-kilns-listener port-number))
+    (setf  (parent *top-kell*)
+           (make-instance 'kell
+                          :name (make-instance 'global-name :label 'outside)
+                          :state *top-kell*))
     ;; dummy kell for now, to handle locking and other places we refer to
     ;; parents
-    (setf  (parent *top-kell*)
-           (make-instance 'network-kell
-                          :name (make-instance 'global-name :label 'outside)
-                          :state *top-kell*)))
+    (setf (parent (parent *top-kell*))
+          (make-instance (if use-network-p 'network-kell 'kell)
+                         :name (make-instance 'global-name
+                                              :label 'network)))
+    (add-process (eval '(load "library/os/posix")) (parent *top-kell*))
+    (add-process (eval '(par
+                         (load "library/replication")
+                         (kilns-user::trigger*
+                          (up (message kilns-user::os
+                               (process-variable kilns-user::message)))
+                          kilns-user::message)))
+                 *top-kell*))
   (start-kilns cpu-count))
 
 (defun stop (kilns)
