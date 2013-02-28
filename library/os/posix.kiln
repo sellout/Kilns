@@ -34,11 +34,13 @@
 
                             ;; this should be in (load "library/os/processes")
                             (trigger* {exec (list ?command ?arguments {?process})}
-                                      {process (lisp (external-program:start command
-                                                                             arguments
-                                                                             :input :stream
-                                                                             :output :stream
-                                                                             :error :stream))}))])]))
+                               (lisp (let ((result (external-program:start command
+                                                                           arguments
+                                                                           :input :stream
+                                                                           :output :stream
+                                                                           :error :stream)))
+                                       (substitute-variables (result)
+                                         {process result})))))])]))
 
 
 ;;; The FFI can be used in two ways – one is to access things "outside" of
