@@ -1,0 +1,65 @@
+#|@
+This is a simple capabilities implementation
+that provides most of the properties described in
+[_Capability Myths Demolished_](http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.6.3660).
+
+The only one missing (I think) is _A: No Designation Without Authority_.
+I need to read more about the capabilities that exist in other systems,
+but it seems like they wrap two things into the authority:
+the designator and the operation (read, write, etc.).
+However, our operations can match arbitrary patterns
+(EG, a log-file authority might only allow writes that append (not overwrite)
+lines that match a specific format)
+and I don’t see how that can be wrapped in the authority.
+But my approach might be flawed in general *shrug*.
+
+I feel like this implementation has some advantages over other capability systems
+(but I need to read more to make sure).
+1. as mentioned above,
+   it can authorize operations that match arbitrary patterns; and
+2. the operation can be intercepted and replaced with some other behavior
+   (EG, the test-framework intercepting `echo` to capture the result)
+@|#
+
+(load "library/replication")
+
+;;;@ `create-capability` creates a trigger that pulls a message from a subkell
+;;;@ and executues the body, but only if the message contains the proper
+;;;@ authority (which is sent over the response channel provided).
+(define (create-capability {?label} ?pattern ?body {?rc})
+  (new auth
+    (trigger* (down {label pattern {authority {auth}}})
+      body)
+    {rc {auth}}))
+
+;;;@ `pass-capability` is meant to be used when you want to use an existing
+;;;@ authority, rather than creating a new one. It passes the request directly
+;;;@ up the chain, so the body should map to the pattern.
+;; TODO: try to get rid of the `body` parameter
+(define (pass-capability {?label} ?pattern ?body ?auth)
+  (trigger* (down {label pattern {authority auth}})
+    {label body {authority auth}}))
+
+;;;@ This works just like `create-capability`, but also results in a trigger
+;;;@ that matches `{revoke <auth>}`. Sending such a message will prevent the
+;;;@ authority from working anymore. There is no way to restore the authority.
+;; TODO: this currently leaves a bit of a mess behind (two `trigger*`s)
+(define (create-revokable-capability {?label} ?pattern ?body {?rc})
+  (new (auth revokable) 
+    (trigger* (down {label pattern {authority {auth}}}) {revokable body})
+    [revokable (trigger* (up {revokable ?process}) {revokable process})]
+    (trigger* (down {revokable ?process}) process)
+    {rc {auth}}
+    (trigger (par {revoke {auth}} [revokable ?p]) null)))
+
+;;;@ This works just like `create-revokable-capability`, but adds yet another
+;;;@ trigger that matches `{reinstate <auth>}`. Sending such a message restores
+;;;@ an authority that had previously been revoked.
+(define (create-reinstatable-capability {?label} ?pattern ?body {?rc})
+  (new (auth revokable revoked) 
+    (trigger* (down {label pattern {authority {auth}}}) {revokable body})
+    [revokable (trigger* (up {revokable ?process}) {revokable process})]
+    (trigger* (down {revokable ?process}) process)
+    {rc {auth}}
+    (trigger* (par {revoke {auth}} [revokable ?p]) {revoked p})
+    (trigger* (par {reinstate {auth}} {revoked ?p}) [revokable p])))
