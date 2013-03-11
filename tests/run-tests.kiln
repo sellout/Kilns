@@ -7,13 +7,14 @@
                     (load "tests/test-triggers") ; 2 *
                     (load "tests/test-definitions") ; 1 *
                     (load "tests/library/test-utilities") ; 2 *
+                    (load "tests/library/test-capabilities") ; 1 *
                     (load "tests/library/test-identity") ; 2 *
                     (load "tests/library/test-math") ; 3 0
                     (load "tests/library/test-association-lists") ; 3 0
                     (load "tests/library/test-strings") ; 2 *
 ;                    (load "tests/library/os/test-time") ; 2 stack overflow!
 ;                    (load "tests/library/test-os") ; 1 stack overflow!
-                    (load "tests/library/calculus/test-lambda") ; 2 0
+;                    (load "tests/library/calculus/test-lambda") ; 2 0
 ;                    (load "tests/library/calculus/test-pi") ; 3 hang!
                     )
                {rc})}

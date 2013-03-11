@@ -1,0 +1,14 @@
+(load "library/test-framework")
+
+(load "library/capabilities")
+
+{test-result {should {generate-a-usable-authority}}
+             {test [requester (trigger (par (up {show ?contents})
+                                            (up {authority ?auth}))
+                                       {echo {contents contents}
+                                             {authority auth}})]
+                   (create-capability {echo} {contents ?contents}
+                     {echoed contents}
+                     {authority})
+                   {show "foo"}}
+             {expected-result {echoed "foo"}}}
