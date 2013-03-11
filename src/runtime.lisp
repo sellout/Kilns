@@ -655,7 +655,12 @@
                  (print *load-print*)
                  (if-does-not-exist :error)) nil
   (declare (ignore if-does-not-exist verbose))
-  (let ((full-name (merge-pathnames file-name (make-pathname :type "kiln"))))
+  (let ((full-name (handler-case
+                       (truename (asdf:system-relative-pathname :kilns file-name
+                                                                :type "kiln"))
+                     (file-error ()
+                       (merge-pathnames file-name
+                                        (make-pathname :type "kiln"))))))
     (let ((processes (with-open-file (stream full-name
                                                  :external-format :utf-8)
                            (loop for value = (read stream nil)
