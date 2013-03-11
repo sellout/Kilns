@@ -23,12 +23,15 @@ I feel like this implementation has some advantages over other capability system
 
 (load "library/replication")
 
+;;; FIXME: see issue #19 re: why these variables are called `patt` instead of
+;;;       `pattern`.
+
 ;;;@ `create-capability` creates a trigger that pulls a message from a subkell
 ;;;@ and executues the body, but only if the message contains the proper
 ;;;@ authority (which is sent over the response channel provided).
-(define (create-capability {?label} ?pattern ?body {?rc})
+(define (create-capability {?label} ?patt ?body {?rc})
   (new auth
-    (trigger* (down {label pattern {authority {auth}}})
+    (trigger* (down {label patt {authority {auth}}})
       body)
     {rc {auth}}))
 
@@ -36,17 +39,17 @@ I feel like this implementation has some advantages over other capability system
 ;;;@ authority, rather than creating a new one. It passes the request directly
 ;;;@ up the chain, so the body should map to the pattern.
 ;; TODO: try to get rid of the `body` parameter
-(define (pass-capability {?label} ?pattern ?body ?auth)
-  (trigger* (down {label pattern {authority auth}})
+(define (pass-capability {?label} ?patt ?body ?auth)
+  (trigger* (down {label patt {authority auth}})
     {label body {authority auth}}))
 
 ;;;@ This works just like `create-capability`, but also results in a trigger
 ;;;@ that matches `{revoke <auth>}`. Sending such a message will prevent the
 ;;;@ authority from working anymore. There is no way to restore the authority.
 ;; TODO: this currently leaves a bit of a mess behind (two `trigger*`s)
-(define (create-revokable-capability {?label} ?pattern ?body {?rc})
+(define (create-revokable-capability {?label} ?patt ?body {?rc})
   (new (auth revokable) 
-    (trigger* (down {label pattern {authority {auth}}}) {revokable body})
+    (trigger* (down {label patt {authority {auth}}}) {revokable body})
     [revokable (trigger* (up {revokable ?process}) {revokable process})]
     (trigger* (down {revokable ?process}) process)
     {rc {auth}}
@@ -55,9 +58,9 @@ I feel like this implementation has some advantages over other capability system
 ;;;@ This works just like `create-revokable-capability`, but adds yet another
 ;;;@ trigger that matches `{reinstate <auth>}`. Sending such a message restores
 ;;;@ an authority that had previously been revoked.
-(define (create-reinstatable-capability {?label} ?pattern ?body {?rc})
+(define (create-reinstatable-capability {?label} ?patt ?body {?rc})
   (new (auth revokable revoked) 
-    (trigger* (down {label pattern {authority {auth}}}) {revokable body})
+    (trigger* (down {label patt {authority {auth}}}) {revokable body})
     [revokable (trigger* (up {revokable ?process}) {revokable process})]
     (trigger* (down {revokable ?process}) process)
     {rc {auth}}
