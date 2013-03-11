@@ -6,6 +6,8 @@
 ;;; http://www.opengroup.org/onlinepubs/9699919799/. "System Interfaces/General
 ;;; Information" is a particularly useful section.
 
+(load "library/capabilities")
+(load "library/constants")
 (load "library/replication")
 (load "library/utilities")
 
@@ -14,9 +16,16 @@
 
 ;; (load "library/os/environment-variables")
 
-(new (os-in os-out)
-  (trigger* (down {os ?message}) {os-in message})
-  (trigger* (down {os-out ?message}) {os message})
+(new (os-in os-out uni-auth)
+  (create-capability {os} {request ?message}
+    ;; the actual OS kell doesn’t take an authority – it just tries to perform
+    ;; any request. We make this power available to the `top` kell by way of the
+    ;; `universal-authority` message. It can then partition authority as it sees
+    ;; fit.
+    {os-in message}
+    {uni-auth})
+  (trigger {uni-auth ?auth} {constant {universal-authority auth}})
+  (trigger* (down {os-out ?response}) {os response})
 
   [os (trigger* (up {os-in ?message}) message)
       (trigger* (down {component-out ?message}) {os-out message})
