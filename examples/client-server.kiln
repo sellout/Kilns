@@ -1,3 +1,30 @@
+#|@
+This is a simple example of client/server communication.
+Well, simple in implementation,
+but it is more powerful than what you might be used to in other languages.
+The client basically loops, printing the numbers 0–9.
+However, when it hits 5, rather than printing the number,
+it sends the _process_ to the server.
+Then the server continues executing the process,
+printing 6–9 as it does so.
+
+NB: because of parallelism,
+it’s actually possible for the numbers to print out of order
+and even for some of 6–9 to print on the client side
+– after the `move` message is sent,
+but before the trigger captures the `a` kell.
+
+Here are the steps to run the client and server:
+1. create two shells
+2. in one, do `./kilns -k client examples/client-server`
+3. in the other, do `./kilns -k server examples/client-server`
+
+Note that the client and server both exist in the same file,
+but are just represented by different kells
+(mapped to ports using the `defhost` form,
+and identified by the `-k` option on the command line)
+@|#
+
 ;;; FIXME: this works, but it's technically not guaranteed that these `defhost`
 ;;;        forms are executed before the kells are loaded.
 (defhost 'client "localhost" 8010)
@@ -5,22 +32,33 @@
 
 (load "library/utilities")
 
-[client (par [a (par (load "library/simple-components")
-                     {include-component "library/identity"}
-                     {include-component "library/math"}
-                     {include-component "library/simple-io"}
-                     (trigger* {signal ?i}
-                               (par {= (list ?i 5
-                                             (par {move}
-                                                  {+ (list ?i 1 {signal})})
-                                             {= (list ?i 10
-                                                      null
-                                                      (par {echo ?i}
-                                                           {+ (list ?i 1 {signal})}))})}))
-                     {signal 0})]
-             (trigger {move _ down}
-                      (trigger [a ?x] {transfer ?x})))]
+[client [a ;; set up the libraries we need for the process
+           (load "library/simple-components")
+           {include-component "library/identity"}
+           {include-component "library/math"}
+           {include-component "library/simple-io"}
+           ;; this is the process – it receives a message on the `signal`
+           ;; channel and …
+           (trigger* {signal ?i}
+             {= (list i 5 ;; if it’s `5`, send the `move` message and increment
+                      (par {move}
+                           {+ (list i 1 {signal})})
+                      {= (list i 10 ;; if it’s 10, stop processing
+                               null
+                               ;; otherwise, print the signal and increment
+                               (par {echo i}
+                                    {+ (list i 1 {signal})}))})})
+           ;; send the initial signal
+           {signal 0}]
+        ;; receive the `move` message and pack up the process to send to the
+        ;; server
+        (trigger (down {move})
+          (trigger [a ?x] {transfer x}))]
 
-[server (trigger* {transfer ?proc up} ?proc)]
+;; pull the packed-up process out of the client and put it on the network
+(trigger* (down {transfer ?proc}) {transfer proc})
 
-(trigger* {transfer ?proc down} {transfer ?proc})
+
+[server ;; grab the packed-up process off the network, and start it again on
+        ;; the server
+        (trigger* (up {transfer ?proc}) proc)]
