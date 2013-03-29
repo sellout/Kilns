@@ -218,8 +218,10 @@
           (activate-process (state process) process)))))
 
 (defun get-cpu-count ()
-  (princ "How many CPUs/cores are in your computer? ")
-  (read))
+  #+ccl (ccl:cpu-count)
+  #-(or ccl)
+  (progn (princ "How many CPUs/cores are in your computer? ")
+         (read)))
 
 (defun start (&key cpu-count local-kell port-number)
   (unless cpu-count (setf cpu-count (get-cpu-count)))
