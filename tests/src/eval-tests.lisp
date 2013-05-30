@@ -23,14 +23,16 @@
              (eval '(kell foo (par (kell bar) (kell baz)))))))
 
 (test should-evaluate-to-restriction
-  (is (kilns::egal (make-instance 'restriction
-                            :names '(x y)
-                            :abstraction (compose (make-instance 'message
-                                                                 :name 'x
-                                                                 :argument (make-instance 'message
-                                                                                          :name 'y))
-                                                  (make-instance 'message
-                                                                 :name (make-instance 'global-name :label 'z))))
+  (is (kilns::egal (let ((x (make-instance 'restricted-name :label 'x))
+                         (y (make-instance 'restricted-name :label 'y)))
+                     (make-instance 'restriction
+                                    :names (list x y)
+                                    :abstraction (compose (make-instance 'message
+                                                                         :name x
+                                                                         :argument (make-instance 'message
+                                                                                                  :name y))
+                                                          (make-instance 'message
+                                                                         :name (make-instance 'global-name :label 'z)))))
                    (eval '(new (x y) (message x (message y)) (message z))))))
 
 (test should-evaluate-to-jk-pattern
