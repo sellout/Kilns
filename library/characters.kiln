@@ -18,7 +18,7 @@ To provide some "reverseable" mappings, I think we should store each string as t
 (print title-foo)
 ;; ==> "Scott Mcleod"
 (setf orig-foo (to-originalcase title-foo))
-;; title-foo => string:"Scott McLeod",case:original
+;; orig-foo => string:"Scott McLeod",case:original
 (print orig-foo)
 ;; ==> "Scott McLeod"
 (setf sub-foo (subseq title-foo 3))
