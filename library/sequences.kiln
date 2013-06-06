@@ -4,3 +4,41 @@
 
 (trigger* (up {concatenate (tup ?sequence1 ?sequence2 {?rc})})
   {component-out {rc (lisp (cl:append sequence1 sequence2))}})
+
+#|@
+Here is a probably better approach that takes a list of sequences and
+concatenates all of them. The stepping-by-two approach should result in
+some decent parallelism. EG:
+
+concatenate ["abc" "def" "ghi" "jkl" "mno" "pqr" "stu" "vwx" "yz"]
+=> "abcdef", "ghijkl", "mnopqr", "stuvwx", "yz"
+=> "abcdef", "ghijkl", "mnopqr", "stuvwxyz"
+=> "abcdef", "ghijkl", "mnopqrstuvwxyz"
+=> "abcdef", "ghijklmnopqrstuvwxyz"
+=> "abcdefghijklmnopqrstuvwxyz"
+
+we might be able to do better and get
+
+concatenate ["abc" "def" "ghi" "jkl" "mno" "pqr" "stu" "vwx" "yz"]
+=> "abcdef", "ghijkl", "mnopqr", "stuvwx", "yz"
+=> "abcdefghijkl", "mnopqrstuvwx", "yz"
+=> "abcdefghijklmnopqrstuvwx", "yz"
+=> "abcdefghijklmnopqrstuvwxyz"
+
+which isn’t so impressive in this case, but could be good in larger instances
+@|#
+
+(trigger* (up {concatenate {cons {car ?sequence1}
+                                 {cdr {cons {car ?sequence2} {cdr ?seqs}}}}
+                           {rc {?rc}}})
+  (new (rc1 rc2)
+    {rc1 (lisp (cl:append sequence1 sequence2))}
+    {concatenate seqs {rc {rc2}}}
+    (trigger (par {rc1 ?s1} {rc2 ?s2})
+      {component-out {rc (lisp (cl:append s1 s2))}})))
+
+(trigger* (up {concatenate {cons {car ?sequence1} {cdr {nil}}} {rc {?rc}}})
+  {rc sequence1})
+
+(trigger* (up {concatenate {nil} {rc {?rc}}})
+  {rc {nil}})
