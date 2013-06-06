@@ -5,47 +5,46 @@
 ;;; uses
 #|
 (new obj
-     {new-object {some-class params...} {obj}}
-     (trigger {obj ?object}
-              (par {object {var-name new-value}}
-                   {object {method-name (list param1 param2 {rc})}})))
+  {new-object {some-class params...} {obj}}
+  (trigger {obj ?object}
+    {object {var-name new-value}}
+    {object {method-name (tup param1 param2 {rc})}}))
 |#
 
 ;;; To some extent, we can get this by generalizing the association-lists
 ;;; implementation
 
-(trigger* {new-class (par {name {?name}}
-                          {variables ?vars}
-                          {methods ?methods})
-                     up}
-          (new class-name
-               (par {name {class-name}}
-                    (trigger* {class-name {?rc}}
-                              (new (object-name object-rep)
-                                   (par {object-rep vars}
-                                        (trigger* (par {object-name (list ?operation {?rc})} {object-rep ?rep})
-                                                  (new k*
-                                                       (par {sandbox (list (par ?operation
-                                                                                {object-rep ?rep}
-                                                                                (create-object-operations ,g ,s ,r ,l ,cons ,nil)
-                                                                                (trigger (par {rc ?response} {object-rep ?new-rep})
-                                                                                         {k* (list ?response ?new-rep)}))
-                                                                           {k*})}
-                                                            (trigger {k* (list ?response ?new-rep)}
-                                                                     (par {rc ?response} {object-rep ?new-rep})))))))))))
+(trigger* (up {new-class {name {?name}} {variables ?vars} {methods ?methods}})
+  (new class-name
+    {name {class-name}}
+    (trigger* {class-name {?rc}}
+      (new (object-name object-rep)
+        {object-rep vars}
+        (trigger* (par {object-name (tup ?operation {?rc})} {object-rep ?rep})
+          (new k*
+            {sandbox (tup (par operation
+                               {object-rep rep}
+                               (create-object-operations ,g ,s ,r ,l ,cons ,nil)
+                               (trigger (par {rc ?response}
+                                             {object-rep ?new-rep})
+                                 {k* (tup response new-rep)}))
+                          {k*})}
+            (trigger {k* (tup ?response ?new-rep)}
+              {rc response}
+              {object-rep new-rep})))))))
 
-(trigger* {new-variable (list {?name} ?value)}
-          {name ?value})
+(trigger* {new-variable (tup {?name} ?value)}
+  {name value})
 
-(trigger* {new-method (list {?name ?parameters} ?body)}
-          {name })
+(trigger* {new-method (tup {?name ?parameters} ?body)}
+  {name })
 
 (def (object obj vars methods)
-     `(new ,(cl:mapcar #'name vars)
-           ,@(cl:mapcar (lambda (var) `(trigger {,var {?rc}} {rc null})) vars)
-           (methods obj meths)))
+  `(new ,(cl:mapcar #'name vars)
+     ,@(cl:mapcar (lambda (var) `(trigger {,var {?rc}} {rc null})) vars)
+     (methods obj meths)))
 
 (def (methods obj meths)
-     `(new ,(cl:mapcar #'name meths)
-           (trigger* {,obj } ...)
-           ,@(cl:mapcar (lambda (meth) `(trigger* {} ...)))))
+  `(new ,(cl:mapcar #'name meths)
+     (trigger* {,obj } ...)
+     ,@(cl:mapcar (lambda (meth) `(trigger* {} ...)))))

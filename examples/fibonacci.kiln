@@ -5,41 +5,38 @@
 {include-component "library/math"}
 
 ;; Sends the given process `count` times.
-(trigger* {repeat (list ?process ?count)}
-          {<= (list ?index 0
-                    null
-                    (new next
-                         (par ?process
-                              {- (list ?count 1 {next})}
-                              (trigger {next ?next}
-                                       {repeat (list ?process ?next)}))))})
+(trigger* {repeat (tup ?process ?count)}
+  {<= (tup ?index 0
+           null
+           (new next
+             ?process
+             {- (tup ?count 1 {next})}
+             (trigger {next ?next} {repeat (tup ?process ?next)})))})
 
-(trigger* {fibonacci (list ?index {?rc})}
-          {<= (list ?index 1
-                    {rc ?index}
-                    (new (previous f)
-                         (par {- (list ?index 1 {previous})}
-                              {- (list ?index 2 {previous})}
-                              {repeat (list (trigger {previous ?new-index}
-                                                     {fibonacci (list ?new-index
-                                                                      {f})})
-                                            2)}
-                              (trigger (par {f ?fib1} {f ?fib2})
-                                       {+ (list ?fib1 ?fib2 {rc})}))))})
+(trigger* {fibonacci (tup ?index {?rc})}
+  {<= (tup ?index 1
+           {rc ?index}
+           (new (previous f)
+             {- (tup ?index 1 {previous})}
+             {- (tup ?index 2 {previous})}
+             {repeat (tup (trigger {previous ?new-index}
+                            {fibonacci (tup ?new-index {f})})
+                          2)}
+             (trigger (par {f ?fib1} {f ?fib2})
+               {+ (tup ?fib1 ?fib2 {rc})})))})
 
 #|
 ;; alternative implementation
-;; use sandbox and trigger* instead of repeat and trigger  
-(trigger* {fibonacci (list ?index {?rc})}
-          {<= (list ?index 1
-                    {rc ?index}
-                    {sandbox (list (new (previous f)
-                                        (par {- (list ?index 1 {previous})}
-                                             {- (list ?index 2 {previous})}
-                                             (trigger* {previous ?new-index}
-                                                       {fibonacci (list ?new-index
-                                                                        {f})})
-                                             (trigger (par {f ?fib1} {f ?fib2})
-                                                      {+ (list ?fib1 ?fib2 {rc})})))
-                                   {rc})})})
+;; use sandbox and trigger* instead of repeat and trigger
+(trigger* {fibonacci (tup ?index {?rc})}
+  {<= (tup ?index 1
+           {rc ?index}
+           {sandbox (tup (new (previous f)
+                           {- (tup ?index 1 {previous})}
+                           {- (tup ?index 2 {previous})}
+                           (trigger* {previous ?new-index}
+                             {fibonacci (tup ?new-index {f})})
+                           (trigger (par {f ?fib1} {f ?fib2})
+                             {+ (tup ?fib1 ?fib2 {rc})}))
+                         {rc})})})
 |#

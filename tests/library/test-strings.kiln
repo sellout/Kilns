@@ -4,11 +4,11 @@
 {test-result {should {get-length}}
              {test (load "library/simple-components")
                    {include-component "library/strings"}
-                   {string-length (list "test" {rc})}}
+                   {string-length (tup "test" {rc})}}
              {expected-result {rc 4}}}
 
 {test-result {should {concatenate}}
              {test (load "library/simple-components")
                    {include-component "library/strings"}
-                   {string-concat (list "test " "concat" {rc})}}
+                   {string-concat (tup "test " "concat" {rc})}}
              {expected-result {rc "test concat"}}}

@@ -1,54 +1,53 @@
 (load "library/replication")
 (load "library/utilities")
 
-(def (Collector)
-    (trigger* {collect (list {?a} {?k} ?p)}
-              (trigger [a ?x]
-                       (new (r b)
-                            (par (F ?a ?k r)
-                                 [b (trigger (par [a ?x]
-                                                  {query (list {a} {k} {r})}
-                                                  {r (list {a} {k} {?b})})
-                                             {r (list {a} {k} {b})})])))))
+(define (Collector)
+  (trigger* {collect (tup {?a} {?k} ?p)}
+    (trigger [a ?x]
+      (new (r b)
+        (F {a} {k} {r})
+        [b (trigger (par [a ?x]
+                         {query (tup {a} {k} {r})}
+                         {r (tup {a} {k} {?b})})
+             {r (tup {a} {k} {b})})]))))
 
-(def (F a k r)
-    (par (trigger {r (list {a} {k} {yes})} (trigger [b ?y] ?p))
-         (trigger {r (list {a} {k} {no})}
-                  (trigger [b ?y] (par {collect (list {a} {k})} [a ?x])))))
+(define (F {?a} {?k} {?r})
+  (trigger {r (tup {a} {k} {yes})} (trigger [b ?y] ?p))
+  (trigger {r (tup {a} {k} {no})}
+    (trigger [b ?y]
+      {collect (tup {a} {k})}
+      [a ?x])))
 
 ;;; Isn't this good enough?
-(def (Collector)
-    (trigger* {collect {?kell} down}
-              (trigger [kell ?x] null)))
+(define (Collector)
+  (trigger* (down {collect {?kell}})
+    (trigger [kell ?x] null)))
 
 ;;;       ⟦null⟧ = null
 ;;;  ⟦(new n P)⟧ = (new n ⟦P⟧)
 ;;;   ⟦(par P Q⟧ = (par ⟦P⟧ ⟦Q⟧)
 ;;;      ⟦(! P)⟧ = (new a (par {a} (trigger {a} (par ⟦P⟧ {a}))))
 ;;;      ⟦[a P]⟧ = (par [a (par (A a) [amb ⟦P⟧])] (AmbEnv))
-;;;   ⟦(in a P)⟧ = {in (list a ⟦P⟧)} 
-;;;  ⟦(out a P)⟧ = {out (list a ⟦P⟧)}
-;;; ⟦(open a P)⟧ = {open (list a ⟦P⟧)}
+;;;   ⟦(in a P)⟧ = {in (tup a ⟦P⟧)}
+;;;  ⟦(out a P)⟧ = {out (tup a ⟦P⟧)}
+;;; ⟦(open a P)⟧ = {open (tup a ⟦P⟧)}
 
-(def (A a)
-    `(new t
-          (par {t}
-               (S ,a t)
-               (T ,a t)
-               (F ,a t)
-               (NQ ,a t))))
+(define (A {?a}) ; NB: This looks just like a pi-calc alternative.
+  (new t
+    {t}
+    (S {a} {t})
+    (T {a} {t})
+    (F {a} {t})
+    (NQ {a} {t})))
 
-(def (S a t)
-    `(par (trigger (par {t} {in (list ?b ?p) down})
-                   (trigger [amb ?z]
-                            (new k
-                                 (par {collect (list {,a} {k} {to (list {,a} {in} ?m ?p ?z)})}
-                                      (YQ ,a k)))))
-          (trigger (par {t} {out (list ?b ?p) down})
-                   (trigger [amb ?z]
-                            (new k
-                                 (par {collect (list {,a} {k} {up (list {,a} {out} ?m ?p ?z)})}
-                                      (YQ ,a k)))))))
-
-
-
+(define (S ?a {?t})
+  (trigger (par {t} (down {in (tup ?b ?p)}))
+    (trigger [amb ?z]
+      (new k
+        {collect (tup {a} {k} {to (tup {a} {in} ?m p z)})}
+        (YQ {a} {k}))))
+  (trigger (par {t} (down {out (tup ?b ?p)}))
+    (trigger [amb ?z]
+      (new k
+        {collect (tup {a} {k} {up (tup {a} {out} ?m p z)})}
+        (YQ {a} {k})))))

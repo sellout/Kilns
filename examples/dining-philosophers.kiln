@@ -2,33 +2,31 @@
 (load "library/utilities")
 
 (trigger* {run-dining-philosophers {table-size ?size}}
-          (new (chopstick philosopher)
-               {chopstick 1}
-               {chopstick 2}
-               {chopstick 3}
-               {chopstick 4}
-               {chopstick 5}
+  (new (chopstick philosopher)
+    {chopstick 1}
+    {chopstick 2}
+    {chopstick 3}
+    {chopstick 4}
+    {chopstick 5}
 
-               (trigger* {philosopher (list ?index1 ?index2)}
-                         {format (list "Philosopher ~D is thinking" index1)}
-                         {sleep {seconds 1}
-                         ;; NOTE: Because the trigger either matches or doesn’t, we
-                         ;;       either get both chopsticks or none. It’s not possible
-                         ;;       to deadlock. Is it possible to starve? (Depends on the
-                         ;;       implementation’s fairness, I think.)
-                         {then (trigger (par {chopstick index1} {chopstick index2})
-                                        {format (list "Philosopher ~D is eating"
-                                                      index1)}
-                                                      {sleep {seconds 1}
-                                                      {then {format (list "Philosopher ~D finished eating"
-                                                                          index1)}
-                                                                          {chopstick index1}
-                                                                          {chopstick index2}
-                                                                          {philosopher (list index1
-                                                                                             index2)}}})}})
+    (trigger* {philosopher (tup ?index1 ?index2)}
+      {format (list "Philosopher ~D is thinking" index1)}
+      {sleep {seconds 1}
+             ;; NOTE: Because the trigger either matches or doesn’t, we
+             ;;       either get both chopsticks or none. It’s not possible
+             ;;       to deadlock. Is it possible to starve? (Depends on the
+             ;;       implementation’s fairness, I think.)
+             {then (trigger (par {chopstick index1} {chopstick index2})
+                     {format (list "Philosopher ~D is eating" index1)}
+                     {sleep {seconds 1}
+                            {then {format (list "Philosopher ~D finished eating"
+                                                index1)}
+                                  {chopstick index1}
+                                  {chopstick index2}
+                                  {philosopher (tup index1 index2)}}})}})
 
-               {philosopher (list 1 2)}
-               {philosopher (list 2 3)}
-               {philosopher (list 3 4)}
-               {philosopher (list 4 5)}
-               {philosopher (list 5 1)}))
+    {philosopher (tup 1 2)}
+    {philosopher (tup 2 3)}
+    {philosopher (tup 3 4)}
+    {philosopher (tup 4 5)}
+    {philosopher (tup 5 1)}))

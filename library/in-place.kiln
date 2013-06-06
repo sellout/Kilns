@@ -9,7 +9,7 @@
 ;;; http://www.mail-archive.com/alexandria-devel@common-lisp.net/msg00020.html
 
 #|
-(trigger {upcase (list ?string {?rc}) up} ...)
+(trigger {upcase (tup ?string {?rc}) up} ...)
 
 A thought … if there's a
 
@@ -18,16 +18,16 @@ A thought … if there's a
 We can modify the string "in-place" with
 |#
     (trigger* {upcase {?channel}}
-              (trigger {channel ?string}
-                       {upcase (list ?string {channel})}))
+      (trigger {channel ?string}
+        {upcase (tup string {channel})}))
 #|
     {upcase {location}}
 
 Now, can we genericize that?
 |#
     (trigger* {in-place {?operation {?channel}}}
-              (trigger {channel ?value}
-                       {operation (list ?value {channel})}))
+      (trigger {channel ?value}
+        {operation (tup value {channel})}))
 #|
 So now
 
@@ -35,27 +35,34 @@ So now
 
 will work, but if we want to do
 
-    {in-place {subseq (list {location} 10 20)}}
+    {in-place {subseq (tup {location} 10 20)}}
 
 then we need to also create
 
-    (trigger* {in-place {?operation (list {?channel} ?param1 ?param2)}}
-              (trigger {channel ?value}
-                       {operation (list ?value ?param1 ?param2 {channel})}))
+    (trigger* {in-place {?operation (tup {?channel} ?param1 ?param2)}}
+      (trigger {channel ?value}
+        {operation (tup value param1 param2 {channel})}))
 
-and so on for any other number of parameters we want to support. Once we handle variable args somehow, maybe with an extended pattern language. There are also other special cases to handle – like what if the in-place channel isn't the first parameter, or what if there are multiple channels you'd like to update in place. That last case is probably pretty contrived – as there are also multiple response channels in that case, and not all channel parameters are meant to be handled in-place, etc. So there might not be much point in generalizing beyond the single-place operation. But it allows things like this:
+and so on for any other number of parameters we want to support. Once we handle
+variable args somehow, maybe with an extended pattern language. There are also
+other special cases to handle – like what if the in-place channel isn't the
+first parameter, or what if there are multiple channels you'd like to update in
+place. That last case is probably pretty contrived – as there are also multiple
+response channels in that case, and not all channel parameters are meant to be
+handled in-place, etc. So there might not be much point in generalizing beyond
+the single-place operation. But it allows things like this:
 
     (new (string)
-         {string "foobar"}
-         {in-place {upcase {string}} {done}}
-         {in-place {subseq (list {string} 0 3)} {done}}
-         (trigger (par {done} {done} {string ?value})
-                  {echo ?value}))
+      {string "foobar"}
+      {in-place {upcase {string}} {done}}
+      {in-place {subseq (tup {string} 0 3)} {done}}
+      (trigger (par {done} {done} {string ?value})
+        {echo value}))
     => "FOO"
 
 Because any motion through the operations gets to the same endpoint:
 
-            subseq 
+            subseq
      foobar   ->   foo
     u
     p
@@ -65,27 +72,30 @@ Because any motion through the operations gets to the same endpoint:
     e
      FOOBAR   ->   FOO
 
-However, there's an issue with knowing when the operation is actually done – the continuation is processed when the inner trigger is created, not when it's activated, which means that the `echo` could be the first thing that's performed. You really want to be able to pass along the continuation. There are a few options I can think of:
+However, there's an issue with knowing when the operation is actually done – the
+continuation is processed when the inner trigger is created, not when it's
+activated, which means that the `echo` could be the first thing that's
+performed. You really want to be able to pass along the continuation. There are
+a few options I can think of:
 
 ;;; This one won't work because you can't match on the continuation, even when
 ;;; it's just in the contents of a received message.
 (trigger* {in-place {?operation {?channel} ?continuation}}
-          (trigger {channel ?value}
-                   {operation (list ?value {channel}) ?continuation}))
+  (trigger {channel ?value}
+    {operation (tup value {channel}) continuation}))
 
 ;;; The following ones work, but are a bit ugly.
 
-;;; The problem here is that you _always_ have to pass a continuation, even if
-;;; it's just null
-(trigger* {in-place (list {?operation {?channel} ?continuation} ?continuation)}
-          (trigger {channel ?value}
-                   {operation (list ?value {channel}) ?continuation}))
+;;; This is in addition to the original cont-less case
+(trigger* {in-place (tup {?operation {?channel}} ?continuation)}
+  (trigger {channel ?value}
+    {operation (tup value {channel}) continuation}))
 
 ;;; This is effectively equivalent to the previous one, I think – it just
 ;;; activates the continuation when the message is consumed, rather than when
 ;;; the operation is performed.
-(trigger* {in-place (list {?operation {?channel} ?continuation} ?continuation)}
-          (trigger {channel ?value}
-                   (par {operation (list ?value {channel})}
-                        ?continuation)))
+(trigger* {in-place (tup {?operation {?channel}} ?continuation)}
+  (trigger {channel ?value}
+    {operation (tup value {channel})}
+    continuation))
 |#

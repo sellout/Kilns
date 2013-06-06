@@ -6,33 +6,36 @@
 
 ;; shorthand for passivating a kell
 (trigger* {stop {kell-name}}
-          (trigger [kell-name ?x] null))
+  (trigger [kell-name ?x] null))
 
 ;; builds a menu of alternatives, based on which channel a message is sent over
 ;; FIXME: need to make this variadic
-(trigger* {menu (list {?name} {?c1 ?p1} {?c2 ?p2} {?c3 ?p3} …)}
-          (trigger* {name (list {? c1} {? c2} {? c3})}
-                    (new (exec n1 n2 n3)
-                         (par (trigger {exec ?proc down} ?proc)
-                              [n1 (trigger {c1 _ up}
-                                           (par {exec ?p1}
-                                                {stop {n2}} {stop {n3}}))]
-                              [n2 (trigger {c2 _ up}
-                                           (par {exec ?p2}
-                                                {stop {n1}} {stop {n3}}))]
-                              [n3 (trigger {c3 _ up}
-                                           (par {exec ?p3}
-                                                {stop {n1}} {stop {n2}}))]))
-))
+(trigger* {menu (tup {?name} {?c1 ?p1} {?c2 ?p2} {?c3 ?p3} …)}
+  (trigger* {name (tup {? c1} {? c2} {? c3})}
+    (new (exec n1 n2 n3)
+      (trigger (down {exec ?proc}) ?proc)
+      [n1 (trigger (up {c1})
+            {exec ?p1}
+            {stop {n2}}
+            {stop {n3}})]
+      [n2 (trigger (up {c2})
+            {exec ?p2}
+            {stop {n1}}
+            {stop {n3}})]
+      [n3 (trigger (up {c3})
+            {exec ?p3}
+            {stop {n1}}
+            {stop {n2}})]
+      …)))
 
 #|
 (new (win loss draw)
-     (par {menu (list {final-outcome}
-                      {win {print "They won!"}}
-                      {loss {print "The other guys won :("}}
-                      {draw {print "Tie game – no one's happy."}})}
-          ;; do lots of stuff, which will eventually result in exactly one of
-          ;; these outcomes being triggered, by a message over that channel, and
-          ;; then the others get cleaned up
-          ))
+  {menu (tup {final-outcome}
+             {win {print "They won!"}}
+             {loss {print "The other guys won :("}}
+             {draw {print "Tie game – no one's happy."}})}
+  ;; do lots of stuff, which will eventually result in exactly one of
+  ;; these outcomes being triggered, by a message over that channel, and
+  ;; then the others get cleaned up
+  )
 |#

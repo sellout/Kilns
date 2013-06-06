@@ -5,96 +5,92 @@
 
 ;; primitives
 
-(trigger* (up {+ (list ?augend ?addend {?rc})})
-          (lisp (cl:let ((sum (cl:+ augend addend)))
-                  (substitute-variables (sum)
-                    {component-out {rc sum}}))))
-(trigger* (up {- (list ?minuend ?subtrahend {?rc})})
-          (lisp (cl:let ((difference (cl:- minuend subtrahend)))
-                  (substitute-variables (difference)
-                    {component-out {rc difference}}))))
-(trigger* (up {* (list ?multiplier ?multiplicand {?rc})})
-          (lisp (cl:let ((product (cl:* multiplier multiplicand)))
-                  (substitute-variables (product)
-                    {component-out {rc product}}))))
-(trigger* (up {/ (list ?dividend ?divisor {?rc})})
-          (lisp (cl:let ((quotient (cl:/ dividend divisor)))
-                  (substitute-variables (quotient)
-                    {component-out {rc quotient}}))))
-(trigger* (up {remainder (list ?number ?divisor {?rc})})
-          (lisp (cl:let ((remainder (cl:rem number divisor)))
-                  (substitute-variables (remainder)
-                    {component-out {rc remainder}}))))
+(trigger* (up {+ (tup ?augend ?addend {?rc})})
+  (lisp (cl:let ((sum (cl:+ augend addend)))
+          (substitute-variables (sum)
+            {component-out {rc sum}}))))
+(trigger* (up {- (tup ?minuend ?subtrahend {?rc})})
+  (lisp (cl:let ((difference (cl:- minuend subtrahend)))
+          (substitute-variables (difference)
+            {component-out {rc difference}}))))
+(trigger* (up {* (tup ?multiplier ?multiplicand {?rc})})
+  (lisp (cl:let ((product (cl:* multiplier multiplicand)))
+          (substitute-variables (product)
+            {component-out {rc product}}))))
+(trigger* (up {/ (tup ?dividend ?divisor {?rc})})
+  (lisp (cl:let ((quotient (cl:/ dividend divisor)))
+          (substitute-variables (quotient)
+            {component-out {rc quotient}}))))
+(trigger* (up {remainder (tup ?number ?divisor {?rc})})
+  (lisp (cl:let ((remainder (cl:rem number divisor)))
+          (substitute-variables (remainder)
+            {component-out {rc remainder}}))))
 
 ;; derived
 
-(trigger* (up {zerop (list ?number ?true ?false)})
-          {= (list number 0 {component-out true} {component-out false})})
+(trigger* (up {zerop (tup ?number ?true ?false)})
+  {= (tup number 0 {component-out true} {component-out false})})
 
-(trigger* (up {plusp (list ?number ?true ?false)})
-          {< (list 0 number {component-out true} {component-out false})})
+(trigger* (up {plusp (tup ?number ?true ?false)})
+  {< (tup 0 number {component-out true} {component-out false})})
 
-(trigger* (up {minusp (list ?number ?true ?false)})
-          {< (list number 0 {component-out true} {component-out false})})
+(trigger* (up {minusp (tup ?number ?true ?false)})
+  {< (tup number 0 {component-out true} {component-out false})})
 
 
-(trigger* (up {modulus (list ?number ?divisor {?rc})})
-          (new rem
-               (par {component-local {remainder (list number divisor {rem})}}
-                    (trigger (up {rem ?remain})
-                             {component-local {zerop (list remain
-                                                           {rc remain}
-                                                           {minusp (list divisor
-                                                                         {plusp (list number
-                                                                                      {+ (list remain divisor {rc})}
-                                                                                      {rc remain})}
-                                                                         {minusp (list number
-                                                                                       {+ (list remain divisor {rc})}
-                                                                                       {rc remain})})})}}))))
+(trigger* (up {modulus (tup ?number ?divisor {?rc})})
+  (new rem
+    (par {component-local {remainder (tup number divisor {rem})}}
+         (trigger (up {rem ?remain})
+           {component-local {zerop (tup remain
+                                        {rc remain}
+                                        {minusp (tup divisor
+                                                     {plusp (tup number
+                                                                 {+ (tup remain divisor {rc})}
+                                                                 {rc remain})}
+                                                     {minusp (tup number
+                                                                  {+ (tup remain divisor {rc})}
+                                                                  {rc remain})})})}}))))
 
-(trigger* (up {evenp (list ?integer ?true ?false)})
-          (new bin
-               (par {component-local {modulus (list integer 2 {bin})}}
-                    (trigger (up {bin ?binary})
-                             {= (list binary 2
-                                      {component-out true}
-                                      {component-out false})}))))
+(trigger* (up {evenp (tup ?integer ?true ?false)})
+  (new bin
+    {component-local {modulus (tup integer 2 {bin})}}
+    (trigger (up {bin ?binary})
+      {= (tup binary 2 {component-out true} {component-out false})})))
 
 #|
-(trigger* (up {abs (list ?number {?rc})})
-          {complexp (list ?number
-                          (new (part pow sum)
-                               (par {realpart (list ?number {part})}
-                                    {imagpart (list ?number {part})}
-                                    ;; need to clean up
-                                    (trigger* {part ?part}
-                                              {expt (list ?part 2 {pow})})
-                                    (trigger (par {pow ?a} {pow ?b})
-                                             {+ (list ?a ?b {sum})})
-                                    (trigger {sum ?sum}
-                                             {sqrt (list ?sum {rc})})))
-                          {minusp (list ?number
-                                        {- (list ?number {rc})}
-                                        {rc ?number})})})
+(trigger* (up {abs (tup ?number {?rc})})
+  {complexp (tup number
+                 (new (part pow sum)
+                   {realpart (tup number {part})}
+                   {imagpart (tup number {part})}
+                   ;; need to clean up
 
-(trigger* (up {conjugate (list ?complex {?rc})})
-          (par {realpart (list ?complex {real})}
-               {imagpart (list ?complex {imag})}
-               (trigger {imag ?real} {- (list ?real {ima})})
-               (trigger (par {real ?r} {ima ?i}) {complex (list ?r ?i {rc})})))
+                   (trigger* {part ?part} {expt (tup part 2 {pow})})
+                   (trigger (par {pow ?a} {pow ?b}) {+ (tup a b {sum})})
+                   (trigger {sum ?sum} {sqrt (tup sum {rc})}))
+                 {minusp (tup number
+                              {- (tup number {rc})}
+                              {rc number})})})
 
-;;(trigger* (up {least-common-multiple (list ?a ?b {?rc})}))
+(trigger* (up {conjugate (tup ?complex {?rc})})
+  (par {realpart (tup complex {real})}
+       {imagpart (tup complex {imag})}
+       (trigger {imag ?real} {- (tup real {ima})})
+       (trigger (par {real ?r} {ima ?i}) {complex (tup r i {rc})})))
 
-(trigger* (up {signum (list ?number {?rc})})
-          {zerop (list ?number
-                       {rc ?number}
-                       (new ab
-                            (par {abs (list ?number {ab})}
-                                 (trigger {ab ?val} {/ ?number ?val}))))})
+;;(trigger* (up {least-common-multiple (tup ?a ?b {?rc})}))
 
-(trigger* (up {tan (list ?number {?rc})})
-          (new (s c)
-               (par {sin ?number {s}}
-                    {cos ?number {c}}
-                    (trigger (par {s ?s} {c ?c}) {/ (list ?s ?c {rc})}))))
+(trigger* (up {signum (tup ?number {?rc})})
+  {zerop (tup ?number
+              {rc ?number}
+              (new ab
+                {abs (tup ?number {ab})}
+                (trigger {ab ?val} {/ ?number ?val})))})
+
+(trigger* (up {tan (tup ?number {?rc})})
+  (new (s c)
+    {sin number {s}}
+    {cos number {c}}
+    (trigger (par {s ?s} {c ?c}) {/ (tup s c {rc})})))
 |#

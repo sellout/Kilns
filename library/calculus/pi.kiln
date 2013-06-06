@@ -5,14 +5,26 @@
 ;;; certain pi primitives are not in the kell calculus. Here we implement those
 ;;; primitives via existing kell primitives.
 
-;;;  ⟦{a (b1 b2 b3) P}⟧ = {a (list b1 b2 b3) ⟦P⟧}
+;;;  ⟦{a (b1 b2 b3) P}⟧ = {a (tup b1 b2 b3) ⟦P⟧}
 ;;;         ⟦(new x P)⟧ = (new x ⟦P⟧)
 ;;;         ⟦(par P Q)⟧ = (par ⟦P⟧ ⟦Q⟧)
-;;;             ⟦(! P)⟧ = (new k (par {k} (trigger* {k} (par ⟦P⟧ {k}))))
+;;;             ⟦(! P)⟧ = (new k {k} (trigger* {k} (par ⟦P⟧ {k})))
 ;;; ⟦(+ a(b).P c(d).Q)⟧ = (new k
-;;;                            (par {k}
-;;;                                 (trigger (par {k} {a (list b)}) ⟦P⟧)
-;;;                                 (trigger (par {k} {c (list d)}) ⟦Q⟧)))
+;;;                        {k}
+;;;                        (trigger (par {k} {a (tup b)}) ⟦P⟧)
+;;;                        (trigger (par {k} {c (tup d)}) ⟦Q⟧))
+
+;; This currently has the same problem with leaving a bit of trash around. It
+;; could probably be solved with another level of kells (maybe), or with some
+;; real garbage collection that can identify that there will never be another
+;; `k` to trigger.
+(new option
+     (trigger (down {done})
+              (trigger [option ?a] a))
+     [option (new k
+                  {k}
+                  (trigger (par {k} (up {a b})) ⟦P⟧)
+                  (trigger (par {k} (up {c d})) ⟦Q⟧))])
 
 (def (! process)
   ;; We use this instead of the original encoding of replication because that
@@ -27,15 +39,14 @@
                  (state ,process)
                  (parallel-composition (continuation ,process)
                                        `(! ,,process))))
-     (trigger (trigger* (pattern ,process)
-                        (process ,process)))
+     (trigger (trigger* (pattern ,process) (process ,process)))
      (parallel-composition (map-process (cl:lambda (proc) `(! ,proc)) ,process))
      (restriction (new (names process) `(! ,(process ,process))))))
 
 (def (+ proc1 proc2)
   `(new k
-        (par {k}
-             (trigger (par {k} {(name ,proc1) (argument ,proc1)})
-                      (continuation ,proc1))
-             (trigger (par {k} {(name ,proc2) (argument ,proc2)})
-                      (continuation ,proc2)))))
+     (par {k}
+          (trigger (par {k} {(name ,proc1) (argument ,proc1)})
+            (continuation ,proc1))
+          (trigger (par {k} {(name ,proc2) (argument ,proc2)})
+            (continuation ,proc2)))))

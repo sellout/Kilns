@@ -43,8 +43,8 @@
                      (load "library/simple-components")
                      {include-component "library/strings"}
                      (new r
-                       {a (list "hello " "world" {r})}
+                       {a (tup "hello " "world" {r})}
                        (trigger {r ?x} {echo x}))
-                     (trigger {a (list ?x ?y {?r})}
-                       {string-concat (list x y {r})}))}
+                     (trigger {a (tup ?x ?y {?r})}
+                       {string-concat (tup x y {r})}))}
              {expected-result {echo "hello world"}}}

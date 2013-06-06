@@ -15,30 +15,30 @@
 
 (new (outcomes show-result)
   ;; {new-list {outcomes}}
-  ;; (trigger {outcomes (list {?l} {?get} {?set} {?rem})}
-    (trigger* {test-result {should {?name}}
-                           {test ?test}
-                           {expected-result {?channel ?result}}}
-      (new rc
-        {sandbox (list (par test
-                            (trigger {channel ?actual-result}
-                              {rc {channel actual-result}}))
-                       {rc})}
-        (trigger {rc ?test-result}
-          {= (list {channel result} test-result
-                   {show-result {name {success}}}
-                   {show-result {name {failure {expected {channel result}}
-                                               {got test-result}}}}
-                   ;; {l (list {set (list {name} {success}
-                   ;;                     {show-result {name {success}}})}
-                   ;;          {show-result})}
-                   ;; {l (list {set (list {name}
-                   ;;                     {failure {expected {channel result}}
-                   ;;                              {got test-result}}
-                   ;;                     {show-result {name {failure {expected {channel result}}
-                   ;;                                                 {got test-result}}}})}
-                   ;;          {show-result})}
-                   )})))
+  ;; (trigger {outcomes (tup {?l} {?get} {?set} {?rem})}
+  (trigger* {test-result {should {?name}}
+                         {test ?test}
+                         {expected-result {?channel ?result}}}
+    (new frc
+      {sandbox {process test
+                        (trigger {channel ?actual-result}
+                          {frc {channel actual-result}})}
+               {rc {frc}}}
+      (trigger {frc ?test-result}
+        {= (tup {channel result} test-result
+                {show-result {name {success}}}
+                {show-result {name {failure {expected {channel result}}
+                                            {got test-result}}}}
+                ;; {l (tup {set (tup {name} {success}
+                ;;                   {show-result {name {success}}})}
+                ;;          {show-result})}
+                ;; {l (tup {set (tup {name}
+                ;;                   {failure {expected {channel result}}
+                ;;                            {got test-result}}
+                ;;                   {show-result {name {failure {expected {channel result}}
+                ;;                                               {got test-result}}}})}
+                ;;         {show-result})}
+                )})))
            ;; )
   (trigger* {show-result ?result}
     {echo result}))

@@ -1,57 +1,53 @@
 (load "library/utilities")
 (load "library/sandbox")
 
-(trigger* {zero (list {?f} ?x {?rc}) up} {rc x})
-(trigger* {succ (list {?n} {?name}) up}
-          (trigger* {name (list {?f} ?x {?rc})}
-                    (new s
-                         (par {f (list x {s})}
-                              (trigger {s ?result}
-                                       {n (list {f} result {rc}))))))
-{succ (list {zero} {one})} ;; need this guy to implement `exp`
-(trigger* {plus (list {?m} {?n} {?name}) up}
-          {m (list {succ} {n} {name})})
-(trigger* {mult (list {?m} {?n} {?name}) up}
-          {sandbox (list (new plusn
-                              (par (trigger* {plusn (list {?o} {?rc})}
-                                             {plus (list {n} {o} {rc})})
-                                   {m (list {plusn} {zero} {name})}))
-                         {name})})
-(trigger* {exp (list {?m} {?n} {?name}) up}
-          {sandbox (list (new multn
-                              (par (trigger* {multn (list {?o} {?rc})}
-                                             {mult (list {n} {o} {rc})})
-                                   {m (list {multn} {one} {name})}))
-                         {name})})
-(trigger* {pred (list {?n} {?name}) up}
-          (trigger* {name (list {?f} ?x {?rc})}
-                    (new (gh ux uu)
-                         (par (trigger* {gh (list {?g} {?h} {?ghrc})}
-                                        (new grc
-                                             (par {g (list {f} {grc})}
-                                                  (trigger {grc ?y}
-                                                           {h (list y
-                                                                    {ghrc})}))))
-                              (trigger* {ux (list {?u} {?uxrc})} {uxrc x})
-                              (trigger* {uu (list {?u} {?uurc})} {uurc {u}})
-                              {n (list {gh} {ux} {uu})}))))
-(trigger* {sub (list {?m} {?n} {?name}) up}
-          {n (list {pred} {m} {name})})
-(trigger* {zerop (list {?n} {?rc}) up}
-          {sandbox (list (new s
-                              (par (trigger {s (list ?x {?norc})}
-                                            {rc {false}})
-                                   {n (list {s} {true} {rc})}))
-                         {rc})})
+(trigger* (up {zero (tup {?f} ?x {?rc})}) {rc x})
+(trigger* (up {succ (tup {?n} {?name})})
+  (trigger* {name (tup {?f} ?x {?rc})}
+    (new s
+      {f (tup x {s})}
+      (trigger {s ?result}
+        {n (tup {f} result {rc})))))
+{succ (tup {zero} {one})} ;; need this guy to implement `exp`
+(trigger* (up {plus (tup {?m} {?n} {?name})})
+  {m (tup {succ} {n} {name})})
+(trigger* (up {mult (tup {?m} {?n} {?name})})
+  {sandbox (tup (new plusn
+                  (trigger* {plusn (tup {?o} {?rc})}
+                    {plus (tup {n} {o} {rc})})
+                  {m (tup {plusn} {zero} {name})})
+                {name})})
+(trigger* (up {exp (tup {?m} {?n} {?name})})
+  {sandbox (tup (new multn
+                  (trigger* {multn (tup {?o} {?rc})}
+                    {mult (tup {n} {o} {rc})})
+                  {m (tup {multn} {one} {name}))}
+                {name})})
+(trigger* (up {pred (tup {?n} {?name})})
+  (trigger* {name (tup {?f} ?x {?rc})}
+    (new (gh ux uu)
+      (trigger* {gh (tup {?g} {?h} {?ghrc})}
+        (new grc
+          {g (tup {f} {grc})}
+          (trigger {grc ?y} {h (tup y {ghrc})})))
+      (trigger* {ux (tup {?u} {?uxrc})} {uxrc x})
+      (trigger* {uu (tup {?u} {?uurc})} {uurc {u}})
+      {n (tup {gh} {ux} {uu})})))
+(trigger* (up {sub (tup {?m} {?n} {?name})})
+  {n (tup {pred} {m} {name})})
+(trigger* (up {zerop (tup {?n} {?rc})})
+  {sandbox (tup (new s
+                  (trigger {s (tup ?x {?norc})} {rc {false}})
+                  {n (tup {s} {true} {rc})})
+                {rc})})
 
 ;; Convert between native and church representations
-(trigger* {church (list {0} {?rc}) up} {rc {zero}})
-(trigger* {church (list {(/= 0 ?integer)} {?rc}) up}
-          (new (sub pred)
-               (par {- (list ?integer {1} {sub})}
-                    (trigger {sub ?dec} {church (list dec {pred})})
-                    (trigger {pred ?prev} {succ (list prev {rc})}))))
-(trigger* {unchurch (list ?church {?rc}) up}
-          (trigger* {inc (list ?n {?rinc})}
-                    {rinc (lisp (cl:1+ #.?n))})
-          {n (list {inc} 0 {rc})})
+(trigger* (up {church (tup {0} {?rc})}) {rc {zero}})
+(trigger* (up {church (tup {(/= 0 ?integer)} {?rc})})
+  (new (sub pred)
+    {- (tup ?integer {1} {sub})}
+    (trigger {sub ?dec} {church (tup dec {pred})})
+    (trigger {pred ?prev} {succ (tup prev {rc})})))
+(trigger* (up {unchurch (tup ?church {?rc})})
+  (trigger* {inc (tup ?n {?rinc})} {rinc (lisp (cl:1+ #.?n))})
+  {n (tup {inc} 0 {rc})})

@@ -42,7 +42,7 @@
           ;;(load "library/os/filesystem")
 
           ;; this should be in (load "library/os/processes")
-          (trigger* {exec (list ?command ?arguments {?process})}
+          (trigger* {exec (tup ?command ?arguments {?process})}
             (lisp (let ((result (external-program:start command
                                                         arguments
                                                         :input :stream
@@ -75,7 +75,7 @@
 ;;; sent over the network, because they occur in a network kell. A better
 ;;; implementation that treats names as more than just symbols might be able to
 ;;; prevent this.
-#| 
+#|
 [outside (new (top environment os)
               (par [top (trigger* (up {os ?message}) message) ; os responses
                         (trigger (up {environment {PATH ?value}}) ...) ; getvar

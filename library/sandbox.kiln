@@ -3,7 +3,7 @@
 (load "library/replication")
 (load "library/utilities")
 
-(trigger* {sandbox (list ?temp-process {?final-response-channel})}
+(trigger* {sandbox {process ?temp-process} {rc {?final-response-channel}}}
   (new (sandbox response)
     (trigger (down {response ?result})
       (trigger [sandbox ?completed-process] null)
@@ -11,3 +11,7 @@
     [sandbox (trigger (down {final-response-channel ?result})
                {response result})
              [sandbox temp-process]]))
+
+;; deprecated
+(trigger* {sandbox (tup ?temp-process {?final-response-channel})}
+  {sandbox {process temp-process} {rc {final-response-channel}}})

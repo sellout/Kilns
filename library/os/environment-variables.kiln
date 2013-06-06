@@ -5,7 +5,7 @@
 
 ;;; This should give the illusion that these variables work the same as "normal"
 ;;; variables, IE
-;;; 
+;;;
 ;;; (trigger (up {environment {PATH ?value}}) ...) should work as getenv("PATH")
 
 (new (get-environment-variable
@@ -13,28 +13,28 @@
       unset-environment-variable)
   ;; initialize the environment
   (new var
-    {items-from-list (list (lisp (cl:let (symbols)
-                                   (cl:maphash (cl:lambda (key value)
-                                                 (cl:declare (cl:ignore value))
-                                                 (cl:push key symbols))
-                                               (iolib.os::environment-variables
-                                                (iolib.os:environment)))
-                                   symbols))
-                           {var}
-                           null)}
+    {items-from-list (tup (lisp (cl:let (symbols)
+                                  (cl:maphash (cl:lambda (key value)
+                                                (cl:declare (cl:ignore value))
+                                                (cl:push key symbols))
+                                              (iolib.os::environment-variables
+                                               (iolib.os:environment)))
+                                  symbols))
+                          {var}
+                          null)}
     (trigger* {var ?name}
       {get-environment-variable (lisp (message (cl:intern name)))}))
 
   ;; set an environment variable
   (trigger* (down {environment {?variable-name ?value}})
-    {= (list value null
-             {unset-environment-variable {variable-name}
-                                         (trigger {environment {variable-name _}}
-                                           null)}
-             {set-environment-variable {variable-name value}
-                                       (trigger {environment {variable-name _}}
-                                         null)})})
-      
+    {= (tup value null
+            {unset-environment-variable {variable-name}
+                                        (trigger {environment {variable-name _}}
+                                          null)}
+            {set-environment-variable {variable-name value}
+                                      (trigger {environment {variable-name _}}
+                                        null)})})
+
   ;; private API that directly accesses the environment
 
   (load "library/simple-components")
@@ -44,10 +44,10 @@
     (new env
       {env (lisp (iolib.os:environment-variable (cl:string 'name)))}
       (trigger {env ?value}
-        {if (list value
-                  (cont {environment {name value}}
-                        {get-environment-variable {name}})
-                  null)})))
+        {if (tup value
+                 (cont {environment {name value}}
+                       {get-environment-variable {name}})
+                 null)})))
 
   (trigger* {set-environment-variable {?name ?value}}
     (lisp (cl:setf (iolib.os:environment-variable (cl:string 'name)) value)

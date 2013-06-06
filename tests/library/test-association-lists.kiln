@@ -4,35 +4,35 @@
              {test (new list
                      (load "library/association-lists")
                      {new-list {list}}
-                     (trigger {list (list {?l-op} {?get} {?set} {?rem})}
-                       {l-op (list {get (list {foo} {rc} {rc "failed"})}
-                                   {rc})}))}
+                     (trigger {list (tup {?l-op} {?get} {?set} {?rem})}
+                       {l-op (tup {get (tup {foo} {rc} {rc "failed"})}
+                                  {rc})}))}
              {expected-result {rc "failed"}}}
 
 {test-result {should {get-after-set}}
              {test (new list
                      (load "library/association-lists")
                      {new-list {list}}
-                     (trigger {list (list {?l-op} {?get} {?set} {?rem})}
-                       {l-op (list {set (list {foo} "bar"
-                                              {get (list {foo}
-                                                         {rc}
-                                                         {rc "failed to get"})})}
-                                   {rc})}))}
+                     (trigger {list (tup {?l-op} {?get} {?set} {?rem})}
+                       {l-op (tup {set (tup {foo} "bar"
+                                            {get (tup {foo}
+                                                      {rc}
+                                                      {rc "failed to get"})})}
+                                  {rc})}))}
              {expected-result {rc "bar"}}}
 
 {test-result {should {fail-to-get-after-rem}}
              {test (new list
                      (load "library/association-lists")
                      {new-list {list}}
-                     (trigger {list (list {?l-op} {?get} {?set} {?rem})}
-                       {l-op (list (par {set (list {foo} "bar"
-                                                   {rem (list {foo}
-                                                              {removed}
-                                                              {rc "failed to rem"})})}
-                                        (trigger {removed ?x}
-                                                 {get (list {foo}
-                                                            {rc}
-                                                            {rc "failed to get"})}))
-                                   {rc})}))}
+                     (trigger {list (tup {?l-op} {?get} {?set} {?rem})}
+                       {l-op (tup (par {set (tup {foo} "bar"
+                                                 {rem (tup {foo}
+                                                           {removed}
+                                                           {rc "failed to rem"})})}
+                                       (trigger {removed ?x}
+                                                {get (tup {foo}
+                                                          {rc}
+                                                          {rc "failed to get"})}))
+                                  {rc})}))}
              {expected-result {rc "failed to get"}}}

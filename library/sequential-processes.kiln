@@ -1,10 +1,18 @@
 ;;; An attempt at being able to define serial (as opposed to parallel) process
 ;;; composition.
 
-(def (ser2 process1 process2)
-     `(new done
-           (par ,process1
-                (trigger {done} ,process2))))
+
+;; This is a like >> on the identity monad
+(trigger* {serialize {cons {car ?proc} {cdr ?procs}}}
+  proc
+  (trigger {done} process2))
+(trigger* {serialize {nil}}
+  null)
+
+(define (ser2 ?process1 ?process2)
+  (new done
+    process1
+    (trigger {done} process2)))
 
 ;; Similar to `par`, but defines a sequence of operations to perform in order.
 ;; Each process must indicate its completion by signaling over `done`.

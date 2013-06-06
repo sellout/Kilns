@@ -2,5 +2,5 @@
 
 ;;; FIXME: should be able to do this without going down to lisp
 
-(trigger* {concatenate (list ?sequence1 ?sequence2 {?rc}) up}
-          {component-out {rc (lisp (cl:append #.?sequence1 #.?sequence2))}})
+(trigger* (up {concatenate (tup ?sequence1 ?sequence2 {?rc})})
+  {component-out {rc (lisp (cl:append sequence1 sequence2))}})

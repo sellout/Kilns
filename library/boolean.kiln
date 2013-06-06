@@ -1,39 +1,39 @@
 (load "library/replication")
 (load "library/utilities")
 
-(trigger* {true (list ?true _) up} {component-out true})
-(trigger* {false (list _ ?false) up} {component-out false})
+(trigger* {true (tup ?true _) up} {component-out true})
+(trigger* {false (tup _ ?false) up} {component-out false})
 
 (define (true {?channel})
-    (trigger* {channel (list ?true _)} true))
+  (trigger* {channel (tup ?true _)} true))
 (define (false {?channel})
-    (trigger* {channel (list _ ?false)} false))
+  (trigger* {channel (tup _ ?false)} false))
 
-(def (negate {?channel} {?negchan})
-  `(trigger* {negchan (list ?true ?false)}
-             {channel (list false true)}))
+(define (negate {?channel} {?negchan})
+  (trigger* {negchan (tup ?true ?false)}
+    {channel (tup false true)}))
 
 (define (and {?chan1} {?chan2} {?andchan})
-    `(trigger* {andchan (list ?true ?false)}
-               {chan1 (list {chan2 (list true false)} false)}))
+  (trigger* {andchan (tup ?true ?false)}
+    {chan1 (tup {chan2 (tup true false)} false)}))
 
 (define (or {?chan1} {?chan2} {?orchan})
-    (trigger* {orchan (list ?true ?false)}
-              {chan1 (list true {chan2 (list true false)})}))
+  (trigger* {orchan (tup ?true ?false)}
+    {chan1 (tup true {chan2 (tup true false)})}))
 
 (define (xor {?chan1} {?chan2} {?xorchan})
-    (trigger* {xorchan (list ?true ?false)}
-              {chan1 (list {chan2 (list false true)}
-                           {chan2 (list true false)})}))
+  (trigger* {xorchan (tup ?true ?false)}
+    {chan1 (tup {chan2 (tup false true)}
+                {chan2 (tup true false)})}))
 
 #|
 (new result
-     (par {zerop (list x {result {true}} {result {false}})}
-          {< (list x y {result {true}} {result {false}})}
-          (trigger (par {result {true}} {result {true}})
-                   {both-are-true})
-          ;; NOTE: drop {result _} to get a possibly-faster match, but it means there is
-          ;;       garbage left afterward (use sandbox to fix that)
-          (trigger (par {result {false}} {result _})
-                   {at least one was false})))
+  {zerop (tup x {result {true}} {result {false}})}
+  {< (tup x y {result {true}} {result {false}})}
+  (trigger (par {result {true}} {result {true}})
+    {both-are-true})
+  ;; NOTE: drop {result _} to get a possibly-faster match, but it means there is
+  ;;       garbage left afterward (use sandbox to fix that)
+  (trigger (par {result {false}} {result _})
+    {at least one was false}))
 |#

@@ -5,18 +5,18 @@
 {include-component "library/identity"}
 
 ;;; files are represented as messages: {usr {local {share {test}}}}
-(trigger* {convert-file-to-string (list {?head ?path} {?rc}) up}
-          {= (list ?path null
-                   {rc "/"}
-                   (new string
-                        (par {component-local {convert-file-to-string (list ?path
-                                                                            {string})}}
-                             (trigger {string ?string}
-                                      ;; FIXME: concatenate only takes 2 args
-                                      {concatenate (list ?head "/" ?string {rc})}))))})
+(trigger* (up {convert-file-to-string (tup {?head ?path} {?rc})})
+  {= (tup path null
+          ;; FIXME: `channel-name` should return the name of a channel as a
+          ;;        string
+          {channel-name (tup {head} {rc})}
+          (new string
+            {component-local {convert-file-to-string (tup path {string})}}
+               (trigger {string ?string}
+                 ;; FIXME: concatenate only takes 2 args
+                 {concatenate (tup head "/" string {rc})})))})
 
-(trigger* {open-file (list ?path {?stream}) up}
-          (new string-path
-               (par {component-local {convert-file-to-string (list ?path {string-path})}}
-                    (trigger {string-path ?sp}
-                             {?stream (lisp (cl:open ?sp))}))))
+(trigger* (up {open-file (tup ?path {?stream})})
+  (new string-path
+    {component-local {convert-file-to-string (tup path {string-path})}}
+    (trigger {string-path ?sp} {stream (lisp (cl:open #.?sp))})))

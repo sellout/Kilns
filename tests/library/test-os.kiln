@@ -11,5 +11,5 @@
                          (trigger* (up {os ?message}) message)
                          {os {time {got-time}}}
                          (trigger {got-time ?time}
-                           {<= (list 3524182123 time {rc {t}} {rc {f}})})]}
+                           {<= (tup 3524182123 time {rc {t}} {rc {f}})})]}
              {expected-result {rc {t}}}}

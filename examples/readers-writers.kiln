@@ -3,23 +3,23 @@
 {include-component "library/math"}
 
 (trigger {run-readers-writers}
-         (new (no-writers readers)
-              {no-writers}
-              {readers 0}
+  (new (no-writers readers)
+    {no-writers}
+    {readers 0}
 
-              ;; writer
-              (trigger* (par {no-writers} {readers 0})
-                        {readers 0}
-                        ;; FIXME: This continuation isn't quite good enough, it
-                        ;;        fires when the write message is matched, not
-                        ;;        when the operation is complete.
-                        (cont {write "message"} {no-writers}))
+    ;; writer
+    (trigger* (par {no-writers} {readers 0})
+      {readers 0}
+      ;; FIXME: This continuation isn't quite good enough, it
+      ;;        fires when the write message is matched, not
+      ;;        when the operation is complete.
+      (cont {write "message"} {no-writers}))
 
-              ;; reader
-              (trigger* (par {no-writers} {readers ?count})
-                        {+ (list count 1 {readers})}
-                        {no-writers}
-                        {read {message}}
-                        (trigger (par {message ?message} {readers ?count})
-                                 {echo message}
-                                 {- (list count 1 {readers})}))))
+    ;; reader
+    (trigger* (par {no-writers} {readers ?count})
+      {+ (tup count 1 {readers})}
+      {no-writers}
+      {read {message}}
+      (trigger (par {message ?message} {readers ?count})
+        {echo message}
+        {- (tup count 1 {readers})}))))

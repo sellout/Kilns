@@ -33,26 +33,21 @@
 ;;; compositions of localities and network messages of the form a␣M␣, and
 ;;; where M are local messages of the form u␣Ṽ␣, with u a channel name, V a
 ;;; value, which can be either a name or a process):
-;;; 
+;;;
 ;;; The auxiliary processes MS(a), MP(a) and Env are defined as follows (note
 ;;; that they allow the incoming of messages from the outside—environment of
 ;;; the locality or the control process S —and from the inside—the plain
 ;;; process P):
 
-(def (MS a)
-  `(parallel-composition
-    (trigger* (message 'in (list (message ',a) (process-variable 'x)) 'up)
-              (process-variable 'x))
-    (trigger* (message 'up (process-variable 'x) 'down) (process-variable 'x))))
+(define (MS {?a})
+  (trigger* (up {in (tup {a} ?x)}) x)
+  (trigger* (down {up ?x}) x))
 
-(def (MP a)
-  `(trigger* (message 'in (list (message ',a) (process-variable 'x)) 'up)
-             (process-variable 'x)))
+(define (MP {?a})
+  (trigger* (up {in (tup {a} ?x)} x)))
 
-(def (Env)
-  `(trigger* (message 'out (list (message (name-variable 'b)) (process-variable 'x))
-                      'down)
-             (message 'in (list (message (name-variable 'b)) (process-variable 'x)))))
+(define (Env)
+  (trigger* (down {out (tup {?b} ?x)}) {in (tup {b} x)}))
 
 ;;; As one can see, the notion of membrane readily translates into a pair of
 ;;; nested kells, with the outer one containing an encoding of the control part,

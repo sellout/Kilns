@@ -1,16 +1,14 @@
 (load "library/replication")
 (load "library/utilities")
 
-(trigger* (up {< (list ?proc1 ?proc2 ?true ?false)})
-          (lisp (cl:if (cl:< proc1 proc2)
-                       {component-out true}
-                       {component-out false})))
+(trigger* (up {< (tup ?proc1 ?proc2 ?true ?false)})
+  (lisp (cl:if (cl:< proc1 proc2) {component-out true} {component-out false})))
 
-(trigger* (up {> (list ?proc1 ?proc2 ?true ?false)})
-          {component-local {< (list proc2 proc1 true false)}})
+(trigger* (up {> (tup ?proc1 ?proc2 ?true ?false)})
+  {component-local {< (tup proc2 proc1 true false)}})
 
-(trigger* (up {>= (list ?proc1 ?proc2 ?true ?false)})
-          {component-local {< (list proc1 proc2 false true)}})
+(trigger* (up {>= (tup ?proc1 ?proc2 ?true ?false)})
+  {component-local {< (tup proc1 proc2 false true)}})
 
-(trigger* (up {<= (list ?proc1 ?proc2 ?true ?false)})
-          {component-local {< (list proc2 proc1 false true)}})
+(trigger* (up {<= (tup ?proc1 ?proc2 ?true ?false)})
+  {component-local {< (tup proc2 proc1 false true)}})

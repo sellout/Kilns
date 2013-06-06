@@ -1,9 +1,9 @@
 ;;; The Y combinator
 (define (Y ?process ?pattern {?u})
   (trigger (par pattern {u ?y})
-           process
-           y
-           {u y}))
+    process
+    y
+    {u y}))
 
 ;;; A replicating trigger
 (define (trigger* ?pattern ?process)

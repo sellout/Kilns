@@ -671,7 +671,11 @@
                               collecting value))))
       (eval `(par ,@processes)))))
 
-(defglobal list (&rest processes) nil
+;; We could get rid of these if Kilns’ macro system had something like &rest,
+;; or if we had some syntax for lists (which could maybe be added via the
+;; parser / reader macro system).
+
+(defglobal tup (&rest processes) nil
   (let ((index 0))
     (apply #'parallel-composition
            (mapcar (lambda (process)
@@ -679,3 +683,18 @@
                                     :name (find-or-add-global-name (incf index))
                                     :argument process))
                    processes))))
+
+(defglobal list (&rest processes) nil
+  (labels ((make-list (processes)
+             (if processes
+                 (make-instance 'message
+                                :name (find-or-add-global-name 'cons)
+                                :argument (compose (make-instance 'message
+                                                                  :name (find-or-add-global-name 'car)
+                                                                  :argument (car processes))
+                                                   (make-instance 'message
+                                                                  :name (find-or-add-global-name 'cdr)
+                                                                  :argument (make-list (cdr processes)))))
+                 (make-instance 'message
+                                :name (find-or-add-global-name 'nil)))))
+    (make-list processes)))

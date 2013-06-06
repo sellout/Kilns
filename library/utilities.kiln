@@ -1,9 +1,12 @@
-;;; This is an ugly little thing that uses way too much CL to give us a list
-;;; shorthand. You can write (list ?x ?y) and it will expand into
+;;; This comes from “the paper”, where it is called `list`. However, it is
+;;; actually closer to a product, tuple, or limit, so we call it `tup`.
+
+;;; This is an ugly little thing that uses way too much CL to give us a tuple
+;;; shorthand. You can write (tup ?x ?y) and it will expand into
 ;;; (par {1 ?x} {2 ?y}).
 
 #|
-(def (list cl:&rest processes)
+(def (tup cl:&rest processes)
   `(cl:let ((index 0))
      (cl:apply #'parallel-composition
                (cl:mapcar (cl:lambda (process)
@@ -20,13 +23,36 @@
 (load "library/simple-components")
 {include-component "library/lisp-ffi"}
 
-(def (list cl:&rest processes)
+(def (tup cl:&rest processes)
      (new (item nil index result)
-          (par {items-from-list (list `,processes {item} {nil})}
+          (par {items-from-list (tup `,processes {item} {nil})}
                {natural-numbers {index}}
                {result null}
                (trigger* (par {item ?item} {index ?index} {result ?current})
                          {result (par ?current {index ?item})})
                (trigger (par {nil} {result ?final})
                         {here-is-what-we-want-to-expand-to ?final}))))
+
+
+;; This requires something like &REST, but if it’s created as a reader macro /
+;; parser, then we may be able to get around that.
+(define (list process cl:&rest processes)
+  {cons {car process} {cdr (list processes)}}
 |#
+
+;; Converts a list to a tuple. Useful once we have list syntax in order to
+;; build tuple syntax.
+(trigger* {tuplize (tup ?list {?rc})}
+  {sandbox (tup (new tpz
+                  (trigger* {tpz (tup {cons {car ?proc} {cdr ?procs}}
+                                      ?index
+                                      {?irc})}
+                    (new (s rc1)
+                      {succ (tup index {s})}
+                      (trigger {s ?succ}
+                        {tpz (tup procs succ {rc1})})
+                      (trigger {rc1 ?tuple}
+                        {irc {index proc} tuple})))
+                  (trigger* {tpz (tup {nil} _ {?irc})} {irc null})
+                  {tpz (tup list 1 {rc})})
+                {rc})})

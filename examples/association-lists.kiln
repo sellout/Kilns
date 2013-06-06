@@ -1,69 +1,60 @@
 (load "library/association-lists")
 (load "library/simple-components")
-{load-component (par {filename "library/simple-io"} {prefix {io}})}
+{load-component {filename "library/simple-io"} {prefix {io}}}
 
 ;;; general structure of list requests
 #|
 (new (list)
-     ;; request a fresh list
-     (par {new-list {list}}
-          ;; receive the operations for the list
-          (trigger {list (list {?l-op} {?get} {?set} {?rem})}
-                   ;; all operations must occur within an l-op
-                   {l-op (list (par {set (list {key} "value" continuation)}
-                                    {get (list {key} {result-channel} fail-cont)}
-                                    {rem (list {key} {result-channel} fail-cont)})
-                               {result-channel})})))
+  ;; request a fresh list
+  {new-list {list}}
+  ;; receive the operations for the list
+  (trigger {list (tup {?l-op} {?get} {?set} {?rem})}
+    ;; all operations must occur within an l-op
+    {l-op (tup (par {set (tup {key} "value" continuation)}
+                    {get (tup {key} {result-channel} fail-cont)}
+                    {rem (tup {key} {result-channel} fail-cont)})
+               {result-channel})}))
 |#
 
 ;;; defining and using a new operation
 (new (list)
-     (par {new-list {list}}
-          (trigger {list (list {?l-op} {?get} {?set} {?rem})}
-                   ;; define a new operation that adds a value to a key only if the key
-                   ;; is not already present
-                   (par (trigger* {add (list {?key} ?value {?ok} {?fail})}
-                                  (new k
-                                       (par {l-op (list (par {get (list {key}
-                                                                        {fail}
-                                                                        {set (list {key}
-                                                                                   ?value
-                                                                                   {k {ok}})})}
-                                                                   (trigger {fail ?y} {k {fail ?y}}))
-                                                        {k})}
-                                            (trigger {k ?z} ?z))))
-                        ;; test the new operation
-                        (new (ok exists done res)
-                             ;; add {test "it worked"} to the alist, sending on channel
-                             ;; `ok` if it succeeded, and on channel `exists` if it
-                             ;; failed
-                             (par {add (list {test} "it worked" {ok} {exists})}
-                                  (trigger {ok _}
-                                           ;; try adding the same key again, which
-                                           ;; should fail
-                                           {add (list {test}
-                                                      "double add"
-                                                      {done}
-                                                      {done})})
-                                  (trigger {exists _} {io {echo "already exists"}})
-                                  (trigger {done _}
-                                           ;; lookup the key, sending either the value
-                                           ;; or "key is missing" over channel `res`
-                                           {?l-op (list {?get (list {test}
-                                                                    {res}
-                                                                    {res "key is missing"})}
-                                                        {res})})
-                                  (trigger {res ?value} {io {echo ?value}})))))))
+  {new-list {list}}
+  (trigger {list (tup {?l-op} {?get} {?set} {?rem})}
+    ;; define a new operation that adds a value to a key only if the key
+    ;; is not already present
+    (trigger* {add (tup {?key} ?value {?ok} {?fail})}
+      (new k
+        {l-op (tup (par {get (tup {key}
+                                  {fail}
+                                  {set (tup {key} ?value {k {ok}})})}
+                        (trigger {fail ?y} {k {fail ?y}}))
+                   {k})}
+        (trigger {k ?z} ?z)))
+        ;; test the new operation
 
-;;; This may print "success" or "failed", depending on whether the set operations are
-;;; executed before the get
+        (new (ok exists done res)
+          ;; add {test "it worked"} to the alist, sending on channel
+          ;; `ok` if it succeeded, and on channel `exists` if it
+          ;; failed
+          {add (tup {test} "it worked" {ok} {exists})}
+          (trigger {ok _}
+            ;; try adding the same key again, which should fail
+            {add (tup {test} "double add" {done} {done})})
+          (trigger {exists _} {io {echo "already exists"}})
+          (trigger {done _}
+            ;; lookup the key, sending either the value
+            ;; or "key is missing" over channel `res`
+            {?l-op (tup {?get (tup {test} {res} {res "key is missing"})}
+                        {res})})
+          (trigger {res ?value} {io {echo ?value}}))))
+
+;;; This may print "success" or "failed", depending on whether the set
+;;; operations are executed before the get
 (new (list result k)
-     (par {new-list {list}}
-          (trigger {list (list {?l-op} {?get} {?set} {?rem})}
-                   (par {l-op (list (par {set (list {foo} "success" null)}
-                                         {set (list {bar} "extra" null)}
-                                         {get (list {foo}
-                                                    {result}
-                                                    {result "failed"})})
-                                     {result})}
-                        (trigger {result ?r} {io {echo ?r}})))))
+  {new-list {list}}
+  (trigger {list (tup {?l-op} {?get} {?set} {?rem})}
+    {l-op (tup (par {set (tup {foo} "success" null)}
+                    {set (tup {bar} "extra" null)}
+                    {get (tup {foo} {result} {result "failed"})})
+               {result})}
+    (trigger {result ?r} {io {echo ?r}})))

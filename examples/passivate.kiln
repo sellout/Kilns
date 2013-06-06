@@ -6,13 +6,13 @@
 {include-component "library/simple-io"}
 
 (new (a signal sigup)
-     (par [a (par (load "library/simple-components")
-                  {include-component "library/math"}
-                  (trigger* {signal ?i}
-                            (par {+ (list ?i 1 {signal})}
-                                 {sigup ?i}))
-                  {signal 0})]
-          (trigger* {sigup ?i down}
-                    {= (list ?i 10
-                             (trigger [a ?ignore] null)
-                             {echo ?i})})))
+  [a (load "library/simple-components")
+     {include-component "library/math"}
+     (trigger* {signal ?i}
+       {+ (tup ?i 1 {signal})}
+       {sigup ?i})
+     {signal 0}]
+  (trigger* {sigup ?i down}
+    {= (tup ?i 10
+            (trigger [a ?ignore] null)
+            {echo ?i})}))

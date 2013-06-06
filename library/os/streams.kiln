@@ -3,50 +3,49 @@
 (load "library/simple-components")
 {include-component "library/ordering"}
 
-(trigger* {read-byte (list ?stream {?rc})}
-          {rc (lisp (cl:read-byte stream))})
+(trigger* {read-byte (tup ?stream {?rc})}
+  {rc (lisp (cl:read-byte stream))})
 
 ;; FIXME: need to have an associative array to do lookups for each encoding
-(trigger* {character-for-codepoint (list ?codepoint {ascii} {?rc})}
-          {>= (list ?codepoint 128
-                    {rc {error}}
-                    {rc (lisp (cl:code-char codepoint))})})
+(trigger* {character-for-codepoint (tup ?codepoint {ascii} {?rc})}
+  {>= (tup codepoint 128
+           {rc {error}}
+           {rc (lisp (cl:code-char codepoint))})})
 
-(trigger* {read-char (list ?stream ?encoding {?rc})}
-          (new byte
-               (par {read-byte (list ?stream {byte})}
-                    (trigger {byte ?value}
-                             {character-for-codepoint (list ?value ?encoding
-                                                            {rc})}))))
+(trigger* {read-char (tup ?stream ?encoding {?rc})}
+  (new byte
+    {read-byte (tup stream {byte})}
+    (trigger {byte ?value}
+      {character-for-codepoint (tup value encoding {rc})})))
 
-(trigger* {read-item (list {object ?stream} {?rc})}
-          {read-byte (list {object ?stream} {rc})})
-(trigger* {read-item (list (par {object ?stream} {encoding ?enc}) {?rc})}
-          {read-char (list (par {object ?stream} {encoding ?enc}) {rc})})
+(trigger* {read-item (tup {object ?stream} {?rc})}
+  {read-byte (tup {object stream} {rc})})
+(trigger* {read-item (tup (par {object ?stream} {encoding ?enc}) {?rc})}
+  {read-char (tup (par {object stream} {encoding enc}) {rc})})
 
-(trigger* {open (par {pathname ?path} {direction ?dir} {stream {?rc}})}
-          {rc {object (lisp (cl:open path
-                                     :direction direction
-                                     :element-type 'cl:unsigned-byte))}})
-(trigger* {open (par {pathname ?path} {direction ?dir} {encoding ?enc}
-                     {stream {?rc}})}
-          {rc (par {object (lisp (cl:open path
-                                          :direction direction
-                                          :element-type 'cl:character))}
-                   {encoding ?enc})})
+(trigger* {open {pathname ?path} {direction ?dir} {stream {?rc}}}
+  {rc {object (lisp (cl:open path
+                             :direction dir
+                             :element-type 'cl:unsigned-byte))}})
+(trigger* {open {pathname ?path} {direction ?dir} {encoding ?enc}
+                {stream {?rc}}}
+  {rc {object (lisp (cl:open path
+                             :direction dir
+                             :element-type 'cl:character))}
+      {encoding enc}})
 
-(trigger* {read-sequence (list ?stream {?rc})}
-          {read-item (list ?stream {rc}) {read-sequence (list ?stream {rc})}})
+(trigger* {read-sequence (tup ?stream {?rc})}
+  (cont {read-item (tup stream {rc})} {read-sequence (tup ?stream {rc})}))
 
 #|
 {include-component "library/streams"}
 
 (new listen
-     (par {new-input-stream (par {source "some-file"} {listener {listen}})}
-          (trigger* {listen ?contents}
-                    #|do something with contents|#)))
+  {new-input-stream {source "some-file"} {listener {listen}}}
+  (trigger* {listen ?contents}
+    #|do something with contents|#))
 
 (new write
-     (par {new-output-stream (par {destination "some-file"} {writer {write}})}
-          {write "testing writing to stream"}))
+  {new-output-stream {destination "some-file"} {writer {write}}}
+  {write "testing writing to stream"})
 |#

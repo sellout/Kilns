@@ -6,17 +6,17 @@
 {test-result {should {add}}
              {test (load "library/simple-components")
                    {include-component "library/math"}
-                   {+ (list 2 4 {rc})}}
+                   {+ (tup 2 4 {rc})}}
              {expected-result {rc 6}}}
 
 {test-result {should {remainder}}
              {test (load "library/simple-components")
                    {include-component "library/math"}
-                   {remainder (list 7 3 {rc})}}
+                   {remainder (tup 7 3 {rc})}}
              {expected-result {rc 1}}}
 
 {test-result {should {modulus}}
              {test (load "library/simple-components")
                    {include-component "library/math"}
-                   {modulus (list 7 3 {rc})}}
+                   {modulus (tup 7 3 {rc})}}
              {expected-result {rc 1}}}

@@ -1,17 +1,17 @@
-(def (null-ref ref-chan)
-    `(trigger {,ref-chan (list {?null} {?c})}
-              {c ?null (nullref ,ref-chan)}))
+(define (null-ref {?ref-chan})
+  (trigger {ref-chan (tup {null} {?c})}
+    (cont {c {null}} (null-ref {ref-chan}))))
 
-(def (ref ref-chan value)
-    `(trigger {,ref-chan (list {?n} {?c})}
-              {c ,value (ref ,ref-chan ,value)}))
+(define (ref {?ref-chan} ?value)
+  (trigger {ref-chan (tup {?n} {?c})}
+    (cont {c value} (ref {ref-chan} value))))
 
-(def (nullify process)
-    `({?r}
-      (new (n c)
-           {r (list {n} {c}) {n null ,process}})))
+(def (nullify ?process)
+  ({?r}
+   (new (n c)
+     {r (tup {n} {c}) {n null process}})))
 
-(def (assign process)
-    `((list {?r} ?v)
-      (new (n c)
-           {r (list {n} {c}) {c ?v ,process}})))
+(def (assign ?process)
+  ((tup {?r} ?v)
+   (new (n c)
+     {r (list {n} {c}) {c ?v process}})))

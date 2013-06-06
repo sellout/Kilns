@@ -40,14 +40,14 @@ and identified by the `-k` option on the command line)
            ;; this is the process – it receives a message on the `signal`
            ;; channel and …
            (trigger* {signal ?i}
-             {= (list i 5 ;; if it’s `5`, send the `move` message and increment
-                      (par {move}
-                           {+ (list i 1 {signal})})
-                      {= (list i 10 ;; if it’s 10, stop processing
-                               null
-                               ;; otherwise, print the signal and increment
-                               (par {echo i}
-                                    {+ (list i 1 {signal})}))})})
+             {= (tup i 5 ;; if it’s `5`, send the `move` message and increment
+                     (par {move}
+                          {+ (tup i 1 {signal})})
+                     {= (tup i 10 ;; if it’s 10, stop processing
+                             null
+                             ;; otherwise, print the signal and increment
+                             (par {echo i}
+                                  {+ (tup i 1 {signal})}))})})
            ;; send the initial signal
            {signal 0}]
         ;; receive the `move` message and pack up the process to send to the
@@ -57,7 +57,6 @@ and identified by the `-k` option on the command line)
 
 ;; pull the packed-up process out of the client and put it on the network
 (trigger* (down {transfer ?proc}) {transfer proc})
-
 
 [server ;; grab the packed-up process off the network, and start it again on
         ;; the server

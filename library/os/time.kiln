@@ -19,38 +19,38 @@
 ;;; • tzset
 
 (trigger* (up {clock {?rc}})
-          (lisp (cl:let ((time (cl:get-internal-real-time)))
-                  (substitute-variables (time)
-                    {component-out {rc time}}))))
+  (lisp (cl:let ((time (cl:get-internal-real-time)))
+          (substitute-variables (time)
+            {component-out {rc time}}))))
 
 #|
-(trigger* (up {clock-get-cpu-clock-id (list ?pid {?rc})})
-          {component-out {rc (lisp (ccl:clock-get-cpu-clock-id pid))}})
+(trigger* (up {clock-get-cpu-clock-id (tup ?pid {?rc})})
+  {component-out {rc (lisp (ccl:clock-get-cpu-clock-id pid))}})
 |#
 
-(trigger* (up {clock-get-res (list ?clock-id {?rc})})
-          (lisp (cl:let ((tups (lisp cl:internal-time-units-per-second)))
-                  (substitute-variables (tups)
-                    {component-out {rc tups}}))))
+(trigger* (up {clock-get-res (tup ?clock-id {?rc})})
+  (lisp (cl:let ((tups (lisp cl:internal-time-units-per-second)))
+          (substitute-variables (tups)
+            {component-out {rc tups}}))))
 
-(trigger* (up {clock-get-time (list ?clock-id {?rc})})
-          (lisp (cl:let ((time (cl:get-internal-real-time)))
-                  (substitute-variables (time)
-                    {component-out {rc time}}))))
+(trigger* (up {clock-get-time (tup ?clock-id {?rc})})
+  (lisp (cl:let ((time (cl:get-internal-real-time)))
+          (substitute-variables (time)
+            {component-out {rc time}}))))
 
 #|
-(trigger* (up {clock-set-time (list ?clock-id ?new-time)})
-          (lisp (ccl:clock-set-time clock-id new-time)))
+(trigger* (up {clock-set-time (tup ?clock-id ?new-time)})
+  (lisp (ccl:clock-set-time clock-id new-time)))
 |#
 
 ;; FIXME: somehow make it possible to expose the time remaining
 ;; FIXME: should we run this in a thread reserved for sleeping, or is there some
 ;;        other way to delay something, that doesn't involve blocking a thread?
 (trigger* (up {sleep {seconds ?seconds} {then ?process}})
-          (lisp (cl:sleep seconds)
-                {component-out process}))
+  (lisp (cl:sleep seconds)
+        {component-out process}))
 
 (trigger* (up {time {?rc}})
-          (lisp (cl:let ((time (cl:get-universal-time)))
-                  (substitute-variables (time)
-                    {component-out {rc time}}))))
+  (lisp (cl:let ((time (cl:get-universal-time)))
+          (substitute-variables (time)
+            {component-out {rc time}}))))

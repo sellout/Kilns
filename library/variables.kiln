@@ -5,45 +5,53 @@
 ;;; Calculus”
 
 (trigger* {var {?name ?value}}
-          (trigger {name (list {?r} {?u})}
-                   (new (q t c)
-                        (par [q (trigger {r {?rc}}
-                                         (par {stop {t}}
-                                              {rc ?value}
-                                              {c {name ?value}}))]
-                             [t (trigger {u ?newval}
-                                         (par {stop {q}} {c {name ?newval}}))]
-                             (trigger {c {?n ?val} down} {var {n ?val}})))))
+  (trigger {name (tup {?r} {?u})}
+    (new (q t c)
+      [q (trigger {r {?rc}}
+           {stop {t}} {rc ?value} {c {name value}})]
+      [t (trigger {u ?newval}
+           {stop {q}} {c {name ?newval}})]
+      (trigger (down {c {?n ?val}}) {var {n val}}))))
 
 (trigger* {set {?name ?value}}
-          (new (r u) (par {name (list {r} {u})} {u ?value})))
-(trigger* {get (list {?name} {?rc})}
-          (new (r u) (par {name (list {r} {u})} {r {?rc}})))
+  (new (r u)
+    {name (tup {r} {u})}
+    {u ?value}))
+
+(trigger* {get (tup {?name} {?rc})}
+  (new (r u)
+    {name (tup {r} {u})}
+    {r {?rc}}))
 
 ;;; Below is a possible shorthand sequence for when you are getting a value to
 ;;; then use in a process
 ;;;
-;;; (@ get (list {v2}) ?value {set {v1 ?value}})
+;;; (@ get (tup {v2}) ?value {set {v1 ?value}})
 ;;; =>
 ;;; (new rc
-;;;      (par {get (list {v2} {rc})}
+;;;      (par {get (tup {v2} {rc})}
 ;;;           (trigger {rc ?value} {set {v1 ?value}})))
 
 (new rc
-     (def (@ channel parameters values process)
-         `(new rc
-               (par {,channel (list ,@parameters {rc})}
-                    (trigger {rc ,values} ,process))))
+  (def (@ channel parameters values process)
+    `(new rc
+       {,channel (tup ,@parameters {rc})}
+       (trigger {rc ,values} ,process)))
 
-     (def (@* channel parameters values process)
-         `(new rc
-               (par {,channel (list ,@parameters {rc})}
-                    (trigger* {rc ,values} ,process)))))
+  (trigger* {@ (tup {?channel} ?parameters ?values ?process)}
+    (new rc
+      {channel (tup parameters {rc})}
+      (trigger {rc values} process)))
+
+  (def (@* channel parameters values process)
+    `(new rc
+       {,channel (tup ,@parameters {rc})}
+       (trigger* {rc ,values} ,process))))
 
 ;;; and an even shorter hand for treating things like they return values
 ;;;
 ;;; (@ set {v1 (@ get {v2})})
 ;;; =>
 ;;; (new rc
-;;;      (par {get (list {v2} {rc})}
-;;;           (trigger {rc ?value} {set {v1 ?value}})))
+;;;   {get (tup {v2} {rc})}
+;;;   (trigger {rc ?value} {set {v1 ?value}}))

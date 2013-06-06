@@ -5,33 +5,31 @@
 ;;; communication.
 
 ;; Continuously read requests off the wire
-(trigger* {read-requests (list ?socket {?rc})}
-          (new process
-               {read (list ?socket {process})}
-               (trigger {process ?request}
-                        {rc (par {client ?socket} {contents ?request})
-                            {read-requests (list ?socket {rc})}})))
+(trigger* {read-requests (tup ?socket {?rc})}
+  (new process
+    {read (tup socket {process})}
+    (trigger {process ?request}
+      (cont {rc {client socket} {contents request}}
+            {read-requests (tup socket {rc})}))))
 
 ;;; open a socket, then just READ everything that comes over the socket
 (new socket
-     {open-socket (list (par {connect :passive}
-                             {address-family :internet}
-                             {type :stream})
-                        {socket})
-     (trigger* {socket ?socket}
-               {read-requests (list ?socket {request})))
+  {open-socket (tup (par {connect :passive}
+                         {address-family :internet}
+                         {type :stream})
+                    {socket})}
+  (trigger* {socket ?socket}
+    {read-requests (tup socket {request})}))
 
 
 
-(trigger* {request (par {client ?client} {contents {keep-alive}})}
-          {write (list {keep-alive} ?client)})
+(trigger* {request {client ?client} {contents {keep-alive}}}
+  {write (tup {keep-alive} client)})
 
-(trigger* {request (par {client ?client}
-                        {contents {handshake (par {path ?path}
-                                                  {version ?version})}})}
-          {= (list ?version "0.0.1"
-                   {write (list {handshake (par {path {some {path}}}
-                                                        {version "0.0.1"})}
-                                ?client)}
-                   {write (list {handshake {error "incompatible version"}}
-                                ?client)})})
+(trigger* {request {client ?client}
+                   {contents {handshake {path ?path} {version ?version}}}}
+  {= (tup version "0.0.1"
+          {write (tup {handshake {path {some {path}}} {version "0.0.1"}}
+                      client)}
+          {write (tup {handshake {error "incompatible version"}}
+                      client)})})
