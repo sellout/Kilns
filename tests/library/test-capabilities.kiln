@@ -12,3 +12,18 @@
                      {authority})
                    {show "foo"}}
              {expected-result {echoed "foo"}}}
+
+;; Any failure of this test would probably only happen ~50% of the time. Not sure
+;; how to guarantee a failure.
+{test-result {should {only-work-with-correct-authority}}
+             {test [requester (trigger (par (up {show ?contents})
+                                            (up {authority ?auth}))
+                                       {echo {contents contents}
+                                             {authority auth}}
+                                       {echo {contents "unauthed"}
+                                             {authority {non-auth}}})]
+                   (create-capability {echo} {contents ?contents}
+                     {echoed contents}
+                     {authority})
+                   {show "foo"}}
+             {expected-result {echoed "foo"}}}
