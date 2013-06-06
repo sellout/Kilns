@@ -2,10 +2,18 @@
 (load "library/calculus/lambda")
 
 {test-result {should {apply-lambda}}
-             {test (apply (lambda (x) x) {rc})}
+             {test (apply (lambda ?x x) {rc})}
              {expected-result {rc}}}
 
 {test-result {should {apply-nested-lambda}}
-             {test (apply (apply (lambda (x) (lambda (y) y)) {rc1})
+             {test (apply (apply (lambda ?x (lambda ?y y)) {rc1})
                           {rc2})}
              {expected-result {rc2}}}
+
+;; FIXME: This test can’t work because we use a trigger to check the result, and
+;;        we can’t match on things not specified in the pattern language.
+;;        IE: hard to check complicated results
+;; {test-result {should {get-successor}}
+;;              {test (apply (lambda ?n (lambda ?f (lambda ?x (apply f (apply (apply n f) x))))) ; succ
+;;                           (lambda ?f (lambda ?x x)))} ; zero
+;;              {expected-result (lambda ?f (lambda ?x (apply f x)))}}
