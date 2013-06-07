@@ -21,55 +21,54 @@
 ;;;       responses in `component-out`, since the local call you're making will
 ;;;       do that itself.
 
+;; `include-component` will allow you to send messages that match those
+;;  triggers directly. EG, if there is a trigger in the component that
+;;  matches "{echo ?string up}", then {echo "test"} will cause a reaction
+;;  with it. This gives you direct access, but you need to be careful that
+;;  the "exported" triggers don't conflict with your own triggers. This is
+;;  similar to :USEing the component in a Common Lisp DEFPACKAGE.
+(trigger* {include-component ?filename}
+  (new component
+    (trigger* (down {component-out ?out})     out)
+    (trigger* (down {component-local ?local}) local)
+    [component (load filename)]))
+
 (new (outer-replace-component outer-remove-component)
+  ;; `load-component` gives you better isolation, but requires that you
+  ;; "qualify" the message with the name of the kell you pass in. Using
+  ;;  the same example as above, if you name the component "io", then
+  ;;  you need to send the message {io {echo "test"}} to cause a
+  ;;  reaction in the component. With this version, you only need to
+  ;;  ensure that {io ...} doesn't conflict with your own triggers.
+  ;;  Nothing the component writer does can interfere with your other
+  ;;  messages and triggers.
+  (trigger* {load-component {filename ?file} {prefix {?pre}}}
+    (new component
+      (trigger* (down {component-out ?out}) out)
+      [component (trigger* (up {pre ?message}) message)
+                 (trigger* (down {component-local ?local}) local)
+                 (trigger* (down {component-out ?out})
+                   {component-out out})
+                 [component (load file)]
+                 (trigger (up {replace-component {prefix {pre}}
+                              {filename ?file}})
+                   {outer-replace-component {filename file}
+                                            {prefix {pre}}
+                                            {component-name {component}}})
+                 (trigger (up {remove-component {pre}})
+                   {outer-remove-component {component}})]))
 
-     ;; `include-component` will allow you to send messages that match those
-     ;;  triggers directly. EG, if there is a trigger in the component that
-     ;;  matches "{echo ?string up}", then {echo "test"} will cause a reaction
-     ;;  with it. This gives you direct access, but you need to be careful that
-     ;;  the "exported" triggers don't conflict with your own triggers. This is
-     ;;  similar to :USEing the component in a Common Lisp DEFPACKAGE.
-     (trigger* {include-component ?filename}
-               (new component
-                    (trigger* (down {component-out ?out})     out)
-                    (trigger* (down {component-local ?local}) local)
-                    [component (load filename)]))
-     ;; `load-component` gives you better isolation, but requires that you
-     ;; "qualify" the message with the name of the kell you pass in. Using
-     ;;  the same example as above, if you name the component "io", then
-     ;;  you need to send the message {io {echo "test"}} to cause a
-     ;;  reaction in the component. With this version, you only need to
-     ;;  ensure that {io ...} doesn't conflict with your own triggers.
-     ;;  Nothing the component writer does can interfere with your other
-     ;;  messages and triggers.     
-     (trigger* {load-component {filename ?file} {prefix {?pre}}}
-               (new component
-                    (trigger* (down {component-out ?out}) out)
-                    [component (trigger* (up {pre ?message}) message)
-                               (trigger* (down {component-local ?local}) local)
-                               (trigger* (down {component-out ?out})
-                                         {component-out out})
-                               [component (load file)]
-                               (trigger (up {replace-component {prefix {pre}}
-                                                               {filename ?file}})
-                                        {outer-replace-component {filename file}
-                                                                 {prefix {pre}}
-                                                                 {component-name {component}}})
-                               (trigger (up {remove-component {pre}})
-                                        {outer-remove-component {component}})]))
-
-     (trigger* (down {outer-replace-component {filename ?file}
-                                              {prefix {?pre}}
-                                              {component-name {?component}}})
-               (trigger [component ?x]
-                        {load-component {filename file} {prefix {pre}}}))
-     (trigger* (down {outer-remove-component {?component}})
-               (trigger [component ?x] null)))
+  (trigger* (down {outer-replace-component {filename ?file}
+                                           {prefix {?pre}}
+                                           {component-name {?component}}})
+    (trigger [component ?x] {load-component {filename file} {prefix {pre}}}))
+  (trigger* (down {outer-remove-component {?component}})
+    (trigger [component ?x] null)))
 
 ;;; With this approach, you can do
 #|
-{load-component (par {prefix {xml}} {filename "xml-component"})}
-{replace-component (par {prefix {xml}} {filename "new-xml-component"})}
+{load-component {prefix {xml}} {filename "xml-component"}}
+{replace-component {prefix {xml}} {filename "new-xml-component"}}
 {remove-component {xml}}
 |#
 
