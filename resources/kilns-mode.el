@@ -12,9 +12,10 @@
 
 (setq kilns-font-lock-keywords
   `((";+" . font-lock-comment-delimiter)
-    (,(regexp-opt '("trigger*" "list" "load" "sandbox") 'words) .
+    (,(regexp-opt '("trigger*" "list" "load" "sandbox" "tup") 'words) .
      font-lock-builtin-face)
-    (,(regexp-opt '("new" "trigger" "up" "down" "par" "def") 'words) .
+    (,(regexp-opt '("new" "trigger" "cont" "up" "down" "par" "def" "define")
+                  'words) .
      font-lock-keyword-face)
     ;; FIXME: shouldn't be highlighting the "(", but can't do lookbehind
     ("(\\w+" . font-lock-function-name-face)
